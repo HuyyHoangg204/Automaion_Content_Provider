@@ -1,0 +1,44 @@
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+docs/SWAGGER_SETUP.md
+
+# Environment files
+.env
+.env.local
+.env.example
+
+# Binaries
+*.exe
+main
+app
+green-anti-detect-browser-backend-v1
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+
+# Logs
+*.log
+
+# Test files
+*_test.go
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Scripts
+scripts/ 
