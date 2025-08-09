@@ -14,7 +14,8 @@ type Box struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relationships
-	User User `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	User User  `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Apps []App `json:"apps,omitempty" gorm:"foreignKey:BoxID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for the Box model
