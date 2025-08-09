@@ -22,3 +22,24 @@ type Box struct {
 func (Box) TableName() string {
 	return "boxes"
 }
+
+// CreateBoxRequest represents the request to create a new box
+type CreateBoxRequest struct {
+	MachineID string `json:"machine_id" binding:"required" example:"PC-001"`
+	Name      string `json:"name" binding:"required" example:"My Computer"`
+}
+
+// UpdateBoxRequest represents the request to update a box
+type UpdateBoxRequest struct {
+	Name string `json:"name" binding:"required" example:"Updated Computer Name"`
+}
+
+// BoxResponse represents the response for box operations
+type BoxResponse struct {
+	ID        uint   `json:"id" example:"1"`
+	UserID    uint   `json:"user_id" example:"1"`
+	MachineID string `json:"machine_id" example:"PC-001"`
+	Name      string `json:"name" example:"My Computer"`
+	CreatedAt string `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+}

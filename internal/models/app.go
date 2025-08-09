@@ -21,3 +21,23 @@ type App struct {
 func (App) TableName() string {
 	return "apps"
 }
+
+// CreateAppRequest represents the request to create a new app
+type CreateAppRequest struct {
+	BoxID uint   `json:"box_id" binding:"required" example:"1"`
+	Name  string `json:"name" binding:"required" example:"Hidemium"`
+}
+
+// UpdateAppRequest represents the request to update an app
+type UpdateAppRequest struct {
+	Name string `json:"name" binding:"required" example:"Updated App Name"`
+}
+
+// AppResponse represents the response for app operations
+type AppResponse struct {
+	ID        uint   `json:"id" example:"1"`
+	BoxID     uint   `json:"box_id" example:"1"`
+	Name      string `json:"name" example:"Hidemium"`
+	CreatedAt string `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+}

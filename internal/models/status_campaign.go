@@ -24,3 +24,27 @@ type StatusCampaign struct {
 func (StatusCampaign) TableName() string {
 	return "status_campaigns"
 }
+
+// CreateStatusCampaignRequest represents the request to create a new status campaign
+type CreateStatusCampaignRequest struct {
+	CampaignID uint   `json:"campaign_id" binding:"required" example:"1"`
+	ProfileID  uint   `json:"profile_id" binding:"required" example:"1"`
+	Status     string `json:"status" binding:"required" example:"Started"`
+}
+
+// UpdateStatusCampaignRequest represents the request to update a status campaign
+type UpdateStatusCampaignRequest struct {
+	Status string `json:"status" binding:"required" example:"Completed"`
+}
+
+// StatusCampaignResponse represents the response for status campaign operations
+type StatusCampaignResponse struct {
+	ID         uint   `json:"id" example:"1"`
+	CampaignID uint   `json:"campaign_id" example:"1"`
+	ProfileID  uint   `json:"profile_id" example:"1"`
+	Status     string `json:"status" example:"Started"`
+	StartedAt  string `json:"started_at,omitempty" example:"2025-01-09T10:00:00Z"`
+	FinishedAt string `json:"finished_at,omitempty" example:"2025-01-09T10:30:00Z"`
+	CreatedAt  string `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt  string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+}

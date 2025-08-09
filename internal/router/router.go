@@ -6,6 +6,7 @@ import (
 	"green-anti-detect-browser-backend-v1/internal/database/repository"
 	"green-anti-detect-browser-backend-v1/internal/handlers"
 	"green-anti-detect-browser-backend-v1/internal/middleware"
+	"green-anti-detect-browser-backend-v1/internal/services"
 	"green-anti-detect-browser-backend-v1/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -41,13 +42,18 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
 
 	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
 
+	// Create services
+	boxService := services.NewBoxService(boxRepo, userRepo)
+
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
+	boxHandler := handlers.NewBoxHandler(boxService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -89,6 +95,16 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				users.GET("/me", authHandler.GetProfile)
 			}
 
+			// Box routes
+			boxes := protected.Group("/boxes")
+			{
+				boxes.POST("", boxHandler.CreateBox)
+				boxes.GET("", boxHandler.GetMyBoxes)
+				boxes.GET("/:id", boxHandler.GetBoxByID)
+				boxes.PUT("/:id", boxHandler.UpdateBox)
+				boxes.DELETE("/:id", boxHandler.DeleteBox)
+			}
+
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
@@ -96,6 +112,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				admin.GET("/users", authHandler.GetAllUsers)
 				admin.PUT("/users/:id/status", authHandler.SetUserStatus)
 				admin.DELETE("/users/:id", authHandler.DeleteUser)
+				admin.GET("/boxes", boxHandler.AdminGetAllBoxes)
 			}
 		}
 	}
