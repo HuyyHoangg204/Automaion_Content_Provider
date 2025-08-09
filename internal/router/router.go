@@ -46,7 +46,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
 
-	// Create auth handler
+	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
