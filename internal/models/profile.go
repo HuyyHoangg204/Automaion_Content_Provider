@@ -21,3 +21,23 @@ type Profile struct {
 func (Profile) TableName() string {
 	return "profiles"
 }
+
+// CreateProfileRequest represents the request to create a new profile
+type CreateProfileRequest struct {
+	AppID uint   `json:"app_id" binding:"required" example:"1"`
+	Name  string `json:"name" binding:"required" example:"Facebook Profile 1"`
+}
+
+// UpdateProfileRequest represents the request to update a profile
+type UpdateProfileRequest struct {
+	Name string `json:"name" binding:"required" example:"Updated Profile Name"`
+}
+
+// ProfileResponse represents the response for profile operations
+type ProfileResponse struct {
+	ID        uint   `json:"id" example:"1"`
+	AppID     uint   `json:"app_id" example:"1"`
+	Name      string `json:"name" example:"Facebook Profile 1"`
+	CreatedAt string `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+}

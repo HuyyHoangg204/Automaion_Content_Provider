@@ -22,3 +22,25 @@ type Campaign struct {
 func (Campaign) TableName() string {
 	return "campaigns"
 }
+
+// CreateCampaignRequest represents the request to create a new campaign
+type CreateCampaignRequest struct {
+	Name       string `json:"name" binding:"required" example:"Auto Post Campaign"`
+	ScriptName string `json:"script_name" binding:"required" example:"auto_post.js"`
+}
+
+// UpdateCampaignRequest represents the request to update a campaign
+type UpdateCampaignRequest struct {
+	Name       string `json:"name" binding:"required" example:"Updated Campaign Name"`
+	ScriptName string `json:"script_name" binding:"required" example:"updated_script.js"`
+}
+
+// CampaignResponse represents the response for campaign operations
+type CampaignResponse struct {
+	ID         uint   `json:"id" example:"1"`
+	UserID     uint   `json:"user_id" example:"1"`
+	Name       string `json:"name" example:"Auto Post Campaign"`
+	ScriptName string `json:"script_name" example:"auto_post.js"`
+	CreatedAt  string `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt  string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+}
