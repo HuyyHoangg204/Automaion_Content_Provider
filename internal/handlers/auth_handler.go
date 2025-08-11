@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"green-anti-detect-browser-backend-v1/internal/models"
@@ -95,12 +94,12 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 // Logout godoc
 // @Summary Logout user
-// @Description Logout user and revoke tokens
+// @Description Logout the current user (revoke refresh token)
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body models.LogoutRequest false "Logout request (optional)"
+// @Param request body models.LogoutRequest true "Logout request"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -108,7 +107,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // @Router /api/v1/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// Get user ID from context (middleware already verified authentication)
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	var req models.LogoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -144,7 +143,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 }
 
 // ChangePassword godoc
-// @Summary Change user's own password
+// @Summary Change user password
 // @Description Change the current user's password
 // @Tags auth
 // @Accept json
@@ -158,7 +157,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 // @Router /api/v1/auth/change-password [post]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	// Get user ID from context (middleware already verified authentication)
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	// Parse request body
 	var req models.ChangePasswordRequest
@@ -258,12 +257,12 @@ func (h *AuthHandler) GetAllUsers(c *gin.Context) {
 
 // SetUserStatus godoc
 // @Summary Set user active status (Admin only)
-// @Description Activate or deactivate a user account (Admin privileges required)
+// @Description Set the active status of a user account (Admin privileges required)
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "User ID"
+// @Param id path string true "User ID"
 // @Param request body map[string]bool true "Status request {\"is_active\": true/false}"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
@@ -281,12 +280,7 @@ func (h *AuthHandler) SetUserStatus(c *gin.Context) {
 	}
 
 	// Get user ID from URL
-	userIDStr := c.Param("id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
+	userID := c.Param("id")
 
 	// Parse request body
 	var req struct {
@@ -298,7 +292,7 @@ func (h *AuthHandler) SetUserStatus(c *gin.Context) {
 	}
 
 	// Set user status
-	err = h.authService.SetUserActive(uint(userID), req.IsActive)
+	err := h.authService.SetUserActive(userID, req.IsActive)
 	if err != nil {
 		if strings.Contains(err.Error(), "user not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -318,7 +312,7 @@ func (h *AuthHandler) SetUserStatus(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "User ID"
+// @Param id path string true "User ID"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -335,21 +329,16 @@ func (h *AuthHandler) DeleteUser(c *gin.Context) {
 	}
 
 	// Get user ID from URL
-	userIDStr := c.Param("id")
-	userID, err := strconv.ParseUint(userIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
+	userID := c.Param("id")
 
 	// Prevent admin from deleting themselves
-	if uint(userID) == user.ID {
+	if userID == user.ID {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete your own account"})
 		return
 	}
 
 	// Delete user
-	err = h.authService.DeleteUser(uint(userID))
+	err := h.authService.DeleteUser(userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "user not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})

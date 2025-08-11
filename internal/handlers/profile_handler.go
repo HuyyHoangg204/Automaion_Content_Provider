@@ -1,0 +1,252 @@
+package handlers
+
+import (
+	"net/http"
+	"strings"
+
+	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-anti-detect-browser-backend-v1/internal/services"
+
+	"github.com/gin-gonic/gin"
+)
+
+type ProfileHandler struct {
+	profileService *services.ProfileService
+}
+
+func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler {
+	return &ProfileHandler{
+		profileService: profileService,
+	}
+}
+
+// CreateProfile godoc
+// @Summary Create a new profile
+// @Description Create a new browser profile for the authenticated user. Profile data is required and must contain configuration from anti-detect browser.
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.CreateProfileRequest true "Create profile request (data field is required)"
+// @Success 201 {object} models.ProfileResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 409 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/profiles [post]
+func (h *ProfileHandler) CreateProfile(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+
+	var req models.CreateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
+		return
+	}
+
+	response, err := h.profileService.CreateProfile(userID, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "profile data is required") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create profile", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
+
+// GetMyProfiles godoc
+// @Summary Get user's profiles
+// @Description Get all profiles belonging to the authenticated user
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.ProfileResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/profiles [get]
+func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+
+	profiles, err := h.profileService.GetProfilesByUser(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profiles)
+}
+
+// GetProfilesByApp godoc
+// @Summary Get profiles by app
+// @Description Get all profiles for a specific app (user must own the app)
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param app_id path string true "App ID"
+// @Success 200 {array} models.ProfileResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/app-profiles/{app_id}/profiles [get]
+func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	appID := c.Param("app_id")
+
+	profiles, err := h.profileService.GetProfilesByApp(userID, appID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profiles)
+}
+
+// GetProfileByID godoc
+// @Summary Get profile by ID
+// @Description Get a specific profile by ID (user must own it)
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Profile ID"
+// @Success 200 {object} models.ProfileResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/profiles/{id} [get]
+func (h *ProfileHandler) GetProfileByID(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	profileID := c.Param("id")
+
+	profile, err := h.profileService.GetProfileByID(userID, profileID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profile", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profile)
+}
+
+// UpdateProfile godoc
+// @Summary Update profile
+// @Description Update a profile (user must own it)
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Profile ID"
+// @Param request body models.UpdateProfileRequest true "Update profile request"
+// @Success 200 {object} models.ProfileResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 409 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/profiles/{id} [put]
+func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	profileID := c.Param("id")
+
+	var req models.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
+		return
+	}
+
+	response, err := h.profileService.UpdateProfile(userID, profileID, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
+			return
+		}
+		if strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// DeleteProfile godoc
+// @Summary Delete profile
+// @Description Delete a profile (user must own it)
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Profile ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/profiles/{id} [delete]
+func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	profileID := c.Param("id")
+
+	err := h.profileService.DeleteProfile(userID, profileID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete profile", "details": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// AdminGetAllProfiles godoc
+// @Summary Get all profiles (Admin only)
+// @Description Get all profiles in the system (Admin privileges required)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.ProfileResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/profiles [get]
+func (h *ProfileHandler) AdminGetAllProfiles(c *gin.Context) {
+	// Check if user is admin
+	user := c.MustGet("user").(*models.User)
+	if !user.IsAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
+		return
+	}
+
+	profiles, err := h.profileService.GetAllProfiles()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, profiles)
+}

@@ -32,7 +32,7 @@ func (r *RefreshTokenRepository) GetByToken(token string) (*models.RefreshToken,
 }
 
 // GetByUserID retrieves all refresh tokens for a user
-func (r *RefreshTokenRepository) GetByUserID(userID uint) ([]models.RefreshToken, error) {
+func (r *RefreshTokenRepository) GetByUserID(userID string) ([]models.RefreshToken, error) {
 	var refreshTokens []models.RefreshToken
 	err := r.db.Where("user_id = ? AND is_revoked = ?", userID, false).Find(&refreshTokens).Error
 	return refreshTokens, err
@@ -44,7 +44,7 @@ func (r *RefreshTokenRepository) RevokeToken(token string) error {
 }
 
 // RevokeAllUserTokens revokes all refresh tokens for a user
-func (r *RefreshTokenRepository) RevokeAllUserTokens(userID uint) error {
+func (r *RefreshTokenRepository) RevokeAllUserTokens(userID string) error {
 	return r.db.Model(&models.RefreshToken{}).Where("user_id = ?", userID).Update("is_revoked", true).Error
 }
 
@@ -69,7 +69,7 @@ func (r *RefreshTokenRepository) CleanupTokens() error {
 }
 
 // CountActiveTokensByUser counts active refresh tokens for a user
-func (r *RefreshTokenRepository) CountActiveTokensByUser(userID uint) (int64, error) {
+func (r *RefreshTokenRepository) CountActiveTokensByUser(userID string) (int64, error) {
 	var count int64
 	err := r.db.Model(&models.RefreshToken{}).Where("user_id = ? AND is_revoked = ?", userID, false).Count(&count).Error
 	return count, err

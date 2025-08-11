@@ -41,7 +41,7 @@ type LogoutRequest struct {
 
 // JWTClaims represents the JWT claims
 type JWTClaims struct {
-	UserID       uint   `json:"user_id"`
+	UserID       string `json:"user_id"`
 	Username     string `json:"username"`
 	TokenVersion uint   `json:"token_version"`
 	jwt.RegisteredClaims
@@ -49,7 +49,7 @@ type JWTClaims struct {
 
 // TokenInfo represents token information
 type TokenInfo struct {
-	UserID       uint      `json:"user_id"`
+	UserID       string    `json:"user_id"`
 	Username     string    `json:"username"`
 	TokenVersion uint      `json:"token_version"`
 	ExpiresAt    time.Time `json:"expires_at"`
@@ -73,5 +73,5 @@ type ResetPasswordRequest struct {
 
 // AssignBoxRequest represents a request to assign a box to a user (admin only)
 type AssignBoxRequest struct {
-	UserID uint `json:"user_id" binding:"required"`
+	UserID string `json:"user_id" binding:"required"`
 }

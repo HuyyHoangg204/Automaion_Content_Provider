@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"green-anti-detect-browser-backend-v1/internal/models"
@@ -36,8 +35,7 @@ func NewBoxHandler(boxService *services.BoxService) *BoxHandler {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/boxes [post]
 func (h *BoxHandler) CreateBox(c *gin.Context) {
-	// Get user ID from context
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	var req models.CreateBoxRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -60,7 +58,7 @@ func (h *BoxHandler) CreateBox(c *gin.Context) {
 
 // GetMyBoxes godoc
 // @Summary Get user's boxes
-// @Description Get all boxes for the authenticated user
+// @Description Get all boxes belonging to the authenticated user
 // @Tags boxes
 // @Accept json
 // @Produce json
@@ -70,8 +68,7 @@ func (h *BoxHandler) CreateBox(c *gin.Context) {
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/boxes [get]
 func (h *BoxHandler) GetMyBoxes(c *gin.Context) {
-	// Get user ID from context
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	boxes, err := h.boxService.GetBoxesByUser(userID)
 	if err != nil {
@@ -89,7 +86,7 @@ func (h *BoxHandler) GetMyBoxes(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Box ID"
+// @Param id path string true "Box ID"
 // @Success 200 {object} models.BoxResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -98,17 +95,12 @@ func (h *BoxHandler) GetMyBoxes(c *gin.Context) {
 // @Router /api/v1/boxes/{id} [get]
 func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 	// Get user ID from context
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	// Get box ID from URL
-	boxIDStr := c.Param("id")
-	boxID, err := strconv.ParseUint(boxIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid box ID"})
-		return
-	}
+	boxID := c.Param("id")
 
-	box, err := h.boxService.GetBoxByID(userID, uint(boxID))
+	box, err := h.boxService.GetBoxByID(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -128,7 +120,7 @@ func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Box ID"
+// @Param id path string true "Box ID"
 // @Param request body models.UpdateBoxRequest true "Update box request"
 // @Success 200 {object} models.BoxResponse
 // @Failure 400 {object} map[string]interface{}
@@ -138,15 +130,10 @@ func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 // @Router /api/v1/boxes/{id} [put]
 func (h *BoxHandler) UpdateBox(c *gin.Context) {
 	// Get user ID from context
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	// Get box ID from URL
-	boxIDStr := c.Param("id")
-	boxID, err := strconv.ParseUint(boxIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid box ID"})
-		return
-	}
+	boxID := c.Param("id")
 
 	var req models.UpdateBoxRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -154,7 +141,7 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 		return
 	}
 
-	box, err := h.boxService.UpdateBox(userID, uint(boxID), &req)
+	response, err := h.boxService.UpdateBox(userID, boxID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -164,7 +151,7 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, box)
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteBox godoc
@@ -174,8 +161,8 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path int true "Box ID"
-// @Success 200 {object} map[string]interface{}
+// @Param id path string true "Box ID"
+// @Success 204 "No Content"
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
@@ -183,17 +170,12 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 // @Router /api/v1/boxes/{id} [delete]
 func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	// Get user ID from context
-	userID := c.MustGet("user_id").(uint)
+	userID := c.MustGet("user_id").(string)
 
 	// Get box ID from URL
-	boxIDStr := c.Param("id")
-	boxID, err := strconv.ParseUint(boxIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid box ID"})
-		return
-	}
+	boxID := c.Param("id")
 
-	err = h.boxService.DeleteBox(userID, uint(boxID))
+	err := h.boxService.DeleteBox(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -203,7 +185,7 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Box deleted successfully"})
+	c.Status(http.StatusNoContent)
 }
 
 // AdminGetAllBoxes godoc

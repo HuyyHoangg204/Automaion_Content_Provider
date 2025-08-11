@@ -6,11 +6,11 @@ import (
 
 // RefreshToken represents a refresh token for user authentication
 type RefreshToken struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
+	ID        string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Token     string    `json:"token" gorm:"type:varchar(500);not null;unique;index"`
-	UserID    uint      `json:"user_id" gorm:"not null;index"`
+	UserID    string    `json:"user_id" gorm:"not null;index;type:uuid"`
 	ExpiresAt time.Time `json:"expires_at" gorm:"not null;index"`
 	IsRevoked bool      `json:"is_revoked" gorm:"default:false;index"`
 	UserAgent string    `json:"user_agent" gorm:"type:varchar(500)"`

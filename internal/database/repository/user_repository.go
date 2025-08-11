@@ -22,9 +22,9 @@ func (r *UserRepository) Create(user *models.User) error {
 }
 
 // GetByID retrieves a user by ID
-func (r *UserRepository) GetByID(id uint) (*models.User, error) {
+func (r *UserRepository) GetByID(id string) (*models.User, error) {
 	var user models.User
-	err := r.db.First(&user, id).Error
+	err := r.db.First(&user, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,8 @@ func (r *UserRepository) Update(user *models.User) error {
 }
 
 // Delete deletes a user
-func (r *UserRepository) Delete(id uint) error {
-	return r.db.Delete(&models.User{}, id).Error
+func (r *UserRepository) Delete(id string) error {
+	return r.db.Delete(&models.User{}, "id = ?", id).Error
 }
 
 // GetAll retrieves all users
@@ -66,13 +66,13 @@ func (r *UserRepository) List(offset, limit int) ([]models.User, error) {
 }
 
 // UpdateLastLogin updates the last login time for a user
-func (r *UserRepository) UpdateLastLogin(userID uint) error {
+func (r *UserRepository) UpdateLastLogin(userID string) error {
 	now := time.Now()
 	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("last_login_at", now).Error
 }
 
 // IncrementTokenVersion increments the token version for a user
-func (r *UserRepository) IncrementTokenVersion(userID uint) error {
+func (r *UserRepository) IncrementTokenVersion(userID string) error {
 	return r.db.Model(&models.User{}).Where("id = ?", userID).UpdateColumn("token_version", gorm.Expr("token_version + 1")).Error
 }
 

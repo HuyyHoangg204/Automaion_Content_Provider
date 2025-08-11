@@ -20,9 +20,9 @@ func (r *BoxRepository) Create(box *models.Box) error {
 }
 
 // GetByID retrieves a box by ID
-func (r *BoxRepository) GetByID(id uint) (*models.Box, error) {
+func (r *BoxRepository) GetByID(id string) (*models.Box, error) {
 	var box models.Box
-	err := r.db.Preload("User").Preload("Apps").First(&box, id).Error
+	err := r.db.Preload("User").Preload("Apps").First(&box, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (r *BoxRepository) GetByID(id uint) (*models.Box, error) {
 }
 
 // GetByUserID retrieves all boxes for a specific user
-func (r *BoxRepository) GetByUserID(userID uint) ([]*models.Box, error) {
+func (r *BoxRepository) GetByUserID(userID string) ([]*models.Box, error) {
 	var boxes []*models.Box
 	err := r.db.Where("user_id = ?", userID).Preload("Apps").Find(&boxes).Error
 	return boxes, err
@@ -47,7 +47,7 @@ func (r *BoxRepository) GetByMachineID(machineID string) (*models.Box, error) {
 }
 
 // GetByUserIDAndID retrieves a box by user ID and box ID
-func (r *BoxRepository) GetByUserIDAndID(userID, boxID uint) (*models.Box, error) {
+func (r *BoxRepository) GetByUserIDAndID(userID, boxID string) (*models.Box, error) {
 	var box models.Box
 	err := r.db.Where("user_id = ? AND id = ?", userID, boxID).Preload("Apps").First(&box).Error
 	if err != nil {
@@ -62,12 +62,12 @@ func (r *BoxRepository) Update(box *models.Box) error {
 }
 
 // Delete deletes a box
-func (r *BoxRepository) Delete(id uint) error {
-	return r.db.Delete(&models.Box{}, id).Error
+func (r *BoxRepository) Delete(id string) error {
+	return r.db.Delete(&models.Box{}, "id = ?", id).Error
 }
 
 // DeleteByUserIDAndID deletes a box by user ID and box ID
-func (r *BoxRepository) DeleteByUserIDAndID(userID, boxID uint) error {
+func (r *BoxRepository) DeleteByUserIDAndID(userID, boxID string) error {
 	return r.db.Where("user_id = ? AND id = ?", userID, boxID).Delete(&models.Box{}).Error
 }
 
