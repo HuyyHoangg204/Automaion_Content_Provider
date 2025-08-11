@@ -45,6 +45,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
 
 	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
@@ -54,12 +55,14 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	boxService := services.NewBoxService(boxRepo, userRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	profileService := services.NewProfileService(profileRepo, appRepo, userRepo)
+	campaignService := services.NewCampaignService(campaignRepo, userRepo)
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(boxService)
 	appHandler := handlers.NewAppHandler(appService)
 	profileHandler := handlers.NewProfileHandler(profileService)
+	campaignHandler := handlers.NewCampaignHandler(campaignService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -143,6 +146,16 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				profiles.DELETE("/:id", profileHandler.DeleteProfile)
 			}
 
+			// Campaign routes
+			campaigns := protected.Group("/campaigns")
+			{
+				campaigns.POST("", campaignHandler.CreateCampaign)
+				campaigns.GET("", campaignHandler.GetMyCampaigns)
+				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
+				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
+				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+			}
+
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
@@ -153,6 +166,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				admin.GET("/boxes", boxHandler.AdminGetAllBoxes)
 				admin.GET("/apps", appHandler.AdminGetAllApps)
 				admin.GET("/profiles", profileHandler.AdminGetAllProfiles)
+				admin.GET("/campaigns", campaignHandler.AdminGetAllCampaigns)
 			}
 		}
 	}
