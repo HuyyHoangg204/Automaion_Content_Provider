@@ -187,6 +187,22 @@ definitions:
     - name
     - script_name
     type: object
+  models.CreateFlowRequest:
+    properties:
+      campaign_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      profile_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      status:
+        example: Started
+        type: string
+    required:
+    - campaign_id
+    - profile_id
+    - status
+    type: object
   models.CreateProfileRequest:
     properties:
       app_id:
@@ -225,6 +241,33 @@ definitions:
       status:
         type: string
       updated_at:
+        type: string
+    type: object
+  models.FlowResponse:
+    properties:
+      campaign_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      created_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      finished_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      profile_id:
+        example: 550e8400-e29b-41d4-a716-446655440002
+        type: string
+      started_at:
+        example: "2025-01-09T10:00:00Z"
+        type: string
+      status:
+        example: Started
+        type: string
+      updated_at:
+        example: "2025-01-09T10:30:00Z"
         type: string
     type: object
   models.JSON:
@@ -366,6 +409,14 @@ definitions:
     required:
     - name
     - script_name
+    type: object
+  models.UpdateFlowRequest:
+    properties:
+      status:
+        example: Completed
+        type: string
+    required:
+    - status
     type: object
   models.UpdateProfileRequest:
     properties:
@@ -526,6 +577,40 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all campaigns (Admin only)
+      tags:
+      - admin
+  /api/v1/admin/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows in the system (Admin privileges required)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FlowResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all flows (Admin only)
       tags:
       - admin
   /api/v1/admin/profiles:
@@ -1424,6 +1509,46 @@ paths:
       summary: Update box
       tags:
       - boxes
+  /api/v1/campaign-flows/{campaign_id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific campaign (user must own the campaign)
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: campaign_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FlowResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by campaign
+      tags:
+      - flows
   /api/v1/campaigns:
     get:
       consumes:
@@ -1632,6 +1757,279 @@ paths:
       summary: Update campaign
       tags:
       - campaigns
+  /api/v1/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FlowResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user's flows
+      tags:
+      - flows
+    post:
+      consumes:
+      - application/json
+      description: Create a new flow for the authenticated user
+      parameters:
+      - description: Create flow request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateFlowRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.FlowResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new flow
+      tags:
+      - flows
+  /api/v1/flows/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a flow (user must own it)
+      parameters:
+      - description: Flow ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete flow
+      tags:
+      - flows
+    get:
+      consumes:
+      - application/json
+      description: Get a specific flow by ID (user must own it)
+      parameters:
+      - description: Flow ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FlowResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flow by ID
+      tags:
+      - flows
+    put:
+      consumes:
+      - application/json
+      description: Update a flow (user must own it)
+      parameters:
+      - description: Flow ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update flow request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateFlowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FlowResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update flow
+      tags:
+      - flows
+  /api/v1/flows/status/{status}:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific status (user must own them)
+      parameters:
+      - description: Flow Status
+        in: path
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FlowResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by status
+      tags:
+      - flows
+  /api/v1/profile-flows/{profile_id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific profile (user must own the profile)
+      parameters:
+      - description: Profile ID
+        in: path
+        name: profile_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FlowResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by profile
+      tags:
+      - flows
   /api/v1/profiles:
     get:
       consumes:

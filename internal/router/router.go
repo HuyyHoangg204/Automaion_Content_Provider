@@ -46,6 +46,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
 	campaignRepo := repository.NewCampaignRepository(db)
+	flowRepo := repository.NewFlowRepository(db)
 
 	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
@@ -56,6 +57,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	profileService := services.NewProfileService(profileRepo, appRepo, userRepo)
 	campaignService := services.NewCampaignService(campaignRepo, userRepo)
+	flowService := services.NewFlowService(flowRepo, campaignRepo, profileRepo, userRepo)
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -63,6 +65,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	appHandler := handlers.NewAppHandler(appService)
 	profileHandler := handlers.NewProfileHandler(profileService)
 	campaignHandler := handlers.NewCampaignHandler(campaignService)
+	flowHandler := handlers.NewFlowHandler(flowService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -136,6 +139,22 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				appProfiles.GET("/:app_id/profiles", profileHandler.GetProfilesByApp)
 			}
 
+			// Campaign routes
+			campaigns := protected.Group("/campaigns")
+			{
+				campaigns.POST("", campaignHandler.CreateCampaign)
+				campaigns.GET("", campaignHandler.GetMyCampaigns)
+				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
+				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
+				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+			}
+
+			// Campaign Flows routes (separate to avoid conflict)
+			campaignFlows := protected.Group("/campaign-flows")
+			{
+				campaignFlows.GET("/:campaign_id/flows", flowHandler.GetFlowsByCampaign)
+			}
+
 			// Profile routes
 			profiles := protected.Group("/profiles")
 			{
@@ -146,14 +165,21 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				profiles.DELETE("/:id", profileHandler.DeleteProfile)
 			}
 
-			// Campaign routes
-			campaigns := protected.Group("/campaigns")
+			// Profile Flows routes (separate to avoid conflict)
+			profileFlows := protected.Group("/profile-flows")
 			{
-				campaigns.POST("", campaignHandler.CreateCampaign)
-				campaigns.GET("", campaignHandler.GetMyCampaigns)
-				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
-				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
-				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+				profileFlows.GET("/:profile_id/flows", flowHandler.GetFlowsByProfile)
+			}
+
+			// Flow routes
+			flows := protected.Group("/flows")
+			{
+				flows.POST("", flowHandler.CreateFlow)
+				flows.GET("", flowHandler.GetMyFlows)
+				flows.GET("/:id", flowHandler.GetFlowByID)
+				flows.PUT("/:id", flowHandler.UpdateFlow)
+				flows.DELETE("/:id", flowHandler.DeleteFlow)
+				flows.GET("/status/:status", flowHandler.GetFlowsByStatus)
 			}
 
 			// Admin routes (requires admin privileges)
@@ -167,6 +193,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				admin.GET("/apps", appHandler.AdminGetAllApps)
 				admin.GET("/profiles", profileHandler.AdminGetAllProfiles)
 				admin.GET("/campaigns", campaignHandler.AdminGetAllCampaigns)
+				admin.GET("/flows", flowHandler.AdminGetAllFlows)
 			}
 		}
 	}
