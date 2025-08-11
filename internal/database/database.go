@@ -77,7 +77,7 @@ func InitDB() (*gorm.DB, error) {
 		&models.Box{},
 		&models.App{},
 		&models.Profile{},
-		&models.StatusCampaign{},
+		&models.Flow{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)

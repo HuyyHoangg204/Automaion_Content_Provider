@@ -43,6 +43,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	userRepo := repository.NewUserRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
 
 	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
@@ -50,10 +51,12 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 
 	// Create services
 	boxService := services.NewBoxService(boxRepo, userRepo)
+	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(boxService)
+	appHandler := handlers.NewAppHandler(appService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -105,6 +108,22 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
 			}
 
+			// Box Apps routes (separate to avoid conflict)
+			boxApps := protected.Group("/box-apps")
+			{
+				boxApps.GET("/:box_id/apps", appHandler.GetAppsByBox)
+			}
+
+			// App routes
+			apps := protected.Group("/apps")
+			{
+				apps.POST("", appHandler.CreateApp)
+				apps.GET("", appHandler.GetMyApps)
+				apps.GET("/:id", appHandler.GetAppByID)
+				apps.PUT("/:id", appHandler.UpdateApp)
+				apps.DELETE("/:id", appHandler.DeleteApp)
+			}
+
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
@@ -113,6 +132,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				admin.PUT("/users/:id/status", authHandler.SetUserStatus)
 				admin.DELETE("/users/:id", authHandler.DeleteUser)
 				admin.GET("/boxes", boxHandler.AdminGetAllBoxes)
+				admin.GET("/apps", appHandler.AdminGetAllApps)
 			}
 		}
 	}

@@ -21,6 +21,24 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.AppResponse:
+    properties:
+      box_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      created_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        example: Hidemium
+        type: string
+      updated_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+    type: object
   models.AuthResponse:
     properties:
       access_token:
@@ -82,16 +100,16 @@ definitions:
     properties:
       created_at:
         type: string
+      flows:
+        items:
+          $ref: '#/definitions/models.Flow'
+        type: array
       id:
         type: string
       name:
         type: string
       script_name:
         type: string
-      status_campaigns:
-        items:
-          $ref: '#/definitions/models.StatusCampaign'
-        type: array
       updated_at:
         type: string
       user:
@@ -112,6 +130,18 @@ definitions:
     - current_password
     - new_password
     type: object
+  models.CreateAppRequest:
+    properties:
+      box_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        example: Hidemium
+        type: string
+    required:
+    - box_id
+    - name
+    type: object
   models.CreateBoxRequest:
     properties:
       machine_id:
@@ -123,6 +153,31 @@ definitions:
     required:
     - machine_id
     - name
+    type: object
+  models.Flow:
+    properties:
+      campaign:
+        allOf:
+        - $ref: '#/definitions/models.Campaign'
+        description: Relationships
+      campaign_id:
+        type: string
+      created_at:
+        type: string
+      finished_at:
+        type: string
+      id:
+        type: string
+      profile:
+        $ref: '#/definitions/models.Profile'
+      profile_id:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
     type: object
   models.LoginRequest:
     properties:
@@ -149,14 +204,14 @@ definitions:
         type: string
       created_at:
         type: string
+      flows:
+        items:
+          $ref: '#/definitions/models.Flow'
+        type: array
       id:
         type: string
       name:
         type: string
-      status_campaigns:
-        items:
-          $ref: '#/definitions/models.StatusCampaign'
-        type: array
       updated_at:
         type: string
     type: object
@@ -209,30 +264,13 @@ definitions:
     - password
     - username
     type: object
-  models.StatusCampaign:
+  models.UpdateAppRequest:
     properties:
-      campaign:
-        allOf:
-        - $ref: '#/definitions/models.Campaign'
-        description: Relationships
-      campaign_id:
+      name:
+        example: Updated App Name
         type: string
-      created_at:
-        type: string
-      finished_at:
-        type: string
-      id:
-        type: string
-      profile:
-        $ref: '#/definitions/models.Profile'
-      profile_id:
-        type: string
-      started_at:
-        type: string
-      status:
-        type: string
-      updated_at:
-        type: string
+    required:
+    - name
     type: object
   models.UpdateBoxRequest:
     properties:
@@ -291,6 +329,40 @@ info:
   title: User Management API
   version: "1.0"
 paths:
+  /api/v1/admin/apps:
+    get:
+      consumes:
+      - application/json
+      description: Get all apps in the system (Admin privileges required)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AppResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all apps (Admin only)
+      tags:
+      - admin
   /api/v1/admin/boxes:
     get:
       consumes:
@@ -515,6 +587,214 @@ paths:
       summary: Set user active status (Admin only)
       tags:
       - admin
+  /api/v1/apps:
+    get:
+      consumes:
+      - application/json
+      description: Get all apps belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AppResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user's apps
+      tags:
+      - apps
+    post:
+      consumes:
+      - application/json
+      description: Create a new anti-detect browser app for the authenticated user
+      parameters:
+      - description: Create app request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateAppRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new app
+      tags:
+      - apps
+  /api/v1/apps/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an app (user must own it)
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete app
+      tags:
+      - apps
+    get:
+      consumes:
+      - application/json
+      description: Get a specific app by ID (user must own it)
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get app by ID
+      tags:
+      - apps
+    put:
+      consumes:
+      - application/json
+      description: Update an app (user must own it)
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update app request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateAppRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update app
+      tags:
+      - apps
   /api/v1/auth/change-password:
     post:
       consumes:
@@ -696,6 +976,46 @@ paths:
       summary: Refresh access token
       tags:
       - auth
+  /api/v1/box-apps/{box_id}/apps:
+    get:
+      consumes:
+      - application/json
+      description: Get all apps for a specific box (user must own the box)
+      parameters:
+      - description: Box ID
+        in: path
+        name: box_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AppResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get apps by box
+      tags:
+      - apps
   /api/v1/boxes:
     get:
       consumes:

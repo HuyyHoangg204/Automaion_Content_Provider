@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// StatusCampaign represents the completion status of a campaign
-type StatusCampaign struct {
+// Flow represents the execution flow of a campaign on a specific profile
+type Flow struct {
 	ID         string     `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	CampaignID string     `json:"campaign_id" gorm:"not null;index;type:uuid"`
 	ProfileID  string     `json:"profile_id" gorm:"not null;index;type:uuid"`
@@ -20,25 +20,25 @@ type StatusCampaign struct {
 	Profile  Profile  `json:"profile,omitempty" gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
-// TableName specifies the table name for the StatusCampaign model
-func (StatusCampaign) TableName() string {
-	return "status_campaigns"
+// TableName specifies the table name for the Flow model
+func (Flow) TableName() string {
+	return "flows"
 }
 
-// CreateStatusCampaignRequest represents the request to create a new status campaign
-type CreateStatusCampaignRequest struct {
+// CreateFlowRequest represents the request to create a new flow
+type CreateFlowRequest struct {
 	CampaignID string `json:"campaign_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
 	ProfileID  string `json:"profile_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440001"`
 	Status     string `json:"status" binding:"required" example:"Started"`
 }
 
-// UpdateStatusCampaignRequest represents the request to update a status campaign
-type UpdateStatusCampaignRequest struct {
+// UpdateFlowRequest represents the request to update a flow
+type UpdateFlowRequest struct {
 	Status string `json:"status" binding:"required" example:"Completed"`
 }
 
-// StatusCampaignResponse represents the response for status campaign operations
-type StatusCampaignResponse struct {
+// FlowResponse represents the response for flow operations
+type FlowResponse struct {
 	ID         string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	CampaignID string `json:"campaign_id" example:"550e8400-e29b-41d4-a716-446655440001"`
 	ProfileID  string `json:"profile_id" example:"550e8400-e29b-41d4-a716-446655440002"`
