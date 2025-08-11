@@ -6,9 +6,9 @@ import (
 
 // StatusCampaign represents the completion status of a campaign
 type StatusCampaign struct {
-	ID         uint       `json:"id" gorm:"primaryKey"`
-	CampaignID uint       `json:"campaign_id" gorm:"not null;index"`
-	ProfileID  uint       `json:"profile_id" gorm:"not null;index"`
+	ID         string     `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	CampaignID string     `json:"campaign_id" gorm:"not null;index;type:uuid"`
+	ProfileID  string     `json:"profile_id" gorm:"not null;index;type:uuid"`
 	Status     string     `json:"status" gorm:"type:varchar(255);not null"`
 	StartedAt  *time.Time `json:"started_at"`
 	FinishedAt *time.Time `json:"finished_at"`
@@ -27,8 +27,8 @@ func (StatusCampaign) TableName() string {
 
 // CreateStatusCampaignRequest represents the request to create a new status campaign
 type CreateStatusCampaignRequest struct {
-	CampaignID uint   `json:"campaign_id" binding:"required" example:"1"`
-	ProfileID  uint   `json:"profile_id" binding:"required" example:"1"`
+	CampaignID string `json:"campaign_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ProfileID  string `json:"profile_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440001"`
 	Status     string `json:"status" binding:"required" example:"Started"`
 }
 
@@ -39,9 +39,9 @@ type UpdateStatusCampaignRequest struct {
 
 // StatusCampaignResponse represents the response for status campaign operations
 type StatusCampaignResponse struct {
-	ID         uint   `json:"id" example:"1"`
-	CampaignID uint   `json:"campaign_id" example:"1"`
-	ProfileID  uint   `json:"profile_id" example:"1"`
+	ID         string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	CampaignID string `json:"campaign_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	ProfileID  string `json:"profile_id" example:"550e8400-e29b-41d4-a716-446655440002"`
 	Status     string `json:"status" example:"Started"`
 	StartedAt  string `json:"started_at,omitempty" example:"2025-01-09T10:00:00Z"`
 	FinishedAt string `json:"finished_at,omitempty" example:"2025-01-09T10:30:00Z"`

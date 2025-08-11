@@ -22,7 +22,7 @@ func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserR
 }
 
 // CreateBox creates a new box for a user
-func (s *BoxService) CreateBox(userID uint, req *models.CreateBoxRequest) (*models.BoxResponse, error) {
+func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*models.BoxResponse, error) {
 	// Check if machine ID already exists
 	exists, err := s.boxRepo.CheckMachineIDExists(req.MachineID)
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *BoxService) CreateBox(userID uint, req *models.CreateBoxRequest) (*mode
 }
 
 // GetBoxesByUser retrieves all boxes for a specific user
-func (s *BoxService) GetBoxesByUser(userID uint) ([]*models.BoxResponse, error) {
+func (s *BoxService) GetBoxesByUser(userID string) ([]*models.BoxResponse, error) {
 	boxes, err := s.boxRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get boxes: %w", err)
@@ -68,7 +68,7 @@ func (s *BoxService) GetBoxesByUser(userID uint) ([]*models.BoxResponse, error) 
 }
 
 // GetBoxByID retrieves a box by ID (user must own it)
-func (s *BoxService) GetBoxByID(userID, boxID uint) (*models.BoxResponse, error) {
+func (s *BoxService) GetBoxByID(userID, boxID string) (*models.BoxResponse, error) {
 	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
 		return nil, errors.New("box not found")
@@ -78,7 +78,7 @@ func (s *BoxService) GetBoxByID(userID, boxID uint) (*models.BoxResponse, error)
 }
 
 // UpdateBox updates a box (user must own it)
-func (s *BoxService) UpdateBox(userID, boxID uint, req *models.UpdateBoxRequest) (*models.BoxResponse, error) {
+func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxRequest) (*models.BoxResponse, error) {
 	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
 		return nil, errors.New("box not found")
@@ -95,7 +95,7 @@ func (s *BoxService) UpdateBox(userID, boxID uint, req *models.UpdateBoxRequest)
 }
 
 // DeleteBox deletes a box (user must own it)
-func (s *BoxService) DeleteBox(userID, boxID uint) error {
+func (s *BoxService) DeleteBox(userID, boxID string) error {
 	// Check if box exists and belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {

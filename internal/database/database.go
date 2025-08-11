@@ -63,6 +63,12 @@ func InitDB() (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	// Enable UUID extension
+	err = db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to enable UUID extension: %w", err)
+	}
+
 	// Auto migrate the schema - only User and RefreshToken models
 	err = db.AutoMigrate(
 		&models.User{},

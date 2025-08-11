@@ -6,8 +6,8 @@ import (
 
 // Box represents a machine/computer that belongs to a user
 type Box struct {
-	ID        uint      `json:"id" gorm:"primaryKey"`
-	UserID    uint      `json:"user_id" gorm:"not null;index"`
+	ID        string    `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID    string    `json:"user_id" gorm:"not null;index;type:uuid"`
 	MachineID string    `json:"machine_id" gorm:"type:varchar(255);not null;unique;index"`
 	Name      string    `json:"name" gorm:"type:varchar(255);not null"`
 	CreatedAt time.Time `json:"created_at"`
@@ -36,8 +36,8 @@ type UpdateBoxRequest struct {
 
 // BoxResponse represents the response for box operations
 type BoxResponse struct {
-	ID        uint   `json:"id" example:"1"`
-	UserID    uint   `json:"user_id" example:"1"`
+	ID        string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID    string `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
 	MachineID string `json:"machine_id" example:"PC-001"`
 	Name      string `json:"name" example:"My Computer"`
 	CreatedAt string `json:"created_at" example:"2025-01-09T10:30:00Z"`

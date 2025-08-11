@@ -65,6 +65,7 @@ func (m *BearerTokenMiddleware) BearerTokenAuthMiddleware() gin.HandlerFunc {
 		// Set user info in context
 		c.Set("user_id", user.ID)
 		c.Set("user", user)
+		c.Set("is_admin", user.IsAdmin)
 		c.Set("token_info", tokenInfo)
 
 		c.Next()

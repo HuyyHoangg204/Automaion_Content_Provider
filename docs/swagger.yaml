@@ -7,11 +7,11 @@ definitions:
         - $ref: '#/definitions/models.Box'
         description: Relationships
       box_id:
-        type: integer
+        type: string
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       name:
         type: string
       profiles:
@@ -43,7 +43,7 @@ definitions:
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       machine_id:
         type: string
       name:
@@ -55,7 +55,7 @@ definitions:
         - $ref: '#/definitions/models.User'
         description: Relationships
       user_id:
-        type: integer
+        type: string
     type: object
   models.BoxResponse:
     properties:
@@ -63,8 +63,8 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
       id:
-        example: 1
-        type: integer
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
       machine_id:
         example: PC-001
         type: string
@@ -75,15 +75,15 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
       user_id:
-        example: 1
-        type: integer
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
     type: object
   models.Campaign:
     properties:
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       name:
         type: string
       script_name:
@@ -99,7 +99,7 @@ definitions:
         - $ref: '#/definitions/models.User'
         description: Relationships
       user_id:
-        type: integer
+        type: string
     type: object
   models.ChangePasswordRequest:
     properties:
@@ -146,11 +146,11 @@ definitions:
         - $ref: '#/definitions/models.App'
         description: Relationships
       app_id:
-        type: integer
+        type: string
       created_at:
         type: string
       id:
-        type: integer
+        type: string
       name:
         type: string
       status_campaigns:
@@ -167,7 +167,7 @@ definitions:
       expires_at:
         type: string
       id:
-        type: integer
+        type: string
       ip_address:
         type: string
       is_revoked:
@@ -183,7 +183,7 @@ definitions:
       user_agent:
         type: string
       user_id:
-        type: integer
+        type: string
     type: object
   models.RefreshTokenRequest:
     properties:
@@ -216,17 +216,17 @@ definitions:
         - $ref: '#/definitions/models.Campaign'
         description: Relationships
       campaign_id:
-        type: integer
+        type: string
       created_at:
         type: string
       finished_at:
         type: string
       id:
-        type: integer
+        type: string
       profile:
         $ref: '#/definitions/models.Profile'
       profile_id:
-        type: integer
+        type: string
       started_at:
         type: string
       status:
@@ -257,7 +257,7 @@ definitions:
       first_name:
         type: string
       id:
-        type: integer
+        type: string
       is_active:
         type: boolean
       is_admin:
@@ -419,7 +419,7 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -462,13 +462,13 @@ paths:
     put:
       consumes:
       - application/json
-      description: Activate or deactivate a user account (Admin privileges required)
+      description: Set the active status of a user account (Admin privileges required)
       parameters:
       - description: User ID
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       - description: Status request {\
         in: body
         name: request
@@ -552,7 +552,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Change user's own password
+      summary: Change user password
       tags:
       - auth
   /api/v1/auth/login:
@@ -596,11 +596,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: Logout user and revoke tokens
+      description: Logout the current user (revoke refresh token)
       parameters:
-      - description: Logout request (optional)
+      - description: Logout request
         in: body
         name: request
+        required: true
         schema:
           $ref: '#/definitions/models.LogoutRequest'
       produces:
@@ -699,7 +700,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all boxes for the authenticated user
+      description: Get all boxes belonging to the authenticated user
       produces:
       - application/json
       responses:
@@ -777,15 +778,12 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
+        "204":
+          description: No Content
         "400":
           description: Bad Request
           schema:
@@ -820,7 +818,7 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -862,7 +860,7 @@ paths:
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       - description: Update box request
         in: body
         name: request

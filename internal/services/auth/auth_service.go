@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"green-anti-detect-browser-backend-v1/internal/database/repository"
@@ -156,7 +155,7 @@ func (s *AuthService) RefreshToken(refreshTokenStr string, userAgent, ipAddress 
 }
 
 // Logout logs out a user
-func (s *AuthService) Logout(refreshTokenStr string, userID uint) error {
+func (s *AuthService) Logout(refreshTokenStr string, userID string) error {
 	if refreshTokenStr != "" {
 		// Revoke specific refresh token
 		return s.refreshTokenRepo.RevokeToken(refreshTokenStr)
@@ -241,7 +240,7 @@ func (s *AuthService) generateAccessToken(user *models.User) (string, error) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "green-anti-detect-browser-backend",
-			Subject:   strconv.FormatUint(uint64(user.ID), 10),
+			Subject:   user.ID,
 		},
 	}
 
@@ -308,26 +307,19 @@ func (s *AuthService) CreateAdminUser() error {
 	return nil
 }
 
-// SetUserActive sets the active status of a user (admin only)
-func (s *AuthService) SetUserActive(userID uint, isActive bool) error {
-	// Get user to check if exists
+// SetUserActive sets the active status of a user
+func (s *AuthService) SetUserActive(userID string, isActive bool) error {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
 
-	// Update user active status
 	user.IsActive = isActive
-	if err := s.userRepo.Update(user); err != nil {
-		return fmt.Errorf("failed to update user status: %w", err)
-	}
-
-	return nil
+	return s.userRepo.Update(user)
 }
 
-// ChangePassword changes the current user's password
-func (s *AuthService) ChangePassword(userID uint, currentPassword, newPassword string) error {
-	// Get user
+// ChangePassword changes a user's password
+func (s *AuthService) ChangePassword(userID string, currentPassword, newPassword string) error {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -344,18 +336,15 @@ func (s *AuthService) ChangePassword(userID uint, currentPassword, newPassword s
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Update password
+	// Update password and increment token version
 	user.PasswordHash = string(hashedPassword)
-	if err := s.userRepo.Update(user); err != nil {
-		return fmt.Errorf("failed to update password: %w", err)
-	}
+	user.TokenVersion++
 
-	return nil
+	return s.userRepo.Update(user)
 }
 
 // ResetPassword resets a user's password (admin only)
-func (s *AuthService) ResetPassword(userID uint, newPassword string) error {
-	// Get user
+func (s *AuthService) ResetPassword(userID string, newPassword string) error {
 	user, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -367,13 +356,11 @@ func (s *AuthService) ResetPassword(userID uint, newPassword string) error {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Update password
+	// Update password and increment token version
 	user.PasswordHash = string(hashedPassword)
-	if err := s.userRepo.Update(user); err != nil {
-		return fmt.Errorf("failed to update password: %w", err)
-	}
+	user.TokenVersion++
 
-	return nil
+	return s.userRepo.Update(user)
 }
 
 // GetAllUsers returns all users (admin only)
@@ -386,17 +373,17 @@ func (s *AuthService) GetAllUsers() ([]*models.User, error) {
 }
 
 // DeleteUser deletes a user (admin only)
-func (s *AuthService) DeleteUser(userID uint) error {
+func (s *AuthService) DeleteUser(userID string) error {
 	// Check if user exists
-	user, err := s.userRepo.GetByID(userID)
+	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)
 	}
 
-	// Delete user
-	if err := s.userRepo.Delete(user.ID); err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+	// Revoke all refresh tokens for the user
+	if err := s.refreshTokenRepo.RevokeAllUserTokens(userID); err != nil {
+		return fmt.Errorf("failed to revoke refresh tokens: %w", err)
 	}
 
-	return nil
+	return s.userRepo.Delete(userID)
 }

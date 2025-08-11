@@ -222,7 +222,7 @@ const docTemplate = `{
                 "summary": "Delete a user (Admin only)",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "User ID",
                         "name": "id",
                         "in": "path",
@@ -282,7 +282,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Activate or deactivate a user account (Admin privileges required)",
+                "description": "Set the active status of a user account (Admin privileges required)",
                 "consumes": [
                     "application/json"
                 ],
@@ -295,7 +295,7 @@ const docTemplate = `{
                 "summary": "Set user active status (Admin only)",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "User ID",
                         "name": "id",
                         "in": "path",
@@ -377,7 +377,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Change user's own password",
+                "summary": "Change user password",
                 "parameters": [
                     {
                         "description": "Change password request",
@@ -483,7 +483,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout user and revoke tokens",
+                "description": "Logout the current user (revoke refresh token)",
                 "consumes": [
                     "application/json"
                 ],
@@ -496,9 +496,10 @@ const docTemplate = `{
                 "summary": "Logout user",
                 "parameters": [
                     {
-                        "description": "Logout request (optional)",
+                        "description": "Logout request",
                         "name": "request",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/models.LogoutRequest"
                         }
@@ -640,7 +641,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all boxes for the authenticated user",
+                "description": "Get all boxes belonging to the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -763,7 +764,7 @@ const docTemplate = `{
                 "summary": "Get box by ID",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Box ID",
                         "name": "id",
                         "in": "path",
@@ -826,7 +827,7 @@ const docTemplate = `{
                 "summary": "Update box",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Box ID",
                         "name": "id",
                         "in": "path",
@@ -898,7 +899,7 @@ const docTemplate = `{
                 "summary": "Delete box",
                 "parameters": [
                     {
-                        "type": "integer",
+                        "type": "string",
                         "description": "Box ID",
                         "name": "id",
                         "in": "path",
@@ -906,12 +907,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
+                    "204": {
+                        "description": "No Content"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -958,13 +955,13 @@ const docTemplate = `{
                     ]
                 },
                 "box_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -1013,7 +1010,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "machine_id": {
                     "type": "string"
@@ -1033,7 +1030,7 @@ const docTemplate = `{
                     ]
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -1045,8 +1042,8 @@ const docTemplate = `{
                     "example": "2025-01-09T10:30:00Z"
                 },
                 "id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "machine_id": {
                     "type": "string",
@@ -1061,8 +1058,8 @@ const docTemplate = `{
                     "example": "2025-01-09T10:30:00Z"
                 },
                 "user_id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },
@@ -1073,7 +1070,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -1099,7 +1096,7 @@ const docTemplate = `{
                     ]
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -1171,13 +1168,13 @@ const docTemplate = `{
                     ]
                 },
                 "app_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -1203,7 +1200,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "ip_address": {
                     "type": "string"
@@ -1229,7 +1226,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
-                    "type": "integer"
+                    "type": "string"
                 }
             }
         },
@@ -1280,7 +1277,7 @@ const docTemplate = `{
                     ]
                 },
                 "campaign_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"
@@ -1289,13 +1286,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "profile": {
                     "$ref": "#/definitions/models.Profile"
                 },
                 "profile_id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "started_at": {
                     "type": "string"
@@ -1342,7 +1339,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean"

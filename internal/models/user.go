@@ -6,7 +6,7 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID           uint       `json:"id" gorm:"primaryKey"`
+	ID           string     `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 	Username     string     `json:"username" gorm:"type:varchar(255);not null;unique;index"`
