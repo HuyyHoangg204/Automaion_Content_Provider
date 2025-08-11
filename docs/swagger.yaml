@@ -154,6 +154,21 @@ definitions:
     - machine_id
     - name
     type: object
+  models.CreateProfileRequest:
+    properties:
+      app_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      data:
+        $ref: '#/definitions/models.JSON'
+      name:
+        example: My Profile
+        type: string
+    required:
+    - app_id
+    - data
+    - name
+    type: object
   models.Flow:
     properties:
       campaign:
@@ -178,6 +193,9 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.JSON:
+    additionalProperties: true
     type: object
   models.LoginRequest:
     properties:
@@ -204,6 +222,10 @@ definitions:
         type: string
       created_at:
         type: string
+      data:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: Store complex profile data from anti-detect browsers
       flows:
         items:
           $ref: '#/definitions/models.Flow'
@@ -213,6 +235,26 @@ definitions:
       name:
         type: string
       updated_at:
+        type: string
+    type: object
+  models.ProfileResponse:
+    properties:
+      app_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      created_at:
+        example: "2025-01-09T10:00:00Z"
+        type: string
+      data:
+        $ref: '#/definitions/models.JSON'
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        example: My Profile
+        type: string
+      updated_at:
+        example: "2025-01-09T10:00:00Z"
         type: string
     type: object
   models.RefreshToken:
@@ -276,6 +318,16 @@ definitions:
     properties:
       name:
         example: Updated Computer Name
+        type: string
+    required:
+    - name
+    type: object
+  models.UpdateProfileRequest:
+    properties:
+      data:
+        $ref: '#/definitions/models.JSON'
+      name:
+        example: Updated Profile Name
         type: string
     required:
     - name
@@ -395,6 +447,40 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all boxes (Admin only)
+      tags:
+      - admin
+  /api/v1/admin/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get all profiles in the system (Admin privileges required)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProfileResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all profiles (Admin only)
       tags:
       - admin
   /api/v1/admin/register:
@@ -587,6 +673,46 @@ paths:
       summary: Set user active status (Admin only)
       tags:
       - admin
+  /api/v1/app-profiles/{app_id}/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get all profiles for a specific app (user must own the app)
+      parameters:
+      - description: App ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProfileResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get profiles by app
+      tags:
+      - profiles
   /api/v1/apps:
     get:
       consumes:
@@ -1219,6 +1345,215 @@ paths:
       summary: Update box
       tags:
       - boxes
+  /api/v1/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get all profiles belonging to the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProfileResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user's profiles
+      tags:
+      - profiles
+    post:
+      consumes:
+      - application/json
+      description: Create a new browser profile for the authenticated user. Profile
+        data is required and must contain configuration from anti-detect browser.
+      parameters:
+      - description: Create profile request (data field is required)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new profile
+      tags:
+      - profiles
+  /api/v1/profiles/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a profile (user must own it)
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete profile
+      tags:
+      - profiles
+    get:
+      consumes:
+      - application/json
+      description: Get a specific profile by ID (user must own it)
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get profile by ID
+      tags:
+      - profiles
+    put:
+      consumes:
+      - application/json
+      description: Update a profile (user must own it)
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update profile request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update profile
+      tags:
+      - profiles
 securityDefinitions:
   BearerAuth:
     description: Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")

@@ -44,6 +44,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
 
 	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
@@ -52,11 +53,13 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	// Create services
 	boxService := services.NewBoxService(boxRepo, userRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
+	profileService := services.NewProfileService(profileRepo, appRepo, userRepo)
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(boxService)
 	appHandler := handlers.NewAppHandler(appService)
+	profileHandler := handlers.NewProfileHandler(profileService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -124,6 +127,22 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				apps.DELETE("/:id", appHandler.DeleteApp)
 			}
 
+			// App Profiles routes (separate to avoid conflict)
+			appProfiles := protected.Group("/app-profiles")
+			{
+				appProfiles.GET("/:app_id/profiles", profileHandler.GetProfilesByApp)
+			}
+
+			// Profile routes
+			profiles := protected.Group("/profiles")
+			{
+				profiles.POST("", profileHandler.CreateProfile)
+				profiles.GET("", profileHandler.GetMyProfiles)
+				profiles.GET("/:id", profileHandler.GetProfileByID)
+				profiles.PUT("/:id", profileHandler.UpdateProfile)
+				profiles.DELETE("/:id", profileHandler.DeleteProfile)
+			}
+
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
@@ -133,6 +152,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				admin.DELETE("/users/:id", authHandler.DeleteUser)
 				admin.GET("/boxes", boxHandler.AdminGetAllBoxes)
 				admin.GET("/apps", appHandler.AdminGetAllApps)
+				admin.GET("/profiles", profileHandler.AdminGetAllProfiles)
 			}
 		}
 	}
