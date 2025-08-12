@@ -362,6 +362,111 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 	return response, nil
 }
 
+// SyncAllUserBoxes syncs all boxes for a specific user
+func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesResponse, error) {
+	// Get all boxes for the user
+	boxes, err := s.boxRepo.GetByUserID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user boxes: %w", err)
+	}
+
+	if len(boxes) == 0 {
+		return &models.SyncAllUserBoxesResponse{
+			UserID:          userID,
+			TotalBoxes:      0,
+			BoxesSynced:     0,
+			TotalProfiles:   0,
+			ProfilesCreated: 0,
+			ProfilesUpdated: 0,
+			ProfilesDeleted: 0,
+			Message:         "No boxes found for user",
+		}, nil
+	}
+
+	// Counters for overall response
+	totalProfiles := 0
+	totalProfilesCreated := 0
+	totalProfilesUpdated := 0
+	totalProfilesDeleted := 0
+	boxesSynced := 0
+	boxResults := make([]models.BoxSyncResult, 0)
+
+	// Sync each box
+	for _, box := range boxes {
+		// Get apps for this box
+		apps, err := s.appRepo.GetByBoxID(box.ID)
+		if err != nil {
+			// Log error but continue with other boxes
+			boxResults = append(boxResults, models.BoxSyncResult{
+				BoxID:     box.ID,
+				MachineID: box.MachineID,
+				Name:      box.Name,
+				Success:   false,
+				Error:     fmt.Sprintf("Failed to get apps: %v", err),
+			})
+			continue
+		}
+
+		if len(apps) == 0 {
+			boxResults = append(boxResults, models.BoxSyncResult{
+				BoxID:     box.ID,
+				MachineID: box.MachineID,
+				Name:      box.Name,
+				Success:   false,
+				Error:     "No apps found for this box",
+			})
+			continue
+		}
+
+		// Sync the first app (assuming one app per box for now)
+		syncResponse, err := s.SyncBoxProfilesFromHidemium(userID, box.ID)
+
+		if err != nil {
+			boxResults = append(boxResults, models.BoxSyncResult{
+				BoxID:     box.ID,
+				MachineID: box.MachineID,
+				Name:      box.Name,
+				Success:   false,
+				Error:     err.Error(),
+			})
+			continue
+		}
+
+		// Box synced successfully
+		boxesSynced++
+		totalProfiles += syncResponse.ProfilesSynced
+		totalProfilesCreated += syncResponse.ProfilesCreated
+		totalProfilesUpdated += syncResponse.ProfilesUpdated
+		totalProfilesDeleted += syncResponse.ProfilesDeleted
+
+		boxResults = append(boxResults, models.BoxSyncResult{
+			BoxID:           box.ID,
+			MachineID:       box.MachineID,
+			Name:            box.Name,
+			Success:         true,
+			ProfilesSynced:  syncResponse.ProfilesSynced,
+			ProfilesCreated: syncResponse.ProfilesCreated,
+			ProfilesUpdated: syncResponse.ProfilesUpdated,
+			ProfilesDeleted: syncResponse.ProfilesDeleted,
+		})
+	}
+
+	// Create overall response
+	response := &models.SyncAllUserBoxesResponse{
+		UserID:          userID,
+		TotalBoxes:      len(boxes),
+		BoxesSynced:     boxesSynced,
+		TotalProfiles:   totalProfiles,
+		ProfilesCreated: totalProfilesCreated,
+		ProfilesUpdated: totalProfilesUpdated,
+		ProfilesDeleted: totalProfilesDeleted,
+		BoxResults:      boxResults,
+		Message:         fmt.Sprintf("Sync completed: %d/%d boxes synced, %d profiles processed", boxesSynced, len(boxes), totalProfiles),
+	}
+
+	return response, nil
+}
+
 // Helper functions to safely extract values from map[string]interface{}
 func getStringFromMap(m map[string]interface{}, key string) string {
 	if val, exists := m[key]; exists {

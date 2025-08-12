@@ -116,6 +116,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
 				boxes.POST("/:id/sync-profiles", boxHandler.SyncBoxProfilesFromHidemium)
+				boxes.POST("/sync-all", boxHandler.SyncAllUserBoxes)
 			}
 
 			// Box Apps routes (separate to avoid conflict)

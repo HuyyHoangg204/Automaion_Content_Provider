@@ -1381,6 +1381,48 @@
                 }
             }
         },
+        "/api/v1/boxes/sync-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all boxes and their profiles for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boxes"
+                ],
+                "summary": "Sync all boxes for the authenticated user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncAllUserBoxesResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/boxes/{id}": {
             "get": {
                 "security": [
@@ -2894,6 +2936,47 @@
                 }
             }
         },
+        "models.BoxSyncResult": {
+            "type": "object",
+            "properties": {
+                "box_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Connection failed"
+                },
+                "machine_id": {
+                    "type": "string",
+                    "example": "pc-91542"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Computer"
+                },
+                "profiles_created": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "profiles_deleted": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "profiles_synced": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "profiles_updated": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "models.Campaign": {
             "type": "object",
             "properties": {
@@ -3316,6 +3399,49 @@
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "models.SyncAllUserBoxesResponse": {
+            "type": "object",
+            "properties": {
+                "box_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.BoxSyncResult"
+                    }
+                },
+                "boxes_synced": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Sync completed: 4/5 boxes synced, 50 profiles processed"
+                },
+                "profiles_created": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "profiles_deleted": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "profiles_updated": {
+                    "type": "integer",
+                    "example": 15
+                },
+                "total_boxes": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "total_profiles": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },
