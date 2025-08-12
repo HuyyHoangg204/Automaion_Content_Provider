@@ -74,3 +74,29 @@ type SyncBoxProfilesResponse struct {
 	ProfilesDeleted int    `json:"profiles_deleted" example:"2"`
 	Message         string `json:"message" example:"Sync completed successfully"`
 }
+
+// BoxSyncResult represents the result of syncing a single box
+type BoxSyncResult struct {
+	BoxID           string `json:"box_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	MachineID       string `json:"machine_id" example:"pc-91542"`
+	Name            string `json:"name" example:"My Computer"`
+	Success         bool   `json:"success" example:"true"`
+	Error           string `json:"error,omitempty" example:"Connection failed"`
+	ProfilesSynced  int    `json:"profiles_synced,omitempty" example:"10"`
+	ProfilesCreated int    `json:"profiles_created,omitempty" example:"5"`
+	ProfilesUpdated int    `json:"profiles_updated,omitempty" example:"3"`
+	ProfilesDeleted int    `json:"profiles_deleted,omitempty" example:"2"`
+}
+
+// SyncAllUserBoxesResponse represents the response for syncing all boxes of a user
+type SyncAllUserBoxesResponse struct {
+	UserID          string          `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	TotalBoxes      int             `json:"total_boxes" example:"5"`
+	BoxesSynced     int             `json:"boxes_synced" example:"4"`
+	TotalProfiles   int             `json:"total_profiles" example:"50"`
+	ProfilesCreated int             `json:"profiles_created" example:"20"`
+	ProfilesUpdated int             `json:"profiles_updated" example:"15"`
+	ProfilesDeleted int             `json:"profiles_deleted" example:"5"`
+	BoxResults      []BoxSyncResult `json:"box_results"`
+	Message         string          `json:"message" example:"Sync completed: 4/5 boxes synced, 50 profiles processed"`
+}

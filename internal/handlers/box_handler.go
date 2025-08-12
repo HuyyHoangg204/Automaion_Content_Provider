@@ -227,6 +227,32 @@ func (h *BoxHandler) SyncBoxProfilesFromHidemium(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// SyncAllUserBoxes godoc
+// @Summary Sync all boxes for the authenticated user
+// @Description Sync all boxes and their profiles for the authenticated user
+// @Tags boxes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.SyncAllUserBoxesResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/boxes/sync-all [post]
+func (h *BoxHandler) SyncAllUserBoxes(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+
+	response, err := h.boxService.SyncAllUserBoxes(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to sync all user boxes",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // AdminGetAllBoxes godoc
 // @Summary Get all boxes (Admin only)
 // @Description Get all boxes in the system (Admin privileges required)
