@@ -382,6 +382,33 @@ definitions:
     - password
     - username
     type: object
+  models.SyncBoxProfilesResponse:
+    properties:
+      box_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      machine_id:
+        example: pc-91542
+        type: string
+      message:
+        example: Sync completed successfully
+        type: string
+      profiles_created:
+        example: 5
+        type: integer
+      profiles_deleted:
+        example: 2
+        type: integer
+      profiles_synced:
+        example: 10
+        type: integer
+      profiles_updated:
+        example: 3
+        type: integer
+      tunnel_url:
+        example: http://pc-91542.agent-controller.onegreen.cloud/frps
+        type: string
+    type: object
   models.UpdateAppRequest:
     properties:
       name:
@@ -1507,6 +1534,49 @@ paths:
       security:
       - BearerAuth: []
       summary: Update box
+      tags:
+      - boxes
+  /api/v1/boxes/{id}/sync-profiles:
+    post:
+      consumes:
+      - application/json
+      description: Sync all profiles from a specific box's Hidemium instance via tunnel
+      parameters:
+      - description: Box ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync profiles from box's Hidemium instance
       tags:
       - boxes
   /api/v1/campaign-flows/{campaign_id}/flows:
