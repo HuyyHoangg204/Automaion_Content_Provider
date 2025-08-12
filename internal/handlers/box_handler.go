@@ -188,6 +188,45 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// SyncBoxProfilesFromHidemium godoc
+// @Summary Sync profiles from box's Hidemium instance
+// @Description Sync all profiles from a specific box's Hidemium instance via tunnel
+// @Tags boxes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Box ID"
+// @Success 200 {object} models.SyncBoxProfilesResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/boxes/{id}/sync-profiles [post]
+func (h *BoxHandler) SyncBoxProfilesFromHidemium(c *gin.Context) {
+	// Get user ID from context
+	userID := c.MustGet("user_id").(string)
+
+	// Get box ID from URL
+	boxID := c.Param("id")
+	if boxID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Box ID is required"})
+		return
+	}
+
+	// Sync profiles from Hidemium
+	response, err := h.boxService.SyncBoxProfilesFromHidemium(userID, boxID)
+	if err != nil {
+		if err.Error() == "box not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync profiles from Hidemium", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 // AdminGetAllBoxes godoc
 // @Summary Get all boxes (Admin only)
 // @Description Get all boxes in the system (Admin privileges required)

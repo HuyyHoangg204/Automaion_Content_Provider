@@ -1585,6 +1585,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/boxes/{id}/sync-profiles": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from a specific box's Hidemium instance via tunnel",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boxes"
+                ],
+                "summary": "Sync profiles from box's Hidemium instance",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/campaign-flows/{campaign_id}/flows": {
             "get": {
                 "security": [
@@ -3258,6 +3323,43 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "models.SyncBoxProfilesResponse": {
+            "type": "object",
+            "properties": {
+                "box_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "machine_id": {
+                    "type": "string",
+                    "example": "pc-91542"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Sync completed successfully"
+                },
+                "profiles_created": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "profiles_deleted": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "profiles_synced": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "profiles_updated": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "tunnel_url": {
+                    "type": "string",
+                    "example": "http://pc-91542.agent-controller.onegreen.cloud/frps"
                 }
             }
         },

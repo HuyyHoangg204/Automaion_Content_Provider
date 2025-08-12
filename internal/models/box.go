@@ -43,3 +43,34 @@ type BoxResponse struct {
 	CreatedAt string `json:"created_at" example:"2025-01-09T10:30:00Z"`
 	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }
+
+// HidemiumProfile represents a profile from Hidemium API
+type HidemiumProfile struct {
+	ID        string                 `json:"id"`
+	Name      string                 `json:"name"`
+	CreatedAt string                 `json:"created_at"`
+	UpdatedAt string                 `json:"updated_at"`
+	IsActive  bool                   `json:"is_active"`
+	Data      map[string]interface{} `json:"data,omitempty"`
+}
+
+// HidemiumResponse represents the response from Hidemium API
+type HidemiumResponse struct {
+	Success  bool              `json:"success"`
+	Data     interface{}       `json:"data"` // Use interface{} to handle different data formats
+	Message  string            `json:"message,omitempty"`
+	Profiles []HidemiumProfile `json:"profiles,omitempty"` // Alternative field name
+	Result   []HidemiumProfile `json:"result,omitempty"`   // Another possible field name
+}
+
+// SyncBoxProfilesResponse represents the response for syncing profiles from a box
+type SyncBoxProfilesResponse struct {
+	BoxID           string `json:"box_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	MachineID       string `json:"machine_id" example:"pc-91542"`
+	TunnelURL       string `json:"tunnel_url" example:"http://pc-91542.agent-controller.onegreen.cloud/frps"`
+	ProfilesSynced  int    `json:"profiles_synced" example:"10"`
+	ProfilesCreated int    `json:"profiles_created" example:"5"`
+	ProfilesUpdated int    `json:"profiles_updated" example:"3"`
+	ProfilesDeleted int    `json:"profiles_deleted" example:"2"`
+	Message         string `json:"message" example:"Sync completed successfully"`
+}

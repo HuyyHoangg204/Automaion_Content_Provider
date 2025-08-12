@@ -53,7 +53,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
 
 	// Create services
-	boxService := services.NewBoxService(boxRepo, userRepo)
+	boxService := services.NewBoxService(boxRepo, userRepo, appRepo, profileRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	profileService := services.NewProfileService(profileRepo, appRepo, userRepo)
 	campaignService := services.NewCampaignService(campaignRepo, userRepo)
@@ -115,6 +115,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				boxes.GET("/:id", boxHandler.GetBoxByID)
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
+				boxes.POST("/:id/sync-profiles", boxHandler.SyncBoxProfilesFromHidemium)
 			}
 
 			// Box Apps routes (separate to avoid conflict)
