@@ -2067,6 +2067,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/campaigns/{id}/group-campaigns": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all group campaigns for a specific campaign",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "group-campaigns"
+                ],
+                "summary": "Get all group campaigns for a campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.GroupCampaignResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/flows": {
             "get": {
                 "security": [
@@ -2413,6 +2467,183 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/group-campaign-flows/{group_campaign_id}/flows": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all flows for a specific group campaign (user must own the campaign)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flows"
+                ],
+                "summary": "Get flows by group campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Campaign ID",
+                        "name": "group_campaign_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.FlowResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/group-campaigns/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific group campaign by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "group-campaigns"
+                ],
+                "summary": "Get a group campaign by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GroupCampaignResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/group-campaigns/{id}/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get statistics for a specific group campaign",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "group-campaigns"
+                ],
+                "summary": "Get group campaign statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GroupCampaignStats"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2990,10 +3221,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "flows": {
+                "group_campaigns": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Flow"
+                        "$ref": "#/definitions/models.GroupCampaign"
                     }
                 },
                 "id": {
@@ -3120,12 +3351,12 @@ const docTemplate = `{
         "models.CreateFlowRequest": {
             "type": "object",
             "required": [
-                "campaign_id",
+                "group_campaign_id",
                 "profile_id",
                 "status"
             ],
             "properties": {
-                "campaign_id": {
+                "group_campaign_id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
@@ -3163,21 +3394,21 @@ const docTemplate = `{
         "models.Flow": {
             "type": "object",
             "properties": {
-                "campaign": {
-                    "description": "Relationships",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.Campaign"
-                        }
-                    ]
-                },
-                "campaign_id": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },
                 "finished_at": {
+                    "type": "string"
+                },
+                "group_campaign": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.GroupCampaign"
+                        }
+                    ]
+                },
+                "group_campaign_id": {
                     "type": "string"
                 },
                 "id": {
@@ -3203,10 +3434,6 @@ const docTemplate = `{
         "models.FlowResponse": {
             "type": "object",
             "properties": {
-                "campaign_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
-                },
                 "created_at": {
                     "type": "string",
                     "example": "2025-01-09T10:30:00Z"
@@ -3234,6 +3461,119 @@ const docTemplate = `{
                 "updated_at": {
                     "type": "string",
                     "example": "2025-01-09T10:30:00Z"
+                }
+            }
+        },
+        "models.GroupCampaign": {
+            "type": "object",
+            "properties": {
+                "campaign": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.Campaign"
+                        }
+                    ]
+                },
+                "campaign_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "flows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Flow"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GroupCampaignResponse": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:30:00Z"
+                },
+                "finished_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:30:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Campaign Run #1"
+                },
+                "started_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:00:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "running"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:30:00Z"
+                }
+            }
+        },
+        "models.GroupCampaignStats": {
+            "type": "object",
+            "properties": {
+                "duration": {
+                    "type": "string",
+                    "example": "30m"
+                },
+                "finished_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:30:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Campaign Run #1"
+                },
+                "started_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:00:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "success_rate": {
+                    "type": "number",
+                    "example": 80
                 }
             }
         },

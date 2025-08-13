@@ -14,8 +14,8 @@ type Campaign struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 
 	// Relationships
-	User  User   `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Flows []Flow `json:"flows,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
+	User           User            `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	GroupCampaigns []GroupCampaign `json:"group_campaigns,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for the Campaign model

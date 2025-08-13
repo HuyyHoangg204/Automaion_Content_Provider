@@ -46,6 +46,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
 	campaignRepo := repository.NewCampaignRepository(db)
+	groupCampaignRepo := repository.NewGroupCampaignRepository(db)
 	flowRepo := repository.NewFlowRepository(db)
 
 	// Create auth service and middleware
@@ -56,8 +57,9 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	boxService := services.NewBoxService(boxRepo, userRepo, appRepo, profileRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	profileService := services.NewProfileService(profileRepo, appRepo, userRepo)
-	campaignService := services.NewCampaignService(campaignRepo, userRepo)
-	flowService := services.NewFlowService(flowRepo, campaignRepo, profileRepo, userRepo)
+	campaignService := services.NewCampaignService(campaignRepo, groupCampaignRepo, userRepo)
+	groupCampaignService := services.NewGroupCampaignService(groupCampaignRepo, campaignRepo, flowRepo)
+	flowService := services.NewFlowService(flowRepo, campaignRepo, groupCampaignRepo, profileRepo, userRepo)
 
 	// Create handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -65,6 +67,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	appHandler := handlers.NewAppHandler(appService)
 	profileHandler := handlers.NewProfileHandler(profileService)
 	campaignHandler := handlers.NewCampaignHandler(campaignService)
+	groupCampaignHandler := handlers.NewGroupCampaignHandler(groupCampaignService)
 	flowHandler := handlers.NewFlowHandler(flowService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -149,6 +152,20 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
 				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
 				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+				campaigns.GET("/:id/group-campaigns", groupCampaignHandler.GetGroupCampaignsByCampaign)
+			}
+
+			// Group Campaign routes
+			groupCampaigns := protected.Group("/group-campaigns")
+			{
+				groupCampaigns.GET("/:id", groupCampaignHandler.GetGroupCampaignByID)
+				groupCampaigns.GET("/:id/stats", groupCampaignHandler.GetGroupCampaignStats)
+			}
+
+			// Group Campaign Flows routes
+			groupCampaignFlows := protected.Group("/group-campaign-flows")
+			{
+				groupCampaignFlows.GET("/:group_campaign_id/flows", flowHandler.GetFlowsByGroupCampaign)
 			}
 
 			// Campaign Flows routes (separate to avoid conflict)

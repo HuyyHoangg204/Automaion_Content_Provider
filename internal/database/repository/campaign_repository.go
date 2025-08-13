@@ -22,7 +22,7 @@ func (r *CampaignRepository) Create(campaign *models.Campaign) error {
 // GetByID retrieves a campaign by ID
 func (r *CampaignRepository) GetByID(id string) (*models.Campaign, error) {
 	var campaign models.Campaign
-	err := r.db.Preload("Flows").First(&campaign, "id = ?", id).Error
+	err := r.db.Preload("GroupCampaigns").First(&campaign, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -32,14 +32,14 @@ func (r *CampaignRepository) GetByID(id string) (*models.Campaign, error) {
 // GetByUserID retrieves all campaigns for a specific user
 func (r *CampaignRepository) GetByUserID(userID string) ([]*models.Campaign, error) {
 	var campaigns []*models.Campaign
-	err := r.db.Where("user_id = ?", userID).Preload("Flows").Find(&campaigns).Error
+	err := r.db.Where("user_id = ?", userID).Preload("GroupCampaigns").Find(&campaigns).Error
 	return campaigns, err
 }
 
 // GetByUserIDAndID retrieves a campaign by user ID and campaign ID
 func (r *CampaignRepository) GetByUserIDAndID(userID, campaignID string) (*models.Campaign, error) {
 	var campaign models.Campaign
-	err := r.db.Where("user_id = ? AND id = ?", userID, campaignID).Preload("Flows").First(&campaign).Error
+	err := r.db.Where("user_id = ? AND id = ?", userID, campaignID).Preload("GroupCampaigns").First(&campaign).Error
 	if err != nil {
 		return nil, err
 	}
@@ -68,23 +68,9 @@ func (r *CampaignRepository) CheckNameExistsForUser(userID, name string) (bool, 
 	return count > 0, err
 }
 
-// GetByStatus retrieves campaigns by status
-func (r *CampaignRepository) GetByStatus(status string) ([]*models.Campaign, error) {
-	var campaigns []*models.Campaign
-	err := r.db.Where("status = ?", status).Preload("Flows").Find(&campaigns).Error
-	return campaigns, err
-}
-
-// GetByUserIDAndStatus retrieves campaigns by user ID and status
-func (r *CampaignRepository) GetByUserIDAndStatus(userID, status string) ([]*models.Campaign, error) {
-	var campaigns []*models.Campaign
-	err := r.db.Where("user_id = ? AND status = ?", userID, status).Preload("Flows").Find(&campaigns).Error
-	return campaigns, err
-}
-
 // GetAll retrieves all campaigns (admin only)
 func (r *CampaignRepository) GetAll() ([]*models.Campaign, error) {
 	var campaigns []*models.Campaign
-	err := r.db.Preload("Flows").Find(&campaigns).Error
+	err := r.db.Preload("GroupCampaigns").Find(&campaigns).Error
 	return campaigns, err
 }
