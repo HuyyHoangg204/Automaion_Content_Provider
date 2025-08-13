@@ -67,19 +67,27 @@ func (h *ProfileHandler) CreateProfile(c *gin.Context) {
 
 // GetMyProfiles godoc
 // @Summary Get user's profiles
-// @Description Get all profiles belonging to the authenticated user with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.
+// @Description Get all profiles for a specific box (user must own the box) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.
 // @Tags profiles
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param box_id query string true "Box ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param page_size query int false "Page size (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} models.PaginatedProfileResponse
+// @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/profiles [get]
 func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
+	boxID := c.Query("box_id")
+
+	if boxID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "box_id is required"})
+		return
+	}
 
 	// Check if pagination parameters are provided
 	pageStr := c.Query("page")
@@ -105,8 +113,12 @@ func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 	}
 
 	// Always return paginated response for consistency
-	response, err := h.profileService.GetProfilesByUserPaginated(userID, page, pageSize)
+	response, err := h.profileService.GetProfilesByBoxPaginated(userID, boxID, page, pageSize)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
 		return
 	}

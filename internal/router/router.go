@@ -56,7 +56,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	// Create services
 	boxService := services.NewBoxService(boxRepo, userRepo, appRepo, profileRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
-	profileService := services.NewProfileService(profileRepo, appRepo, userRepo)
+	profileService := services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo)
 	campaignService := services.NewCampaignService(campaignRepo, groupCampaignRepo, userRepo)
 	groupCampaignService := services.NewGroupCampaignService(groupCampaignRepo, campaignRepo, flowRepo)
 	flowService := services.NewFlowService(flowRepo, campaignRepo, groupCampaignRepo, profileRepo, userRepo)

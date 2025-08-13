@@ -13,13 +13,15 @@ type ProfileService struct {
 	profileRepo *repository.ProfileRepository
 	appRepo     *repository.AppRepository
 	userRepo    *repository.UserRepository
+	boxRepo     *repository.BoxRepository
 }
 
-func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository) *ProfileService {
+func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
 	return &ProfileService{
 		profileRepo: profileRepo,
 		appRepo:     appRepo,
 		userRepo:    userRepo,
+		boxRepo:     boxRepo,
 	}
 }
 
@@ -78,6 +80,95 @@ func (s *ProfileService) GetProfilesByUser(userID string) ([]*models.ProfileResp
 	}
 
 	return responses, nil
+}
+
+// GetProfilesByBox retrieves all profiles for a specific box (user must own the box)
+func (s *ProfileService) GetProfilesByBox(userID, boxID string) ([]*models.ProfileResponse, error) {
+	// Verify box belongs to user
+	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+	if err != nil {
+		return nil, errors.New("box not found or access denied")
+	}
+
+	profiles, err := s.profileRepo.GetByBoxID(boxID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profiles: %w", err)
+	}
+
+	responses := make([]*models.ProfileResponse, len(profiles))
+	for i, profile := range profiles {
+		responses[i] = s.toResponse(profile)
+	}
+
+	return responses, nil
+}
+
+// GetProfilesByBoxPaginated retrieves paginated profiles for a specific box
+func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, pageSize int) (*models.PaginatedProfileResponse, error) {
+	// Verify box belongs to user
+	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+	if err != nil {
+		return nil, errors.New("box not found or access denied")
+	}
+
+	// Validate pagination parameters
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// If pageSize is very large, get all profiles
+	if pageSize >= 1000 {
+		profiles, err := s.profileRepo.GetByBoxID(boxID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get profiles: %w", err)
+		}
+
+		responses := make([]*models.ProfileResponse, len(profiles))
+		for i, profile := range profiles {
+			responses[i] = s.toResponse(profile)
+		}
+
+		return &models.PaginatedProfileResponse{
+			Profiles:    responses,
+			Total:       len(profiles),
+			Page:        1,
+			PageSize:    len(profiles),
+			TotalPages:  1,
+			HasNext:     false,
+			HasPrevious: false,
+		}, nil
+	}
+
+	profiles, total, err := s.profileRepo.GetByBoxIDPaginated(boxID, page, pageSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profiles: %w", err)
+	}
+
+	responses := make([]*models.ProfileResponse, len(profiles))
+	for i, profile := range profiles {
+		responses[i] = s.toResponse(profile)
+	}
+
+	// Calculate pagination info
+	totalPages := (total + pageSize - 1) / pageSize
+	hasNext := page < totalPages
+	hasPrevious := page > 1
+
+	return &models.PaginatedProfileResponse{
+		Profiles:    responses,
+		Total:       total,
+		Page:        page,
+		PageSize:    pageSize,
+		TotalPages:  totalPages,
+		HasNext:     hasNext,
+		HasPrevious: hasPrevious,
+	}, nil
 }
 
 // GetProfilesByUserPaginated retrieves paginated profiles for a specific user

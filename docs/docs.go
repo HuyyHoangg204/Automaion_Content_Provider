@@ -2746,7 +2746,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles belonging to the authenticated user with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
+                "description": "Get all profiles for a specific box (user must own the box) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2758,6 +2758,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get user's profiles",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID",
+                        "name": "box_id",
+                        "in": "query",
+                        "required": true
+                    },
                     {
                         "minimum": 1,
                         "type": "integer",
@@ -2779,6 +2786,13 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/models.PaginatedProfileResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {

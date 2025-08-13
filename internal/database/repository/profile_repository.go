@@ -48,6 +48,47 @@ func (r *ProfileRepository) GetByUserID(userID string) ([]*models.Profile, error
 	return profiles, err
 }
 
+// GetByBoxID retrieves all profiles for a specific box
+func (r *ProfileRepository) GetByBoxID(boxID string) ([]*models.Profile, error) {
+	var profiles []*models.Profile
+	err := r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
+		Where("apps.box_id = ?", boxID).
+		Preload("App").
+		Preload("Flows").
+		Find(&profiles).Error
+	return profiles, err
+}
+
+// GetByBoxIDPaginated retrieves paginated profiles for a specific box
+func (r *ProfileRepository) GetByBoxIDPaginated(boxID string, page, pageSize int) ([]*models.Profile, int, error) {
+	var profiles []*models.Profile
+	var total int64
+
+	// Count total records
+	err := r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
+		Where("apps.box_id = ?", boxID).
+		Model(&models.Profile{}).
+		Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get paginated results
+	err = r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
+		Where("apps.box_id = ?", boxID).
+		Preload("App").
+		Preload("Flows").
+		Offset(offset).
+		Limit(pageSize).
+		Order("profiles.created_at DESC").
+		Find(&profiles).Error
+
+	return profiles, int(total), err
+}
+
 // GetByUserIDAndID retrieves a profile by user ID and profile ID
 func (r *ProfileRepository) GetByUserIDAndID(userID, profileID string) (*models.Profile, error) {
 	var profile models.Profile
