@@ -41,6 +41,7 @@ func (h *GroupCampaignHandler) GetGroupCampaignByID(c *gin.Context) {
 	}
 
 	groupCampaignID := c.Param("id")
+
 	groupCampaign, err := h.groupCampaignService.GetGroupCampaignByID(userID, groupCampaignID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -86,6 +87,7 @@ func (h *GroupCampaignHandler) GetGroupCampaignsByCampaign(c *gin.Context) {
 	}
 
 	campaignID := c.Param("id")
+
 	groupCampaigns, err := h.groupCampaignService.GetGroupCampaignsByCampaign(userID, campaignID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -137,6 +139,7 @@ func (h *GroupCampaignHandler) GetGroupCampaignStats(c *gin.Context) {
 	}
 
 	groupCampaignID := c.Param("id")
+
 	stats, err := h.groupCampaignService.GetGroupCampaignStats(userID, groupCampaignID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

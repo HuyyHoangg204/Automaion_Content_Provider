@@ -85,7 +85,7 @@ func (h *FlowHandler) GetMyFlows(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param campaign_id path string true "Campaign ID" format(uuid)
+// @Param campaign_id path string true "Campaign ID"
 // @Success 200 {array} models.FlowResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -94,12 +94,6 @@ func (h *FlowHandler) GetMyFlows(c *gin.Context) {
 func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	campaignID := c.Param("campaign_id")
-
-	// Validate UUID format
-	if !isValidUUID(campaignID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid campaign ID format"})
-		return
-	}
 
 	flows, err := h.flowService.GetFlowsByCampaign(userID, campaignID)
 	if err != nil {
@@ -121,7 +115,7 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param group_campaign_id path string true "Group Campaign ID" format(uuid)
+// @Param group_campaign_id path string true "Group Campaign ID"
 // @Success 200 {array} models.FlowResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -130,12 +124,6 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	groupCampaignID := c.Param("group_campaign_id")
-
-	// Validate UUID format
-	if !isValidUUID(groupCampaignID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid group campaign ID format"})
-		return
-	}
 
 	flows, err := h.flowService.GetFlowsByGroupCampaign(userID, groupCampaignID)
 	if err != nil {
@@ -157,7 +145,7 @@ func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param profile_id path string true "Profile ID" format(uuid)
+// @Param profile_id path string true "Profile ID"
 // @Success 200 {array} models.FlowResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -166,12 +154,6 @@ func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
 func (h *FlowHandler) GetFlowsByProfile(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	profileID := c.Param("profile_id")
-
-	// Validate UUID format
-	if !isValidUUID(profileID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid profile ID format"})
-		return
-	}
 
 	flows, err := h.flowService.GetFlowsByProfile(userID, profileID)
 	if err != nil {
@@ -193,7 +175,7 @@ func (h *FlowHandler) GetFlowsByProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Flow ID" format(uuid)
+// @Param id path string true "Flow ID"
 // @Success 200 {object} models.FlowResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -203,12 +185,6 @@ func (h *FlowHandler) GetFlowsByProfile(c *gin.Context) {
 func (h *FlowHandler) GetFlowByID(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	flowID := c.Param("id")
-
-	// Validate UUID format
-	if !isValidUUID(flowID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid flow ID format"})
-		return
-	}
 
 	flow, err := h.flowService.GetFlowByID(userID, flowID)
 	if err != nil {
@@ -230,7 +206,7 @@ func (h *FlowHandler) GetFlowByID(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Flow ID" format(uuid)
+// @Param id path string true "Flow ID"
 // @Param request body models.UpdateFlowRequest true "Update flow request"
 // @Success 200 {object} models.FlowResponse
 // @Failure 400 {object} map[string]interface{}
@@ -241,12 +217,6 @@ func (h *FlowHandler) GetFlowByID(c *gin.Context) {
 func (h *FlowHandler) UpdateFlow(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	flowID := c.Param("id")
-
-	// Validate UUID format
-	if !isValidUUID(flowID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid flow ID format"})
-		return
-	}
 
 	var req models.UpdateFlowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -274,7 +244,7 @@ func (h *FlowHandler) UpdateFlow(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "Flow ID" format(uuid)
+// @Param id path string true "Flow ID"
 // @Success 204 "No Content"
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -284,12 +254,6 @@ func (h *FlowHandler) UpdateFlow(c *gin.Context) {
 func (h *FlowHandler) DeleteFlow(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	flowID := c.Param("id")
-
-	// Validate UUID format
-	if !isValidUUID(flowID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid flow ID format"})
-		return
-	}
 
 	err := h.flowService.DeleteFlow(userID, flowID)
 	if err != nil {
@@ -371,26 +335,4 @@ func (h *FlowHandler) AdminGetAllFlows(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, flows)
-}
-
-// isValidUUID checks if a string is a valid UUID
-func isValidUUID(uuid string) bool {
-	// Simple UUID validation - check length and format
-	if len(uuid) != 36 {
-		return false
-	}
-
-	// Check if it matches UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-	for i, char := range uuid {
-		if i == 8 || i == 13 || i == 18 || i == 23 {
-			if char != '-' {
-				return false
-			}
-		} else {
-			if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
-				return false
-			}
-		}
-	}
-	return true
 }
