@@ -186,7 +186,7 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 
 	// Check HTTP status code
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Hidemium API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("hidemium API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// First, try to parse as generic JSON to understand the structure

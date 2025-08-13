@@ -38,7 +38,7 @@ func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileR
 	}
 
 	// Validate data field is not empty
-	if req.Data == nil || len(req.Data) == 0 {
+	if len(req.Data) == 0 {
 		return nil, errors.New("profile data is required")
 	}
 
