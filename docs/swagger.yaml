@@ -130,9 +130,9 @@ definitions:
     properties:
       created_at:
         type: string
-      flows:
+      group_campaigns:
         items:
-          $ref: '#/definitions/models.Flow'
+          $ref: '#/definitions/models.GroupCampaign'
         type: array
       id:
         type: string
@@ -219,7 +219,7 @@ definitions:
     type: object
   models.CreateFlowRequest:
     properties:
-      campaign_id:
+      group_campaign_id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       profile_id:
@@ -229,7 +229,7 @@ definitions:
         example: Started
         type: string
     required:
-    - campaign_id
+    - group_campaign_id
     - profile_id
     - status
     type: object
@@ -250,15 +250,15 @@ definitions:
     type: object
   models.Flow:
     properties:
-      campaign:
-        allOf:
-        - $ref: '#/definitions/models.Campaign'
-        description: Relationships
-      campaign_id:
-        type: string
       created_at:
         type: string
       finished_at:
+        type: string
+      group_campaign:
+        allOf:
+        - $ref: '#/definitions/models.GroupCampaign'
+        description: Relationships
+      group_campaign_id:
         type: string
       id:
         type: string
@@ -275,9 +275,6 @@ definitions:
     type: object
   models.FlowResponse:
     properties:
-      campaign_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
       created_at:
         example: "2025-01-09T10:30:00Z"
         type: string
@@ -299,6 +296,84 @@ definitions:
       updated_at:
         example: "2025-01-09T10:30:00Z"
         type: string
+    type: object
+  models.GroupCampaign:
+    properties:
+      campaign:
+        allOf:
+        - $ref: '#/definitions/models.Campaign'
+        description: Relationships
+      campaign_id:
+        type: string
+      created_at:
+        type: string
+      finished_at:
+        type: string
+      flows:
+        items:
+          $ref: '#/definitions/models.Flow'
+        type: array
+      id:
+        type: string
+      name:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.GroupCampaignResponse:
+    properties:
+      campaign_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      created_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      finished_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        example: 'Campaign Run #1'
+        type: string
+      started_at:
+        example: "2025-01-09T10:00:00Z"
+        type: string
+      status:
+        example: running
+        type: string
+      updated_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+    type: object
+  models.GroupCampaignStats:
+    properties:
+      duration:
+        example: 30m
+        type: string
+      finished_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      name:
+        example: 'Campaign Run #1'
+        type: string
+      started_at:
+        example: "2025-01-09T10:00:00Z"
+        type: string
+      status:
+        example: completed
+        type: string
+      success_rate:
+        example: 80
+        type: number
     type: object
   models.JSON:
     additionalProperties: true
@@ -1915,6 +1990,41 @@ paths:
       summary: Update campaign
       tags:
       - campaigns
+  /api/v1/campaigns/{id}/group-campaigns:
+    get:
+      consumes:
+      - application/json
+      description: Get all group campaigns for a specific campaign
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.GroupCampaignResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all group campaigns for a campaign
+      tags:
+      - group-campaigns
   /api/v1/flows:
     get:
       consumes:
@@ -2148,6 +2258,123 @@ paths:
       summary: Get flows by status
       tags:
       - flows
+  /api/v1/group-campaign-flows/{group_campaign_id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific group campaign (user must own the
+        campaign)
+      parameters:
+      - description: Group Campaign ID
+        in: path
+        name: group_campaign_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FlowResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by group campaign
+      tags:
+      - flows
+  /api/v1/group-campaigns/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific group campaign by its ID
+      parameters:
+      - description: Group campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GroupCampaignResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a group campaign by ID
+      tags:
+      - group-campaigns
+  /api/v1/group-campaigns/{id}/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics for a specific group campaign
+      parameters:
+      - description: Group campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GroupCampaignStats'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get group campaign statistics
+      tags:
+      - group-campaigns
   /api/v1/profile-flows/{profile_id}/flows:
     get:
       consumes:

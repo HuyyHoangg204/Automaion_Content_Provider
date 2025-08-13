@@ -108,6 +108,36 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 	c.JSON(http.StatusOK, flows)
 }
 
+// GetFlowsByGroupCampaign godoc
+// @Summary Get flows by group campaign
+// @Description Get all flows for a specific group campaign (user must own the campaign)
+// @Tags flows
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param group_campaign_id path string true "Group Campaign ID"
+// @Success 200 {array} models.FlowResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/group-campaign-flows/{group_campaign_id}/flows [get]
+func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	groupCampaignID := c.Param("group_campaign_id")
+
+	flows, err := h.flowService.GetFlowsByGroupCampaign(userID, groupCampaignID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, flows)
+}
+
 // GetFlowsByProfile godoc
 // @Summary Get flows by profile
 // @Description Get all flows for a specific profile (user must own the profile)

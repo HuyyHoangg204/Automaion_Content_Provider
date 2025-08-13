@@ -10,18 +10,26 @@ import (
 )
 
 type FlowService struct {
-	flowRepo     *repository.FlowRepository
-	campaignRepo *repository.CampaignRepository
-	profileRepo  *repository.ProfileRepository
-	userRepo     *repository.UserRepository
+	flowRepo          *repository.FlowRepository
+	campaignRepo      *repository.CampaignRepository
+	groupCampaignRepo *repository.GroupCampaignRepository
+	profileRepo       *repository.ProfileRepository
+	userRepo          *repository.UserRepository
 }
 
-func NewFlowService(flowRepo *repository.FlowRepository, campaignRepo *repository.CampaignRepository, profileRepo *repository.ProfileRepository, userRepo *repository.UserRepository) *FlowService {
+func NewFlowService(
+	flowRepo *repository.FlowRepository,
+	campaignRepo *repository.CampaignRepository,
+	groupCampaignRepo *repository.GroupCampaignRepository,
+	profileRepo *repository.ProfileRepository,
+	userRepo *repository.UserRepository,
+) *FlowService {
 	return &FlowService{
-		flowRepo:     flowRepo,
-		campaignRepo: campaignRepo,
-		profileRepo:  profileRepo,
-		userRepo:     userRepo,
+		flowRepo:          flowRepo,
+		campaignRepo:      campaignRepo,
+		groupCampaignRepo: groupCampaignRepo,
+		profileRepo:       profileRepo,
+		userRepo:          userRepo,
 	}
 }
 
@@ -33,10 +41,16 @@ func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (
 		return nil, errors.New("user not found")
 	}
 
-	// Verify campaign exists and belongs to user
-	_, err = s.campaignRepo.GetByUserIDAndID(userID, req.CampaignID)
+	// Verify group campaign exists and belongs to user's campaign
+	groupCampaign, err := s.groupCampaignRepo.GetByID(req.GroupCampaignID)
 	if err != nil {
-		return nil, errors.New("campaign not found or access denied")
+		return nil, errors.New("group campaign not found")
+	}
+
+	// Verify the campaign belongs to user
+	_, err = s.campaignRepo.GetByUserIDAndID(userID, groupCampaign.CampaignID)
+	if err != nil {
+		return nil, errors.New("group campaign access denied")
 	}
 
 	// Verify profile exists and belongs to user (through apps and boxes)
@@ -47,9 +61,9 @@ func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (
 
 	// Create flow
 	flow := &models.Flow{
-		CampaignID: req.CampaignID,
-		ProfileID:  req.ProfileID,
-		Status:     req.Status,
+		GroupCampaignID: req.GroupCampaignID,
+		ProfileID:       req.ProfileID,
+		Status:          req.Status,
 	}
 
 	// Set StartedAt if status indicates flow has started
@@ -88,7 +102,45 @@ func (s *FlowService) GetFlowsByCampaign(userID, campaignID string) ([]*models.F
 		return nil, errors.New("campaign not found or access denied")
 	}
 
-	flows, err := s.flowRepo.GetByCampaignID(campaignID)
+	// Get all group campaigns for this campaign
+	groupCampaigns, err := s.groupCampaignRepo.GetByCampaignIDAndUserID(campaignID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get group campaigns: %w", err)
+	}
+
+	// Collect all flows from all group campaigns
+	var allFlows []*models.Flow
+	for _, groupCampaign := range groupCampaigns {
+		flows, err := s.flowRepo.GetByGroupCampaignID(groupCampaign.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get flows for group campaign %s: %w", groupCampaign.ID, err)
+		}
+		allFlows = append(allFlows, flows...)
+	}
+
+	responses := make([]*models.FlowResponse, len(allFlows))
+	for i, flow := range allFlows {
+		responses[i] = s.toResponse(flow)
+	}
+
+	return responses, nil
+}
+
+// GetFlowsByGroupCampaign retrieves all flows for a specific group campaign (user must own the campaign)
+func (s *FlowService) GetFlowsByGroupCampaign(userID, groupCampaignID string) ([]*models.FlowResponse, error) {
+	// Verify group campaign exists and belongs to user's campaign
+	groupCampaign, err := s.groupCampaignRepo.GetByID(groupCampaignID)
+	if err != nil {
+		return nil, errors.New("group campaign not found")
+	}
+
+	// Verify the campaign belongs to user
+	_, err = s.campaignRepo.GetByUserIDAndID(userID, groupCampaign.CampaignID)
+	if err != nil {
+		return nil, errors.New("group campaign access denied")
+	}
+
+	flows, err := s.flowRepo.GetByGroupCampaignID(groupCampaignID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get flows: %w", err)
 	}
@@ -210,12 +262,11 @@ func (s *FlowService) GetAllFlows() ([]*models.FlowResponse, error) {
 // toResponse converts Flow model to response DTO
 func (s *FlowService) toResponse(flow *models.Flow) *models.FlowResponse {
 	response := &models.FlowResponse{
-		ID:         flow.ID,
-		CampaignID: flow.CampaignID,
-		ProfileID:  flow.ProfileID,
-		Status:     flow.Status,
-		CreatedAt:  flow.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:  flow.UpdatedAt.Format(time.RFC3339),
+		ID:        flow.ID,
+		ProfileID: flow.ProfileID,
+		Status:    flow.Status,
+		CreatedAt: flow.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: flow.UpdatedAt.Format(time.RFC3339),
 	}
 
 	if flow.StartedAt != nil {

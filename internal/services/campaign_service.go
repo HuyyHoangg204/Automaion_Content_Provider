@@ -10,14 +10,20 @@ import (
 )
 
 type CampaignService struct {
-	campaignRepo *repository.CampaignRepository
-	userRepo     *repository.UserRepository
+	campaignRepo      *repository.CampaignRepository
+	groupCampaignRepo *repository.GroupCampaignRepository
+	userRepo          *repository.UserRepository
 }
 
-func NewCampaignService(campaignRepo *repository.CampaignRepository, userRepo *repository.UserRepository) *CampaignService {
+func NewCampaignService(
+	campaignRepo *repository.CampaignRepository,
+	groupCampaignRepo *repository.GroupCampaignRepository,
+	userRepo *repository.UserRepository,
+) *CampaignService {
 	return &CampaignService{
-		campaignRepo: campaignRepo,
-		userRepo:     userRepo,
+		campaignRepo:      campaignRepo,
+		groupCampaignRepo: groupCampaignRepo,
+		userRepo:          userRepo,
 	}
 }
 
@@ -50,6 +56,31 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 	}
 
 	return s.toResponse(campaign), nil
+}
+
+// CompleteCampaign creates a group campaign record when a campaign is completed
+func (s *CampaignService) CompleteCampaign(campaignID string, startedAt *time.Time) error {
+	// Get campaign to validate it exists
+	_, err := s.campaignRepo.GetByID(campaignID)
+	if err != nil {
+		return fmt.Errorf("campaign not found: %w", err)
+	}
+
+	now := time.Now()
+	groupCampaign := &models.GroupCampaign{
+		CampaignID: campaignID,
+		Name:       "Lần chạy " + now.Format("2006-01-02 15:04:05"),
+		Status:     "completed",
+		StartedAt:  startedAt,
+		FinishedAt: &now,
+	}
+
+	err = s.groupCampaignRepo.Create(groupCampaign)
+	if err != nil {
+		return fmt.Errorf("failed to create group campaign: %w", err)
+	}
+
+	return nil
 }
 
 // GetCampaignsByUser retrieves all campaigns for a specific user

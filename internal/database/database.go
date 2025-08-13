@@ -77,6 +77,7 @@ func InitDB() (*gorm.DB, error) {
 		&models.Box{},
 		&models.App{},
 		&models.Profile{},
+		&models.GroupCampaign{},
 		&models.Flow{},
 	)
 	if err != nil {

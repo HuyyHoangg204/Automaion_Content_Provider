@@ -22,7 +22,7 @@ func (r *FlowRepository) Create(flow *models.Flow) error {
 // GetByID retrieves a flow by ID
 func (r *FlowRepository) GetByID(id string) (*models.Flow, error) {
 	var flow models.Flow
-	err := r.db.Preload("Campaign").Preload("Profile").First(&flow, "id = ?", id).Error
+	err := r.db.Preload("GroupCampaign").Preload("Profile").First(&flow, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +43,20 @@ func (r *FlowRepository) GetByProfileID(profileID string) ([]*models.Flow, error
 	return flows, err
 }
 
-// GetByUserID retrieves all flows for a specific user (through campaigns)
+// GetByGroupCampaignID retrieves all flows for a specific group campaign
+func (r *FlowRepository) GetByGroupCampaignID(groupCampaignID string) ([]*models.Flow, error) {
+	var flows []*models.Flow
+	err := r.db.Where("group_campaign_id = ?", groupCampaignID).Preload("Profile").Preload("GroupCampaign").Find(&flows).Error
+	return flows, err
+}
+
+// GetByUserID retrieves all flows for a specific user (through group campaigns and campaigns)
 func (r *FlowRepository) GetByUserID(userID string) ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Joins("JOIN campaigns ON flows.campaign_id = campaigns.id").
+	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
+		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ?", userID).
-		Preload("Campaign").
+		Preload("GroupCampaign").
 		Preload("Profile").
 		Find(&flows).Error
 	return flows, err
@@ -57,9 +65,10 @@ func (r *FlowRepository) GetByUserID(userID string) ([]*models.Flow, error) {
 // GetByUserIDAndID retrieves a flow by user ID and flow ID
 func (r *FlowRepository) GetByUserIDAndID(userID, flowID string) (*models.Flow, error) {
 	var flow models.Flow
-	err := r.db.Joins("JOIN campaigns ON flows.campaign_id = campaigns.id").
+	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
+		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.id = ?", userID, flowID).
-		Preload("Campaign").
+		Preload("GroupCampaign").
 		Preload("Profile").
 		First(&flow).Error
 	if err != nil {
@@ -80,7 +89,8 @@ func (r *FlowRepository) Delete(id string) error {
 
 // DeleteByUserIDAndID deletes a flow by user ID and flow ID
 func (r *FlowRepository) DeleteByUserIDAndID(userID, flowID string) error {
-	return r.db.Joins("JOIN campaigns ON flows.campaign_id = campaigns.id").
+	return r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
+		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.id = ?", userID, flowID).
 		Delete(&models.Flow{}).Error
 }
@@ -106,6 +116,6 @@ func (r *FlowRepository) GetByUserIDAndStatus(userID, status string) ([]*models.
 // GetAll retrieves all flows (admin only)
 func (r *FlowRepository) GetAll() ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Preload("Campaign").Preload("Profile").Find(&flows).Error
+	err := r.db.Preload("GroupCampaign").Preload("Profile").Find(&flows).Error
 	return flows, err
 }
