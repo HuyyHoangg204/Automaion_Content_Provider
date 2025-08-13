@@ -211,9 +211,9 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 								ID:        getStringFromMap(profileMap, "uuid"),
 								Name:      getStringFromMap(profileMap, "name"),
 								CreatedAt: getStringFromMap(profileMap, "created_at"),
-								UpdatedAt: getStringFromMap(profileMap, "created_at"), // Use created_at as updated_at for now
+								UpdatedAt: getStringFromMap(profileMap, "created_at"),
 								IsActive:  getBoolFromMap(profileMap, "can_be_running"),
-								Data:      profileMap, // Store the entire profile data
+								Data:      profileMap,
 							}
 							hidemiumProfiles = append(hidemiumProfiles, profile)
 						}
