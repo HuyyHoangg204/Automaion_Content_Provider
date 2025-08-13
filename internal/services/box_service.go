@@ -164,39 +164,137 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 
 	// Construct tunnel URL
 	tunnelURL := fmt.Sprintf("http://%s.agent-controller.onegreen.cloud/frps", box.MachineID)
-	apiURL := fmt.Sprintf("%s/v1/browser/list?is_local=false", tunnelURL)
 
 	// Create HTTP client with timeout
 	client := &http.Client{
 		Timeout: 30 * time.Second,
 	}
 
-	// Make HTTP request to Hidemium API
-	resp, err := client.Get(apiURL)
+	// Fetch all profiles from all pages
+	var allHidemiumProfiles []models.HidemiumProfile
+	page := 1
+	pageSize := 100 // Adjust based on Hidemium API default
+
+	for {
+		// Construct API URL with pagination
+		apiURL := fmt.Sprintf("%s/v1/browser/list?is_local=false&page=%d&size=%d", tunnelURL, page, pageSize)
+
+		// Make HTTP request to Hidemium API
+		resp, err := client.Get(apiURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to Hidemium API on page %d: %w", page, err)
+		}
+		defer resp.Body.Close()
+
+		// Read response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read response body on page %d: %w", page, err)
+		}
+
+		// Check HTTP status code
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("hidemium API returned status %d on page %d: %s", resp.StatusCode, page, string(body))
+		}
+
+		// Parse response for this page
+		pageProfiles, hasMore, err := s.parseHidemiumResponse(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse response on page %d: %w", page, err)
+		}
+
+		// Add profiles from this page to the total
+		allHidemiumProfiles = append(allHidemiumProfiles, pageProfiles...)
+
+		// If no more pages or no profiles returned, break
+		if !hasMore || len(pageProfiles) == 0 {
+			break
+		}
+
+		page++
+	}
+
+	// Get existing profiles for this app
+	existingProfiles, err := s.profileRepo.GetByAppID(app.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Hidemium API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, fmt.Errorf("failed to get existing profiles: %w", err)
 	}
 
-	// Check HTTP status code
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("hidemium API returned status %d: %s", resp.StatusCode, string(body))
+	// Create maps for efficient lookup
+	existingProfilesMap := make(map[string]*models.Profile)
+	for _, profile := range existingProfiles {
+		existingProfilesMap[profile.Name] = profile
 	}
 
+	hidemiumProfilesMap := make(map[string]models.HidemiumProfile)
+	for _, profile := range allHidemiumProfiles {
+		hidemiumProfilesMap[profile.Name] = profile
+	}
+
+	// Counters for response
+	profilesCreated := 0
+	profilesUpdated := 0
+	profilesDeleted := 0
+
+	// Create or update profiles from Hidemium
+	for _, hidemiumProfile := range allHidemiumProfiles {
+		if existingProfile, exists := existingProfilesMap[hidemiumProfile.Name]; exists {
+			// Profile exists, update it
+			existingProfile.Data = models.JSON(hidemiumProfile.Data)
+			if err := s.profileRepo.Update(existingProfile); err != nil {
+				return nil, fmt.Errorf("failed to update profile '%s': %w", hidemiumProfile.Name, err)
+			}
+			profilesUpdated++
+		} else {
+			// Profile doesn't exist, create it
+			newProfile := &models.Profile{
+				AppID: app.ID,
+				Name:  hidemiumProfile.Name,
+				Data:  models.JSON(hidemiumProfile.Data),
+			}
+			if err := s.profileRepo.Create(newProfile); err != nil {
+				return nil, fmt.Errorf("failed to create profile '%s': %w", hidemiumProfile.Name, err)
+			}
+			profilesCreated++
+		}
+	}
+
+	// Delete profiles that no longer exist in Hidemium
+	for name, existingProfile := range existingProfilesMap {
+		if _, exists := hidemiumProfilesMap[name]; !exists {
+			if err := s.profileRepo.Delete(existingProfile.ID); err != nil {
+				return nil, fmt.Errorf("failed to delete profile '%s': %w", name, err)
+			}
+			profilesDeleted++
+		}
+	}
+
+	// Create response
+	response := &models.SyncBoxProfilesResponse{
+		BoxID:           box.ID,
+		MachineID:       box.MachineID,
+		TunnelURL:       tunnelURL,
+		ProfilesSynced:  len(allHidemiumProfiles),
+		ProfilesCreated: profilesCreated,
+		ProfilesUpdated: profilesUpdated,
+		ProfilesDeleted: profilesDeleted,
+		Message:         fmt.Sprintf("Sync completed: %d created, %d updated, %d deleted", profilesCreated, profilesUpdated, profilesDeleted),
+	}
+
+	return response, nil
+}
+
+// parseHidemiumResponse parses the Hidemium API response and returns profiles and pagination info
+func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfile, bool, error) {
 	// First, try to parse as generic JSON to understand the structure
 	var rawResponse map[string]interface{}
 	if err := json.Unmarshal(body, &rawResponse); err != nil {
-		return nil, fmt.Errorf("failed to parse response as JSON: %w", err)
+		return nil, false, fmt.Errorf("failed to parse response as JSON: %w", err)
 	}
 
 	// Extract profiles from different possible response formats
 	var hidemiumProfiles []models.HidemiumProfile
+	hasMore := false
 
 	// Try different possible field names for profiles
 	if data, exists := rawResponse["data"]; exists {
@@ -233,6 +331,13 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 						}
 						hidemiumProfiles = append(hidemiumProfiles, profile)
 					}
+				}
+			}
+
+			// Check pagination info in data
+			if hasNext, exists := dataMap["has_next"]; exists {
+				if hasNextBool, ok := hasNext.(bool); ok {
+					hasMore = hasNextBool
 				}
 			}
 		}
@@ -292,74 +397,16 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 		}
 	}
 
-	// Get existing profiles for this app
-	existingProfiles, err := s.profileRepo.GetByAppID(app.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get existing profiles: %w", err)
-	}
-
-	// Create maps for efficient lookup
-	existingProfilesMap := make(map[string]*models.Profile)
-	for _, profile := range existingProfiles {
-		existingProfilesMap[profile.Name] = profile
-	}
-
-	hidemiumProfilesMap := make(map[string]models.HidemiumProfile)
-	for _, profile := range hidemiumProfiles {
-		hidemiumProfilesMap[profile.Name] = profile
-	}
-
-	// Counters for response
-	profilesCreated := 0
-	profilesUpdated := 0
-	profilesDeleted := 0
-
-	// Create or update profiles from Hidemium
-	for _, hidemiumProfile := range hidemiumProfiles {
-		if existingProfile, exists := existingProfilesMap[hidemiumProfile.Name]; exists {
-			// Profile exists, update it
-			existingProfile.Data = models.JSON(hidemiumProfile.Data)
-			if err := s.profileRepo.Update(existingProfile); err != nil {
-				return nil, fmt.Errorf("failed to update profile '%s': %w", hidemiumProfile.Name, err)
+	// Check pagination info at root level if not found in data
+	if !hasMore {
+		if hasNext, exists := rawResponse["has_next"]; exists {
+			if hasNextBool, ok := hasNext.(bool); ok {
+				hasMore = hasNextBool
 			}
-			profilesUpdated++
-		} else {
-			// Profile doesn't exist, create it
-			newProfile := &models.Profile{
-				AppID: app.ID,
-				Name:  hidemiumProfile.Name,
-				Data:  models.JSON(hidemiumProfile.Data),
-			}
-			if err := s.profileRepo.Create(newProfile); err != nil {
-				return nil, fmt.Errorf("failed to create profile '%s': %w", hidemiumProfile.Name, err)
-			}
-			profilesCreated++
 		}
 	}
 
-	// Delete profiles that no longer exist in Hidemium
-	for name, existingProfile := range existingProfilesMap {
-		if _, exists := hidemiumProfilesMap[name]; !exists {
-			if err := s.profileRepo.Delete(existingProfile.ID); err != nil {
-				return nil, fmt.Errorf("failed to delete profile '%s': %w", name, err)
-			}
-			profilesDeleted++
-		}
-	}
-
-	// Create response
-	response := &models.SyncBoxProfilesResponse{
-		BoxID:           box.ID,
-		MachineID:       box.MachineID,
-		TunnelURL:       tunnelURL,
-		ProfilesSynced:  len(hidemiumProfiles),
-		ProfilesCreated: profilesCreated,
-		ProfilesUpdated: profilesUpdated,
-		ProfilesDeleted: profilesDeleted,
-		Message:         fmt.Sprintf("Sync completed: %d created, %d updated, %d deleted", profilesCreated, profilesUpdated, profilesDeleted),
-	}
-
-	return response, nil
+	return hidemiumProfiles, hasMore, nil
 }
 
 // SyncAllUserBoxes syncs all boxes for a specific user
