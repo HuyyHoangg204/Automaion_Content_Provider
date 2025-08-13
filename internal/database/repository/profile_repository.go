@@ -94,3 +94,60 @@ func (r *ProfileRepository) GetAll() ([]*models.Profile, error) {
 	err := r.db.Preload("App").Preload("Flows").Find(&profiles).Error
 	return profiles, err
 }
+
+// GetByUserIDPaginated retrieves paginated profiles for a specific user
+func (r *ProfileRepository) GetByUserIDPaginated(userID string, page, pageSize int) ([]*models.Profile, int, error) {
+	var profiles []*models.Profile
+	var total int64
+
+	// Count total records
+	err := r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
+		Joins("JOIN boxes ON apps.box_id = boxes.id").
+		Where("boxes.user_id = ?", userID).
+		Model(&models.Profile{}).
+		Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get paginated results
+	err = r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
+		Joins("JOIN boxes ON apps.box_id = boxes.id").
+		Where("boxes.user_id = ?", userID).
+		Preload("App").
+		Preload("Flows").
+		Offset(offset).
+		Limit(pageSize).
+		Order("profiles.created_at DESC").
+		Find(&profiles).Error
+
+	return profiles, int(total), err
+}
+
+// GetByAppIDPaginated retrieves paginated profiles for a specific app
+func (r *ProfileRepository) GetByAppIDPaginated(appID string, page, pageSize int) ([]*models.Profile, int, error) {
+	var profiles []*models.Profile
+	var total int64
+
+	// Count total records
+	err := r.db.Model(&models.Profile{}).Where("app_id = ?", appID).Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get paginated results
+	err = r.db.Where("app_id = ?", appID).
+		Preload("Flows").
+		Offset(offset).
+		Limit(pageSize).
+		Order("created_at DESC").
+		Find(&profiles).Error
+
+	return profiles, int(total), err
+}
