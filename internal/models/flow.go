@@ -27,14 +27,14 @@ func (Flow) TableName() string {
 
 // CreateFlowRequest represents the request to create a new flow
 type CreateFlowRequest struct {
-	GroupCampaignID string `json:"group_campaign_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
-	ProfileID       string `json:"profile_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440001"`
-	Status          string `json:"status" binding:"required" example:"Started"`
+	GroupCampaignID string `json:"group_campaign_id" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ProfileID       string `json:"profile_id" binding:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Status          string `json:"status" binding:"required,oneof=Started Running Completed Failed Stopped" example:"Started"`
 }
 
 // UpdateFlowRequest represents the request to update a flow
 type UpdateFlowRequest struct {
-	Status string `json:"status" binding:"required" example:"Completed"`
+	Status string `json:"status" binding:"required,oneof=Started Running Completed Failed Stopped" example:"Completed"`
 }
 
 // FlowResponse represents the response for flow operations
