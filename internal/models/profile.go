@@ -44,3 +44,14 @@ type ProfileResponse struct {
 	CreatedAt string `json:"created_at" example:"2025-01-09T10:00:00Z"`
 	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:00:00Z"`
 }
+
+// PaginatedProfileResponse represents a paginated response for profile operations
+type PaginatedProfileResponse struct {
+	Profiles    []*ProfileResponse `json:"profiles"`
+	Total       int                `json:"total" example:"150"`
+	Page        int                `json:"page" example:"1"`
+	PageSize    int                `json:"page_size" example:"20"`
+	TotalPages  int                `json:"total_pages" example:"8"`
+	HasNext     bool               `json:"has_next" example:"true"`
+	HasPrevious bool               `json:"has_previous" example:"false"`
+}

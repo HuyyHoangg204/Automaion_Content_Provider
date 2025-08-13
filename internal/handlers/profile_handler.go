@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"green-anti-detect-browser-backend-v1/internal/models"
@@ -66,36 +67,64 @@ func (h *ProfileHandler) CreateProfile(c *gin.Context) {
 
 // GetMyProfiles godoc
 // @Summary Get user's profiles
-// @Description Get all profiles belonging to the authenticated user
+// @Description Get all profiles belonging to the authenticated user with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.
 // @Tags profiles
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.ProfileResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param page_size query int false "Page size (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} models.PaginatedProfileResponse
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/profiles [get]
 func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	profiles, err := h.profileService.GetProfilesByUser(userID)
+	// Check if pagination parameters are provided
+	pageStr := c.Query("page")
+	pageSizeStr := c.Query("page_size")
+
+	// Parse pagination parameters
+	page := 1
+	pageSize := 20
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	} else {
+		// If no page_size provided, get all profiles
+		pageSize = 1000
+	}
+
+	// Always return paginated response for consistency
+	response, err := h.profileService.GetProfilesByUserPaginated(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, profiles)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetProfilesByApp godoc
 // @Summary Get profiles by app
-// @Description Get all profiles for a specific app (user must own the app)
+// @Description Get all profiles for a specific app (user must own the app) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.
 // @Tags profiles
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param app_id path string true "App ID"
-// @Success 200 {array} models.ProfileResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param page_size query int false "Page size (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} models.PaginatedProfileResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -104,7 +133,31 @@ func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	appID := c.Param("app_id")
 
-	profiles, err := h.profileService.GetProfilesByApp(userID, appID)
+	// Check if pagination parameters are provided
+	pageStr := c.Query("page")
+	pageSizeStr := c.Query("page_size")
+
+	// Parse pagination parameters
+	page := 1
+	pageSize := 20
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	} else {
+		// If no page_size provided, get all profiles
+		pageSize = 1000
+	}
+
+	// Always return paginated response for consistency
+	response, err := h.profileService.GetProfilesByAppPaginated(userID, appID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -114,7 +167,7 @@ func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, profiles)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetProfileByID godoc

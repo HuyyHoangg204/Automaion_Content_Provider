@@ -575,7 +575,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific app (user must own the app)",
+                "description": "Get all profiles for a specific app (user must own the app) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
                 "consumes": [
                     "application/json"
                 ],
@@ -593,16 +593,28 @@ const docTemplate = `{
                         "name": "app_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page size (default: 20, max: 100)",
+                        "name": "page_size",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ProfileResponse"
-                            }
+                            "$ref": "#/definitions/models.PaginatedProfileResponse"
                         }
                     },
                     "400": {
@@ -2244,6 +2256,13 @@ const docTemplate = `{
                 "summary": "Get flows by status",
                 "parameters": [
                     {
+                        "enum": [
+                            "Started",
+                            "Running",
+                            "Completed",
+                            "Failed",
+                            "Stopped"
+                        ],
                         "type": "string",
                         "description": "Flow Status",
                         "name": "status",
@@ -2259,6 +2278,13 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/models.FlowResponse"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -2720,7 +2746,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles belonging to the authenticated user",
+                "description": "Get all profiles belonging to the authenticated user with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2731,14 +2757,28 @@ const docTemplate = `{
                     "profiles"
                 ],
                 "summary": "Get user's profiles",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page size (default: 20, max: 100)",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ProfileResponse"
-                            }
+                            "$ref": "#/definitions/models.PaginatedProfileResponse"
                         }
                     },
                     "401": {
@@ -3366,6 +3406,13 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string",
+                    "enum": [
+                        "Started",
+                        "Running",
+                        "Completed",
+                        "Failed",
+                        "Stopped"
+                    ],
                     "example": "Started"
                 }
             }
@@ -3601,6 +3648,41 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "models.PaginatedProfileResponse": {
+            "type": "object",
+            "properties": {
+                "has_next": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "has_previous": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "page_size": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "profiles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProfileResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 150
+                },
+                "total_pages": {
+                    "type": "integer",
+                    "example": 8
                 }
             }
         },
@@ -3878,6 +3960,13 @@ const docTemplate = `{
             "properties": {
                 "status": {
                     "type": "string",
+                    "enum": [
+                        "Started",
+                        "Running",
+                        "Completed",
+                        "Failed",
+                        "Stopped"
+                    ],
                     "example": "Completed"
                 }
             }

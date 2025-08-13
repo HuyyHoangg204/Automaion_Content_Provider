@@ -226,6 +226,12 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
       status:
+        enum:
+        - Started
+        - Running
+        - Completed
+        - Failed
+        - Stopped
         example: Started
         type: string
     required:
@@ -392,6 +398,31 @@ definitions:
     properties:
       refresh_token:
         type: string
+    type: object
+  models.PaginatedProfileResponse:
+    properties:
+      has_next:
+        example: true
+        type: boolean
+      has_previous:
+        example: false
+        type: boolean
+      page:
+        example: 1
+        type: integer
+      page_size:
+        example: 20
+        type: integer
+      profiles:
+        items:
+          $ref: '#/definitions/models.ProfileResponse'
+        type: array
+      total:
+        example: 150
+        type: integer
+      total_pages:
+        example: 8
+        type: integer
     type: object
   models.Profile:
     properties:
@@ -576,6 +607,12 @@ definitions:
   models.UpdateFlowRequest:
     properties:
       status:
+        enum:
+        - Started
+        - Running
+        - Completed
+        - Failed
+        - Stopped
         example: Completed
         type: string
     required:
@@ -1004,22 +1041,33 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all profiles for a specific app (user must own the app)
+      description: Get all profiles for a specific app (user must own the app) with
+        optional pagination. When page and page_size parameters are provided, returns
+        paginated response. Otherwise returns all profiles.
       parameters:
       - description: App ID
         in: path
         name: app_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Page size (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.ProfileResponse'
-            type: array
+            $ref: '#/definitions/models.PaginatedProfileResponse'
         "400":
           description: Bad Request
           schema:
@@ -2230,6 +2278,12 @@ paths:
       description: Get all flows for a specific status (user must own them)
       parameters:
       - description: Flow Status
+        enum:
+        - Started
+        - Running
+        - Completed
+        - Failed
+        - Stopped
         in: path
         name: status
         required: true
@@ -2243,6 +2297,11 @@ paths:
             items:
               $ref: '#/definitions/models.FlowResponse'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
         "401":
           description: Unauthorized
           schema:
@@ -2419,16 +2478,28 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all profiles belonging to the authenticated user
+      description: Get all profiles belonging to the authenticated user with optional
+        pagination. When page and page_size parameters are provided, returns paginated
+        response. Otherwise returns all profiles.
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Page size (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: page_size
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.ProfileResponse'
-            type: array
+            $ref: '#/definitions/models.PaginatedProfileResponse'
         "401":
           description: Unauthorized
           schema:
