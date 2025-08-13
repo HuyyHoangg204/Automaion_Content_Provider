@@ -169,3 +169,4 @@ The application automatically creates a default admin user on startup:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
