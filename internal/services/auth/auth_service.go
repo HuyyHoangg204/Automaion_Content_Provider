@@ -10,6 +10,7 @@ import (
 
 	"green-anti-detect-browser-backend-v1/internal/database/repository"
 	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
@@ -363,13 +364,23 @@ func (s *AuthService) ResetPassword(userID string, newPassword string) error {
 	return s.userRepo.Update(user)
 }
 
-// GetAllUsers returns all users (admin only)
-func (s *AuthService) GetAllUsers() ([]*models.User, error) {
-	users, err := s.userRepo.GetAll()
+// GetAllUsers returns all users (admin only) with pagination and search
+func (s *AuthService) GetAllUsers(page, pageSize int, search string) ([]*models.User, int64, error) {
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
+
+	users, total, err := s.userRepo.GetAllUsers(page, pageSize, search)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get users: %w", err)
+		return nil, 0, fmt.Errorf("failed to get users: %w", err)
 	}
-	return users, nil
+
+	// Convert to pointers for consistency
+	userPointers := make([]*models.User, len(users))
+	for i := range users {
+		userPointers[i] = &users[i]
+	}
+
+	return userPointers, total, nil
 }
 
 // DeleteUser deletes a user (admin only)

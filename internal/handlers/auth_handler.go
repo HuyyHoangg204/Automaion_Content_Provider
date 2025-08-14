@@ -6,6 +6,7 @@ import (
 
 	"green-anti-detect-browser-backend-v1/internal/models"
 	"green-anti-detect-browser-backend-v1/internal/services/auth"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -228,12 +229,16 @@ func (h *AuthHandler) AdminRegister(c *gin.Context) {
 
 // GetAllUsers godoc
 // @Summary Get all users (Admin only)
-// @Description Get list of all users in the system (Admin privileges required)
+// @Description Get list of all users in the system with pagination and search (Admin privileges required)
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.User
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 10, max: 100)" minimum(1) maximum(100)
+// @Param search query string false "Search term for username"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -246,13 +251,29 @@ func (h *AuthHandler) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	users, err := h.authService.GetAllUsers()
+	// Parse query parameters
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
+	search := c.DefaultQuery("search", "")
+
+	users, total, err := h.authService.GetAllUsers(page, pageSize, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	// Calculate pagination info
+	paginationInfo := utils.CalculatePaginationInfo(int(total), page, pageSize)
+
+	response := gin.H{
+		"data":         users,
+		"total":        total,
+		"page":         paginationInfo.Page,
+		"limit":        paginationInfo.PageSize,
+		"total_pages":  paginationInfo.TotalPages,
+		"has_next":     paginationInfo.HasNext,
+		"has_previous": paginationInfo.HasPrevious,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // SetUserStatus godoc

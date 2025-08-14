@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -51,20 +52,6 @@ func (r *UserRepository) Delete(id string) error {
 	return r.db.Delete(&models.User{}, "id = ?", id).Error
 }
 
-// GetAll retrieves all users
-func (r *UserRepository) GetAll() ([]*models.User, error) {
-	var users []*models.User
-	err := r.db.Find(&users).Error
-	return users, err
-}
-
-// List retrieves all users with pagination
-func (r *UserRepository) List(offset, limit int) ([]models.User, error) {
-	var users []models.User
-	err := r.db.Offset(offset).Limit(limit).Find(&users).Error
-	return users, err
-}
-
 // UpdateLastLogin updates the last login time for a user
 func (r *UserRepository) UpdateLastLogin(userID string) error {
 	now := time.Now()
@@ -94,7 +81,7 @@ func (r *UserRepository) GetAllUsers(page, pageSize int, search string) ([]model
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
-	if err := query.Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error; err != nil {
+	if err := query.Offset(utils.CalculateOffset(page, pageSize)).Limit(pageSize).Find(&users).Error; err != nil {
 		return nil, 0, err
 	}
 	return users, total, nil

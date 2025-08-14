@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"strings"
 
 	"green-anti-detect-browser-backend-v1/internal/models"
 	"green-anti-detect-browser-backend-v1/internal/services"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -90,27 +90,7 @@ func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 	}
 
 	// Check if pagination parameters are provided
-	pageStr := c.Query("page")
-	pageSizeStr := c.Query("page_size")
-
-	// Parse pagination parameters
-	page := 1
-	pageSize := 20
-
-	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-			page = p
-		}
-	}
-
-	if pageSizeStr != "" {
-		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
-			pageSize = ps
-		}
-	} else {
-		// If no page_size provided, get all profiles
-		pageSize = 1000
-	}
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("page_size"))
 
 	// Always return paginated response for consistency
 	response, err := h.profileService.GetProfilesByBoxPaginated(userID, boxID, page, pageSize)
@@ -146,27 +126,7 @@ func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 	appID := c.Param("app_id")
 
 	// Check if pagination parameters are provided
-	pageStr := c.Query("page")
-	pageSizeStr := c.Query("page_size")
-
-	// Parse pagination parameters
-	page := 1
-	pageSize := 20
-
-	if pageStr != "" {
-		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-			page = p
-		}
-	}
-
-	if pageSizeStr != "" {
-		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
-			pageSize = ps
-		}
-	} else {
-		// If no page_size provided, get all profiles
-		pageSize = 1000
-	}
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("page_size"))
 
 	// Always return paginated response for consistency
 	response, err := h.profileService.GetProfilesByAppPaginated(userID, appID, page, pageSize)

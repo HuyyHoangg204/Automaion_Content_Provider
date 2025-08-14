@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math"
+	"strconv"
 )
 
 // PaginationParams represents pagination parameters
@@ -59,4 +60,27 @@ func CalculateOffset(page, pageSize int) int {
 // ShouldGetAll checks if we should get all records (when pageSize is very large)
 func ShouldGetAll(pageSize int) bool {
 	return pageSize >= 1000
+}
+
+// ParsePaginationFromQuery parses pagination parameters from query string
+func ParsePaginationFromQuery(pageStr, pageSizeStr string) (int, int) {
+	page := 1
+	pageSize := 20
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	} else {
+		// If no page_size provided, get all records
+		pageSize = 1000
+	}
+
+	return page, pageSize
 }
