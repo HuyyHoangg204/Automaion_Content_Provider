@@ -33,12 +33,14 @@ func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserR
 // CreateBox creates a new box for a user
 func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*models.BoxResponse, error) {
 	// Check if machine ID already exists
-	exists, err := s.boxRepo.CheckMachineIDExists(req.MachineID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check machine ID: %w", err)
-	}
-	if exists {
-		return nil, errors.New("machine ID already exists")
+	existingBox, err := s.boxRepo.GetByMachineID(req.MachineID)
+	if err == nil {
+		// Box exists, return error with box details
+		return nil, &models.BoxAlreadyExistsError{
+			BoxID:     existingBox.ID,
+			MachineID: existingBox.MachineID,
+			Message:   "machine ID already exists",
+		}
 	}
 
 	// Verify user exists

@@ -46,8 +46,13 @@ func (h *BoxHandler) CreateBox(c *gin.Context) {
 
 	response, err := h.boxService.CreateBox(userID, &req)
 	if err != nil {
-		if strings.Contains(err.Error(), "machine ID already exists") {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		// Check if it's a BoxAlreadyExistsError
+		if boxExistsErr, ok := err.(*models.BoxAlreadyExistsError); ok {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":      boxExistsErr.Message,
+				"box_id":     boxExistsErr.BoxID,
+				"machine_id": boxExistsErr.MachineID,
+			})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create box", "details": err.Error()})
