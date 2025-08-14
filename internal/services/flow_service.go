@@ -152,17 +152,20 @@ func (s *FlowService) GetFlowsByGroupCampaign(userID, groupCampaignID string, pa
 	return responses, total, nil
 }
 
-// GetFlowsByProfile retrieves all flows for a specific profile (user must own the profile)
-func (s *FlowService) GetFlowsByProfile(userID, profileID string) ([]*models.FlowResponse, error) {
+// GetFlowsByProfile retrieves paginated flows for a specific profile (user must own the profile)
+func (s *FlowService) GetFlowsByProfile(userID, profileID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Verify profile belongs to user
 	_, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
-		return nil, errors.New("profile not found or access denied")
+		return nil, 0, errors.New("profile not found or access denied")
 	}
 
-	flows, err := s.flowRepo.GetByProfileID(profileID)
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
+
+	flows, total, err := s.flowRepo.GetByProfileIDPaginated(profileID, page, pageSize)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get flows: %w", err)
+		return nil, 0, fmt.Errorf("failed to get flows: %w", err)
 	}
 
 	responses := make([]*models.FlowResponse, len(flows))
@@ -170,7 +173,7 @@ func (s *FlowService) GetFlowsByProfile(userID, profileID string) ([]*models.Flo
 		responses[i] = s.toResponse(flow)
 	}
 
-	return responses, nil
+	return responses, total, nil
 }
 
 // GetFlowByID retrieves a flow by ID (user must own it)
@@ -228,11 +231,14 @@ func (s *FlowService) DeleteFlow(userID, flowID string) error {
 	return nil
 }
 
-// GetFlowsByStatus retrieves flows by status for a user
-func (s *FlowService) GetFlowsByStatus(userID, status string) ([]*models.FlowResponse, error) {
-	flows, err := s.flowRepo.GetByUserIDAndStatus(userID, status)
+// GetFlowsByStatus retrieves paginated flows by status for a user
+func (s *FlowService) GetFlowsByStatus(userID, status string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
+
+	flows, total, err := s.flowRepo.GetByUserIDAndStatusPaginated(userID, status, page, pageSize)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get flows: %w", err)
+		return nil, 0, fmt.Errorf("failed to get flows: %w", err)
 	}
 
 	responses := make([]*models.FlowResponse, len(flows))
@@ -240,7 +246,7 @@ func (s *FlowService) GetFlowsByStatus(userID, status string) ([]*models.FlowRes
 		responses[i] = s.toResponse(flow)
 	}
 
-	return responses, nil
+	return responses, total, nil
 }
 
 // GetAllFlows retrieves all flows (admin only)

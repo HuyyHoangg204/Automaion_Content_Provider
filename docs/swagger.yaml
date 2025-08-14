@@ -2304,7 +2304,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all flows for a specific status (user must own them)
+      description: Get all flows for a specific status (user must own them) with pagination
       parameters:
       - description: Flow Status
         enum:
@@ -2317,15 +2317,25 @@ paths:
         name: status
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2478,21 +2488,32 @@ paths:
       consumes:
       - application/json
       description: Get all flows for a specific profile (user must own the profile)
+        with pagination
       parameters:
       - description: Profile ID
         in: path
         name: profile_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
