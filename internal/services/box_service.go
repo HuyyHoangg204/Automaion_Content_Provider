@@ -11,6 +11,7 @@ import (
 
 	"green-anti-detect-browser-backend-v1/internal/database/repository"
 	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 )
 
 type BoxService struct {
@@ -60,11 +61,14 @@ func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*mo
 	return s.toResponse(box), nil
 }
 
-// GetBoxesByUser retrieves all boxes for a specific user
-func (s *BoxService) GetBoxesByUser(userID string) ([]*models.BoxResponse, error) {
-	boxes, err := s.boxRepo.GetByUserID(userID)
+// GetBoxesByUserPaginated retrieves paginated boxes for a specific user
+func (s *BoxService) GetBoxesByUserPaginated(userID string, page, pageSize int) ([]*models.BoxResponse, int, error) {
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
+
+	boxes, total, err := s.boxRepo.GetByUserID(userID, page, pageSize)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get boxes: %w", err)
+		return nil, 0, fmt.Errorf("failed to get boxes: %w", err)
 	}
 
 	responses := make([]*models.BoxResponse, len(boxes))
@@ -72,7 +76,7 @@ func (s *BoxService) GetBoxesByUser(userID string) ([]*models.BoxResponse, error
 		responses[i] = s.toResponse(box)
 	}
 
-	return responses, nil
+	return responses, total, nil
 }
 
 // GetBoxByID retrieves a box by ID (user must own it)
@@ -489,8 +493,8 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 
 // SyncAllUserBoxes syncs all boxes for a specific user
 func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesResponse, error) {
-	// Get all boxes for the user
-	boxes, err := s.boxRepo.GetByUserID(userID)
+	// Get all boxes for the user (for sync operation, we need all boxes)
+	boxes, err := s.boxRepo.GetAllByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user boxes: %w", err)
 	}

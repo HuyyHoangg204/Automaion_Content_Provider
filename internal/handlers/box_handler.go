@@ -6,6 +6,7 @@ import (
 
 	"green-anti-detect-browser-backend-v1/internal/models"
 	"green-anti-detect-browser-backend-v1/internal/services"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,25 +59,42 @@ func (h *BoxHandler) CreateBox(c *gin.Context) {
 
 // GetMyBoxes godoc
 // @Summary Get user's boxes
-// @Description Get all boxes belonging to the authenticated user
+// @Description Get all boxes belonging to the authenticated user with pagination
 // @Tags boxes
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.BoxResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/boxes [get]
 func (h *BoxHandler) GetMyBoxes(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	boxes, err := h.boxService.GetBoxesByUser(userID)
+	// Parse query parameters
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
+
+	boxes, total, err := h.boxService.GetBoxesByUserPaginated(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get boxes", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, boxes)
+	// Calculate pagination info
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
+
+	response := gin.H{
+		"data":         boxes,
+		"total":        total,
+		"page":         paginationInfo.Page,
+		"limit":        paginationInfo.PageSize,
+		"total_pages":  paginationInfo.TotalPages,
+		"has_next":     paginationInfo.HasNext,
+		"has_previous": paginationInfo.HasPrevious,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // GetBoxByID godoc

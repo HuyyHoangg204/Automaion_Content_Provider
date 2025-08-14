@@ -77,9 +77,6 @@ func ParsePaginationFromQuery(pageStr, pageSizeStr string) (int, int) {
 		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
 			pageSize = ps
 		}
-	} else {
-		// If no page_size provided, get all records
-		pageSize = 1000
 	}
 
 	return page, pageSize
