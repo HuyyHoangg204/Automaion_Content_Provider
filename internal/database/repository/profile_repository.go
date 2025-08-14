@@ -2,6 +2,7 @@ package repository
 
 import (
 	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -74,7 +75,7 @@ func (r *ProfileRepository) GetByBoxIDPaginated(boxID string, page, pageSize int
 	}
 
 	// Calculate offset
-	offset := (page - 1) * pageSize
+	offset := utils.CalculateOffset(page, pageSize)
 
 	// Get paginated results
 	err = r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
@@ -152,7 +153,7 @@ func (r *ProfileRepository) GetByUserIDPaginated(userID string, page, pageSize i
 	}
 
 	// Calculate offset
-	offset := (page - 1) * pageSize
+	offset := utils.CalculateOffset(page, pageSize)
 
 	// Get paginated results
 	err = r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
@@ -180,7 +181,7 @@ func (r *ProfileRepository) GetByAppIDPaginated(appID string, page, pageSize int
 	}
 
 	// Calculate offset
-	offset := (page - 1) * pageSize
+	offset := utils.CalculateOffset(page, pageSize)
 
 	// Get paginated results
 	err = r.db.Where("app_id = ?", appID).
