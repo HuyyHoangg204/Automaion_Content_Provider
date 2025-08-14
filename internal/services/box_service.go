@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -170,17 +171,44 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 		Timeout: 30 * time.Second,
 	}
 
-	// Fetch all profiles from all pages
+	// Fetch all profiles
 	var allHidemiumProfiles []models.HidemiumProfile
 	page := 1
-	pageSize := 100 // Adjust based on Hidemium API default
+	limit := 100
+
+	fmt.Printf("Starting sync for box %s (MachineID: %s)\n", boxID, box.MachineID)
 
 	for {
-		// Construct API URL with pagination
-		apiURL := fmt.Sprintf("%s/v1/browser/list?is_local=false&page=%d&size=%d", tunnelURL, page, pageSize)
+		// Construct API URL (POST method)
+		apiURL := fmt.Sprintf("%s/v1/browser/list", tunnelURL)
+
+		// Prepare request body
+		requestBody := map[string]interface{}{
+			"orderName":     0,
+			"orderLastOpen": 0,
+			"page":          page,
+			"limit":         limit,
+			"search":        "",
+			"status":        "",
+			"date_range":    []string{"", ""},
+			"folder_id":     []string{},
+		}
+
+		// Convert to JSON
+		jsonBody, err := json.Marshal(requestBody)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+
+		// Create POST request
+		req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
 
 		// Make HTTP request to Hidemium API
-		resp, err := client.Get(apiURL)
+		resp, err := client.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to connect to Hidemium API on page %d: %w", page, err)
 		}
@@ -212,7 +240,15 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 		}
 
 		page++
+
+		// Safety check to prevent infinite loop
+		if page > 100 {
+			fmt.Printf("Safety break: reached max pages (%d)\n", page)
+			break
+		}
 	}
+	fmt.Printf("Synced profiles successfully from Hidemium\n")
+	fmt.Printf("Total profiles fetched: %d\n", len(allHidemiumProfiles))
 
 	// Get existing profiles for this app
 	existingProfiles, err := s.profileRepo.GetByAppID(app.ID)
@@ -302,8 +338,9 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 			// Check if data has a "content" field (Hidemium format)
 			if content, exists := dataMap["content"]; exists {
 				if profilesData, ok := content.([]interface{}); ok {
+					fmt.Printf("Found %d profiles in content\n", len(profilesData))
 					// Convert []interface{} to []HidemiumProfile
-					for _, item := range profilesData {
+					for i, item := range profilesData {
 						if profileMap, ok := item.(map[string]interface{}); ok {
 							profile := models.HidemiumProfile{
 								ID:        getStringFromMap(profileMap, "uuid"),
@@ -314,12 +351,16 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 								Data:      profileMap,
 							}
 							hidemiumProfiles = append(hidemiumProfiles, profile)
+							if i < 2 { // Log first 2 profiles for debugging
+								fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
+							}
 						}
 					}
 				}
 			} else if profilesData, ok := data.([]interface{}); ok {
+				fmt.Printf("Found %d profiles in data array\n", len(profilesData))
 				// Direct array in data field
-				for _, item := range profilesData {
+				for i, item := range profilesData {
 					if profileMap, ok := item.(map[string]interface{}); ok {
 						profile := models.HidemiumProfile{
 							ID:        getStringFromMap(profileMap, "id"),
@@ -330,21 +371,18 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 							Data:      profileMap,
 						}
 						hidemiumProfiles = append(hidemiumProfiles, profile)
+						if i < 2 { // Log first 2 profiles for debugging
+							fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
+						}
 					}
-				}
-			}
-
-			// Check pagination info in data
-			if hasNext, exists := dataMap["has_next"]; exists {
-				if hasNextBool, ok := hasNext.(bool); ok {
-					hasMore = hasNextBool
 				}
 			}
 		}
 	} else if profilesData, exists := rawResponse["profiles"]; exists {
 		// Handle case where profiles are directly in "profiles" field
 		if profilesArray, ok := profilesData.([]interface{}); ok {
-			for _, item := range profilesArray {
+			fmt.Printf("Found %d profiles in profiles field\n", len(profilesArray))
+			for i, item := range profilesArray {
 				if profileMap, ok := item.(map[string]interface{}); ok {
 					profile := models.HidemiumProfile{
 						ID:        getStringFromMap(profileMap, "id"),
@@ -355,13 +393,17 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 						Data:      profileMap,
 					}
 					hidemiumProfiles = append(hidemiumProfiles, profile)
+					if i < 2 { // Log first 2 profiles for debugging
+						fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
+					}
 				}
 			}
 		}
 	} else if resultData, exists := rawResponse["result"]; exists {
 		// Handle case where profiles are in "result" field
 		if resultArray, ok := resultData.([]interface{}); ok {
-			for _, item := range resultArray {
+			fmt.Printf("Found %d profiles in result field\n", len(resultArray))
+			for i, item := range resultArray {
 				if profileMap, ok := item.(map[string]interface{}); ok {
 					profile := models.HidemiumProfile{
 						ID:        getStringFromMap(profileMap, "id"),
@@ -372,6 +414,9 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 						Data:      profileMap,
 					}
 					hidemiumProfiles = append(hidemiumProfiles, profile)
+					if i < 2 { // Log first 2 profiles for debugging
+						fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
+					}
 				}
 			}
 		}
@@ -382,8 +427,9 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 		// If no profiles found, check if the response itself is an array
 		var directProfiles []map[string]interface{}
 		if err := json.Unmarshal(body, &directProfiles); err == nil {
+			fmt.Printf("Found %d profiles in direct array\n", len(directProfiles))
 			// Response is directly an array of profiles
-			for _, profileMap := range directProfiles {
+			for i, profileMap := range directProfiles {
 				profile := models.HidemiumProfile{
 					ID:        getStringFromMap(profileMap, "id"),
 					Name:      getStringFromMap(profileMap, "name"),
@@ -393,19 +439,51 @@ func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfil
 					Data:      profileMap,
 				}
 				hidemiumProfiles = append(hidemiumProfiles, profile)
+				if i < 2 { // Log first 2 profiles for debugging
+					fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
+				}
 			}
 		}
 	}
 
-	// Check pagination info at root level if not found in data
-	if !hasMore {
-		if hasNext, exists := rawResponse["has_next"]; exists {
-			if hasNextBool, ok := hasNext.(bool); ok {
-				hasMore = hasNextBool
+	// Check pagination info - Hidemium uses meta and links structure
+	if meta, exists := rawResponse["meta"]; exists {
+		if metaMap, ok := meta.(map[string]interface{}); ok {
+			// Check current_page vs last_page
+			if currentPage, exists := metaMap["current_page"]; exists {
+				if lastPage, exists := metaMap["last_page"]; exists {
+					if currentPageFloat, ok := currentPage.(float64); ok {
+						if lastPageFloat, ok := lastPage.(float64); ok {
+							hasMore = currentPageFloat < lastPageFloat
+							fmt.Printf("Pagination: page %.0f/%.0f, hasMore=%v\n", currentPageFloat, lastPageFloat, hasMore)
+						}
+					}
+				}
+			}
+
+			// Log total for reference
+			if total, exists := metaMap["total"]; exists {
+				fmt.Printf("Total profiles: %v\n", total)
 			}
 		}
 	}
 
+	// Also check links.next for additional pagination info
+	if links, exists := rawResponse["links"]; exists {
+		if linksMap, ok := links.(map[string]interface{}); ok {
+			if next, exists := linksMap["next"]; exists {
+				if next != nil {
+					// If next is not null, there are more pages
+					if !hasMore {
+						hasMore = true
+						fmt.Printf("Setting hasMore=true based on links.next\n")
+					}
+				}
+			}
+		}
+	}
+
+	fmt.Printf("Final: %d profiles, hasMore=%v\n", len(hidemiumProfiles), hasMore)
 	return hidemiumProfiles, hasMore, nil
 }
 
@@ -531,6 +609,15 @@ func getBoolFromMap(m map[string]interface{}, key string) bool {
 		}
 	}
 	return false
+}
+
+// Helper function to get keys of a map
+func getKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // toResponse converts Box model to response DTO

@@ -7,6 +7,7 @@ import (
 
 	"green-anti-detect-browser-backend-v1/internal/database/repository"
 	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 )
 
 type ProfileService struct {
@@ -111,19 +112,11 @@ func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, p
 		return nil, errors.New("box not found or access denied")
 	}
 
-	// Validate pagination parameters
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
 
 	// If pageSize is very large, get all profiles
-	if pageSize >= 1000 {
+	if utils.ShouldGetAll(pageSize) {
 		profiles, err := s.profileRepo.GetByBoxID(boxID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get profiles: %w", err)
@@ -134,14 +127,15 @@ func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, p
 			responses[i] = s.toResponse(profile)
 		}
 
+		paginationInfo := utils.CalculatePaginationInfo(len(profiles), 1, len(profiles))
 		return &models.PaginatedProfileResponse{
 			Profiles:    responses,
-			Total:       len(profiles),
-			Page:        1,
-			PageSize:    len(profiles),
-			TotalPages:  1,
-			HasNext:     false,
-			HasPrevious: false,
+			Total:       paginationInfo.Total,
+			Page:        paginationInfo.Page,
+			PageSize:    paginationInfo.PageSize,
+			TotalPages:  paginationInfo.TotalPages,
+			HasNext:     paginationInfo.HasNext,
+			HasPrevious: paginationInfo.HasPrevious,
 		}, nil
 	}
 
@@ -155,37 +149,25 @@ func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, p
 		responses[i] = s.toResponse(profile)
 	}
 
-	// Calculate pagination info
-	totalPages := (total + pageSize - 1) / pageSize
-	hasNext := page < totalPages
-	hasPrevious := page > 1
-
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
 	return &models.PaginatedProfileResponse{
 		Profiles:    responses,
-		Total:       total,
-		Page:        page,
-		PageSize:    pageSize,
-		TotalPages:  totalPages,
-		HasNext:     hasNext,
-		HasPrevious: hasPrevious,
+		Total:       paginationInfo.Total,
+		Page:        paginationInfo.Page,
+		PageSize:    paginationInfo.PageSize,
+		TotalPages:  paginationInfo.TotalPages,
+		HasNext:     paginationInfo.HasNext,
+		HasPrevious: paginationInfo.HasPrevious,
 	}, nil
 }
 
 // GetProfilesByUserPaginated retrieves paginated profiles for a specific user
 func (s *ProfileService) GetProfilesByUserPaginated(userID string, page, pageSize int) (*models.PaginatedProfileResponse, error) {
-	// Validate pagination parameters
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
 
 	// If pageSize is very large, get all profiles
-	if pageSize >= 1000 {
+	if utils.ShouldGetAll(pageSize) {
 		profiles, err := s.profileRepo.GetByUserID(userID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get profiles: %w", err)
@@ -196,14 +178,15 @@ func (s *ProfileService) GetProfilesByUserPaginated(userID string, page, pageSiz
 			responses[i] = s.toResponse(profile)
 		}
 
+		paginationInfo := utils.CalculatePaginationInfo(len(profiles), 1, len(profiles))
 		return &models.PaginatedProfileResponse{
 			Profiles:    responses,
-			Total:       len(profiles),
-			Page:        1,
-			PageSize:    len(profiles),
-			TotalPages:  1,
-			HasNext:     false,
-			HasPrevious: false,
+			Total:       paginationInfo.Total,
+			Page:        paginationInfo.Page,
+			PageSize:    paginationInfo.PageSize,
+			TotalPages:  paginationInfo.TotalPages,
+			HasNext:     paginationInfo.HasNext,
+			HasPrevious: paginationInfo.HasPrevious,
 		}, nil
 	}
 
@@ -217,19 +200,15 @@ func (s *ProfileService) GetProfilesByUserPaginated(userID string, page, pageSiz
 		responses[i] = s.toResponse(profile)
 	}
 
-	// Calculate pagination info
-	totalPages := (total + pageSize - 1) / pageSize
-	hasNext := page < totalPages
-	hasPrevious := page > 1
-
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
 	return &models.PaginatedProfileResponse{
 		Profiles:    responses,
-		Total:       total,
-		Page:        page,
-		PageSize:    pageSize,
-		TotalPages:  totalPages,
-		HasNext:     hasNext,
-		HasPrevious: hasPrevious,
+		Total:       paginationInfo.Total,
+		Page:        paginationInfo.Page,
+		PageSize:    paginationInfo.PageSize,
+		TotalPages:  paginationInfo.TotalPages,
+		HasNext:     paginationInfo.HasNext,
+		HasPrevious: paginationInfo.HasPrevious,
 	}, nil
 }
 
@@ -262,19 +241,11 @@ func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, p
 		return nil, errors.New("app not found or access denied")
 	}
 
-	// Validate pagination parameters
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
+	// Validate and normalize pagination parameters
+	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
 
 	// If pageSize is very large, get all profiles
-	if pageSize >= 1000 {
+	if utils.ShouldGetAll(pageSize) {
 		profiles, err := s.profileRepo.GetByAppID(appID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get profiles: %w", err)
@@ -285,14 +256,15 @@ func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, p
 			responses[i] = s.toResponse(profile)
 		}
 
+		paginationInfo := utils.CalculatePaginationInfo(len(profiles), 1, len(profiles))
 		return &models.PaginatedProfileResponse{
 			Profiles:    responses,
-			Total:       len(profiles),
-			Page:        1,
-			PageSize:    len(profiles),
-			TotalPages:  1,
-			HasNext:     false,
-			HasPrevious: false,
+			Total:       paginationInfo.Total,
+			Page:        paginationInfo.Page,
+			PageSize:    paginationInfo.PageSize,
+			TotalPages:  paginationInfo.TotalPages,
+			HasNext:     paginationInfo.HasNext,
+			HasPrevious: paginationInfo.HasPrevious,
 		}, nil
 	}
 
@@ -306,19 +278,15 @@ func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, p
 		responses[i] = s.toResponse(profile)
 	}
 
-	// Calculate pagination info
-	totalPages := (total + pageSize - 1) / pageSize
-	hasNext := page < totalPages
-	hasPrevious := page > 1
-
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
 	return &models.PaginatedProfileResponse{
 		Profiles:    responses,
-		Total:       total,
-		Page:        page,
-		PageSize:    pageSize,
-		TotalPages:  totalPages,
-		HasNext:     hasNext,
-		HasPrevious: hasPrevious,
+		Total:       paginationInfo.Total,
+		Page:        paginationInfo.Page,
+		PageSize:    paginationInfo.PageSize,
+		TotalPages:  paginationInfo.TotalPages,
+		HasNext:     paginationInfo.HasNext,
+		HasPrevious: paginationInfo.HasPrevious,
 	}, nil
 }
 
