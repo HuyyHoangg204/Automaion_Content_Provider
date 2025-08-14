@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
+	"green-anti-detect-browser-backend-v1/internal/config"
 	"green-anti-detect-browser-backend-v1/internal/database/repository"
 	"green-anti-detect-browser-backend-v1/internal/models"
 	"green-anti-detect-browser-backend-v1/internal/utils"
@@ -191,8 +193,21 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 	// For now, we'll sync to the first app. In the future, you might want to sync to specific apps
 	app := apps[0]
 
-	// Construct tunnel URL
-	tunnelURL := fmt.Sprintf("http://%s.agent-controller.onegreen.cloud/frps", box.MachineID)
+	// Get Hidemium config
+	hidemiumConfig := config.GetHidemiumConfig()
+
+	// Construct tunnel URL using config
+	baseURL := hidemiumConfig.BaseURL
+	baseURL = strings.Replace(baseURL, "{machine_id}", box.MachineID, 1)
+
+	// Get list_profiles route from config
+	listProfilesRoute, exists := hidemiumConfig.Routes["list_profiles"]
+	if !exists {
+		return nil, fmt.Errorf("list_profiles route not found in Hidemium config")
+	}
+
+	// Construct full API URL
+	apiURL := baseURL + listProfilesRoute
 
 	// Create HTTP client with timeout
 	client := &http.Client{
@@ -205,11 +220,9 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 	limit := 100
 
 	fmt.Printf("Starting sync for box %s (MachineID: %s)\n", boxID, box.MachineID)
+	fmt.Printf("Using API URL: %s\n", apiURL)
 
 	for {
-		// Construct API URL (POST method)
-		apiURL := fmt.Sprintf("%s/v1/browser/list", tunnelURL)
-
 		// Prepare request body
 		requestBody := map[string]interface{}{
 			"orderName":     0,
@@ -337,7 +350,7 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 	response := &models.SyncBoxProfilesResponse{
 		BoxID:           box.ID,
 		MachineID:       box.MachineID,
-		TunnelURL:       tunnelURL,
+		TunnelURL:       apiURL,
 		ProfilesSynced:  len(allHidemiumProfiles),
 		ProfilesCreated: profilesCreated,
 		ProfilesUpdated: profilesUpdated,
