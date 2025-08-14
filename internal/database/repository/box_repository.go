@@ -29,10 +29,38 @@ func (r *BoxRepository) GetByID(id string) (*models.Box, error) {
 	return &box, nil
 }
 
-// GetByUserID retrieves all boxes for a specific user
-func (r *BoxRepository) GetByUserID(userID string) ([]*models.Box, error) {
+// GetByUserID retrieves paginated boxes for a specific user
+func (r *BoxRepository) GetByUserID(userID string, page, pageSize int) ([]*models.Box, int, error) {
 	var boxes []*models.Box
-	err := r.db.Where("user_id = ?", userID).Preload("Apps").Find(&boxes).Error
+	var total int64
+
+	// Count total records
+	err := r.db.Model(&models.Box{}).Where("user_id = ?", userID).Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get paginated results
+	err = r.db.Where("user_id = ?", userID).
+		Preload("Apps").
+		Offset(offset).
+		Limit(pageSize).
+		Order("created_at DESC").
+		Find(&boxes).Error
+
+	return boxes, int(total), err
+}
+
+// GetAllByUserID retrieves all boxes for a specific user (for sync operations)
+func (r *BoxRepository) GetAllByUserID(userID string) ([]*models.Box, error) {
+	var boxes []*models.Box
+	err := r.db.Where("user_id = ?", userID).
+		Preload("Apps").
+		Order("created_at DESC").
+		Find(&boxes).Error
 	return boxes, err
 }
 

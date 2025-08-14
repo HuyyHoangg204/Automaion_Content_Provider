@@ -399,31 +399,6 @@ definitions:
       refresh_token:
         type: string
     type: object
-  models.PaginatedProfileResponse:
-    properties:
-      has_next:
-        example: true
-        type: boolean
-      has_previous:
-        example: false
-        type: boolean
-      page:
-        example: 1
-        type: integer
-      page_size:
-        example: 20
-        type: integer
-      profiles:
-        items:
-          $ref: '#/definitions/models.ProfileResponse'
-        type: array
-      total:
-        example: 150
-        type: integer
-      total_pages:
-        example: 8
-        type: integer
-    type: object
   models.Profile:
     properties:
       app:
@@ -1063,8 +1038,7 @@ paths:
       consumes:
       - application/json
       description: Get all profiles for a specific app (user must own the app) with
-        optional pagination. When page and page_size parameters are provided, returns
-        paginated response. Otherwise returns all profiles.
+        pagination
       parameters:
       - description: App ID
         in: path
@@ -1076,11 +1050,11 @@ paths:
         minimum: 1
         name: page
         type: integer
-      - description: 'Page size (default: 20, max: 100)'
+      - description: 'Number of items per page (default: 20, max: 100)'
         in: query
         maximum: 100
         minimum: 1
-        name: page_size
+        name: limit
         type: integer
       produces:
       - application/json
@@ -1088,7 +1062,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.PaginatedProfileResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1542,16 +1517,27 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all boxes belonging to the authenticated user
+      description: Get all boxes belonging to the authenticated user with pagination
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.BoxResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "401":
           description: Unauthorized
           schema:
@@ -1816,21 +1802,32 @@ paths:
       consumes:
       - application/json
       description: Get all flows for a specific campaign (user must own the campaign)
+        with pagination
       parameters:
       - description: Campaign ID
         in: path
         name: campaign_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2098,16 +2095,27 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all flows belonging to the authenticated user
+      description: Get all flows belonging to the authenticated user with pagination
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "401":
           description: Unauthorized
           schema:
@@ -2296,7 +2304,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all flows for a specific status (user must own them)
+      description: Get all flows for a specific status (user must own them) with pagination
       parameters:
       - description: Flow Status
         enum:
@@ -2309,15 +2317,25 @@ paths:
         name: status
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2343,22 +2361,32 @@ paths:
       consumes:
       - application/json
       description: Get all flows for a specific group campaign (user must own the
-        campaign)
+        campaign) with pagination
       parameters:
       - description: Group Campaign ID
         in: path
         name: group_campaign_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2460,21 +2488,32 @@ paths:
       consumes:
       - application/json
       description: Get all flows for a specific profile (user must own the profile)
+        with pagination
       parameters:
       - description: Profile ID
         in: path
         name: profile_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2500,8 +2539,7 @@ paths:
       consumes:
       - application/json
       description: Get all profiles for a specific box (user must own the box) with
-        optional pagination. When page and page_size parameters are provided, returns
-        paginated response. Otherwise returns all profiles.
+        pagination
       parameters:
       - description: Box ID
         in: query
@@ -2513,11 +2551,11 @@ paths:
         minimum: 1
         name: page
         type: integer
-      - description: 'Page size (default: 20, max: 100)'
+      - description: 'Number of items per page (default: 20, max: 100)'
         in: query
         maximum: 100
         minimum: 1
-        name: page_size
+        name: limit
         type: integer
       produces:
       - application/json
@@ -2525,7 +2563,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.PaginatedProfileResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:

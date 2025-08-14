@@ -603,7 +603,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific app (user must own the app) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
+                "description": "Get all profiles for a specific app (user must own the app) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -633,8 +633,8 @@ const docTemplate = `{
                         "maximum": 100,
                         "minimum": 1,
                         "type": "integer",
-                        "description": "Page size (default: 20, max: 100)",
-                        "name": "page_size",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
@@ -642,7 +642,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.PaginatedProfileResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1325,7 +1326,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all boxes belonging to the authenticated user",
+                "description": "Get all boxes belonging to the authenticated user with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -1336,14 +1337,29 @@ const docTemplate = `{
                     "boxes"
                 ],
                 "summary": "Get user's boxes",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.BoxResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -1739,7 +1755,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific campaign (user must own the campaign)",
+                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -1757,16 +1773,29 @@ const docTemplate = `{
                         "name": "campaign_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2168,7 +2197,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows belonging to the authenticated user",
+                "description": "Get all flows belonging to the authenticated user with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2179,14 +2208,29 @@ const docTemplate = `{
                     "flows"
                 ],
                 "summary": "Get user's flows",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -2271,7 +2315,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific status (user must own them)",
+                "description": "Get all flows for a specific status (user must own them) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2296,16 +2340,29 @@ const docTemplate = `{
                         "name": "status",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2536,7 +2593,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific group campaign (user must own the campaign)",
+                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2554,16 +2611,29 @@ const docTemplate = `{
                         "name": "group_campaign_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2713,7 +2783,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific profile (user must own the profile)",
+                "description": "Get all flows for a specific profile (user must own the profile) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2731,16 +2801,29 @@ const docTemplate = `{
                         "name": "profile_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2774,7 +2857,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific box (user must own the box) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
+                "description": "Get all profiles for a specific box (user must own the box) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2804,8 +2887,8 @@ const docTemplate = `{
                         "maximum": 100,
                         "minimum": 1,
                         "type": "integer",
-                        "description": "Page size (default: 20, max: 100)",
-                        "name": "page_size",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
@@ -2813,7 +2896,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.PaginatedProfileResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -3690,41 +3774,6 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string"
-                }
-            }
-        },
-        "models.PaginatedProfileResponse": {
-            "type": "object",
-            "properties": {
-                "has_next": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "has_previous": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "page": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "example": 20
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ProfileResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer",
-                    "example": 150
-                },
-                "total_pages": {
-                    "type": "integer",
-                    "example": 8
                 }
             }
         },
