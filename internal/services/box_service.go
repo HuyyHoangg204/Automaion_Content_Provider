@@ -97,6 +97,15 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 	}
 
 	// Update fields
+	if req.UserID != "" {
+		// Verify that the new user exists
+		_, err := s.userRepo.GetByID(req.UserID)
+		if err != nil {
+			return nil, errors.New("new user not found")
+		}
+		box.UserID = req.UserID
+	}
+
 	box.Name = req.Name
 
 	if err := s.boxRepo.Update(box); err != nil {

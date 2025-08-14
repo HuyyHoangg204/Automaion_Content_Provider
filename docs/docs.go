@@ -3384,7 +3384,21 @@ const docTemplate = `{
         "models.Campaign": {
             "type": "object",
             "properties": {
+                "campaign_type": {
+                    "description": "Campaign type and target",
+                    "type": "string"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "current_count": {
+                    "type": "integer"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "frequency": {
+                    "description": "Scheduling",
                     "type": "string"
                 },
                 "group_campaigns": {
@@ -3400,6 +3414,16 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "script_name": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "target_count": {
+                    "description": "Campaign details",
+                    "type": "integer"
+                },
+                "target_url": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -3421,9 +3445,25 @@ const docTemplate = `{
         "models.CampaignResponse": {
             "type": "object",
             "properties": {
+                "campaign_type": {
+                    "type": "string",
+                    "example": "video_views"
+                },
                 "created_at": {
                     "type": "string",
                     "example": "2025-01-09T10:30:00Z"
+                },
+                "current_count": {
+                    "type": "integer",
+                    "example": 150
+                },
+                "end_date": {
+                    "type": "string",
+                    "example": "2025-08-14T23:59:59Z"
+                },
+                "frequency": {
+                    "type": "string",
+                    "example": "once"
                 },
                 "id": {
                     "type": "string",
@@ -3431,11 +3471,23 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string",
-                    "example": "Auto Post Campaign"
+                    "example": "Tăng view campaign"
                 },
                 "script_name": {
                     "type": "string",
-                    "example": "auto_post.js"
+                    "example": "increase_views.js"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-08-14T00:00:00Z"
+                },
+                "target_count": {
+                    "type": "integer",
+                    "example": 1000
+                },
+                "target_url": {
+                    "type": "string",
+                    "example": "https://youtube.com/watch?v=..."
                 },
                 "updated_at": {
                     "type": "string",
@@ -3500,17 +3552,45 @@ const docTemplate = `{
         "models.CreateCampaignRequest": {
             "type": "object",
             "required": [
+                "campaign_type",
                 "name",
-                "script_name"
+                "script_name",
+                "target_count",
+                "target_url"
             ],
             "properties": {
+                "campaign_type": {
+                    "type": "string",
+                    "example": "video_views"
+                },
+                "end_date": {
+                    "type": "string",
+                    "example": "2025-08-14T23:59:59Z"
+                },
+                "frequency": {
+                    "type": "string",
+                    "example": "once"
+                },
                 "name": {
                     "type": "string",
-                    "example": "Auto Post Campaign"
+                    "example": "Tăng view campaign"
                 },
                 "script_name": {
                     "type": "string",
-                    "example": "auto_post.js"
+                    "example": "increase_views.js"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-08-14T00:00:00Z"
+                },
+                "target_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1000
+                },
+                "target_url": {
+                    "type": "string",
+                    "example": "https://youtube.com/watch?v=..."
                 }
             }
         },
@@ -4023,16 +4103,35 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Updated Computer Name"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },
         "models.UpdateCampaignRequest": {
             "type": "object",
             "required": [
+                "campaign_type",
                 "name",
-                "script_name"
+                "script_name",
+                "target_count",
+                "target_url"
             ],
             "properties": {
+                "campaign_type": {
+                    "type": "string",
+                    "example": "video_views"
+                },
+                "end_date": {
+                    "type": "string",
+                    "example": "2025-08-14T23:59:59Z"
+                },
+                "frequency": {
+                    "type": "string",
+                    "example": "daily"
+                },
                 "name": {
                     "type": "string",
                     "example": "Updated Campaign Name"
@@ -4040,6 +4139,19 @@ const docTemplate = `{
                 "script_name": {
                     "type": "string",
                     "example": "updated_script.js"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-08-14T00:00:00Z"
+                },
+                "target_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1000
+                },
+                "target_url": {
+                    "type": "string",
+                    "example": "https://youtube.com/watch?v=..."
                 }
             }
         },

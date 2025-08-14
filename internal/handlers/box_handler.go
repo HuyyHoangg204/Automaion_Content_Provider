@@ -133,13 +133,13 @@ func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 
 // UpdateBox godoc
 // @Summary Update box
-// @Description Update a box (user must own it)
+// @Description Update a box (user must own it). Can update both name and user_id. If user_id is provided, it must be a valid user ID.
 // @Tags boxes
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Box ID"
-// @Param request body models.UpdateBoxRequest true "Update box request"
+// @Param request body models.UpdateBoxRequest true "Update box request - name is required, user_id is optional"
 // @Success 200 {object} models.BoxResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
