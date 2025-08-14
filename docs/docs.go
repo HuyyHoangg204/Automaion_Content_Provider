@@ -48,7 +48,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.AppResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse"
                             }
                         }
                     },
@@ -100,7 +100,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.BoxResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse"
                             }
                         }
                     },
@@ -152,7 +152,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.CampaignResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse"
                             }
                         }
                     },
@@ -204,7 +204,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                             }
                         }
                     },
@@ -256,7 +256,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.ProfileResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse"
                             }
                         }
                     },
@@ -309,7 +309,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RegisterRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.RegisterRequest"
                         }
                     }
                 ],
@@ -317,7 +317,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.AuthResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AuthResponse"
                         }
                     },
                     "400": {
@@ -603,7 +603,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific app (user must own the app) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
+                "description": "Get all profiles for a specific app (user must own the app) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -633,8 +633,8 @@ const docTemplate = `{
                         "maximum": 100,
                         "minimum": 1,
                         "type": "integer",
-                        "description": "Page size (default: 20, max: 100)",
-                        "name": "page_size",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
@@ -642,7 +642,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.PaginatedProfileResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -693,7 +694,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.AppResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse"
                             }
                         }
                     },
@@ -737,7 +738,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateAppRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateAppRequest"
                         }
                     }
                 ],
@@ -745,7 +746,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.AppResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse"
                         }
                     },
                     "400": {
@@ -810,7 +811,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AppResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse"
                         }
                     },
                     "400": {
@@ -874,7 +875,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateAppRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateAppRequest"
                         }
                     }
                 ],
@@ -882,7 +883,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AppResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse"
                         }
                     },
                     "400": {
@@ -1008,7 +1009,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ChangePasswordRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -1064,7 +1065,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.LoginRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.LoginRequest"
                         }
                     }
                 ],
@@ -1072,7 +1073,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AuthResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AuthResponse"
                         }
                     },
                     "400": {
@@ -1124,7 +1125,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.LogoutRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.LogoutRequest"
                         }
                     }
                 ],
@@ -1182,7 +1183,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.User"
                         }
                     },
                     "401": {
@@ -1222,7 +1223,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RefreshTokenRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -1230,7 +1231,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.AuthResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AuthResponse"
                         }
                     },
                     "400": {
@@ -1290,7 +1291,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.AppResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse"
                             }
                         }
                     },
@@ -1401,7 +1402,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateBoxRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateBoxRequest"
                         }
                     }
                 ],
@@ -1409,7 +1410,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.BoxResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse"
                         }
                     },
                     "400": {
@@ -1465,7 +1466,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncAllUserBoxesResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.SyncAllUserBoxesResponse"
                         }
                     },
                     "401": {
@@ -1516,7 +1517,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BoxResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse"
                         }
                     },
                     "400": {
@@ -1580,7 +1581,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateBoxRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateBoxRequest"
                         }
                     }
                 ],
@@ -1588,7 +1589,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.BoxResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse"
                         }
                     },
                     "400": {
@@ -1713,7 +1714,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.SyncBoxProfilesResponse"
                         }
                     },
                     "400": {
@@ -1754,7 +1755,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific campaign (user must own the campaign)",
+                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -1772,16 +1773,29 @@ const docTemplate = `{
                         "name": "campaign_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -1832,7 +1846,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.CampaignResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse"
                             }
                         }
                     },
@@ -1876,7 +1890,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateCampaignRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateCampaignRequest"
                         }
                     }
                 ],
@@ -1884,7 +1898,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.CampaignResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse"
                         }
                     },
                     "400": {
@@ -1949,7 +1963,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CampaignResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse"
                         }
                     },
                     "400": {
@@ -2013,7 +2027,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateCampaignRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateCampaignRequest"
                         }
                     }
                 ],
@@ -2021,7 +2035,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CampaignResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse"
                         }
                     },
                     "400": {
@@ -2155,7 +2169,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.GroupCampaignResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaignResponse"
                             }
                         }
                     },
@@ -2183,7 +2197,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows belonging to the authenticated user",
+                "description": "Get all flows belonging to the authenticated user with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2194,14 +2208,29 @@ const docTemplate = `{
                     "flows"
                 ],
                 "summary": "Get user's flows",
+                "parameters": [
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
@@ -2244,7 +2273,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateFlowRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateFlowRequest"
                         }
                     }
                 ],
@@ -2252,7 +2281,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.FlowResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                         }
                     },
                     "400": {
@@ -2319,7 +2348,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                             }
                         }
                     },
@@ -2378,7 +2407,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.FlowResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                         }
                     },
                     "400": {
@@ -2442,7 +2471,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateFlowRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateFlowRequest"
                         }
                     }
                 ],
@@ -2450,7 +2479,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.FlowResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                         }
                     },
                     "400": {
@@ -2577,7 +2606,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                             }
                         }
                     },
@@ -2636,7 +2665,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.GroupCampaignResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaignResponse"
                         }
                     },
                     "400": {
@@ -2694,7 +2723,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.GroupCampaignStats"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaignStats"
                         }
                     },
                     "400": {
@@ -2754,7 +2783,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
+                                "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse"
                             }
                         }
                     },
@@ -2789,7 +2818,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific box (user must own the box) with optional pagination. When page and page_size parameters are provided, returns paginated response. Otherwise returns all profiles.",
+                "description": "Get all profiles for a specific box (user must own the box) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2819,8 +2848,8 @@ const docTemplate = `{
                         "maximum": 100,
                         "minimum": 1,
                         "type": "integer",
-                        "description": "Page size (default: 20, max: 100)",
-                        "name": "page_size",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
@@ -2828,7 +2857,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.PaginatedProfileResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2878,7 +2908,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateProfileRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateProfileRequest"
                         }
                     }
                 ],
@@ -2886,7 +2916,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.ProfileResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse"
                         }
                     },
                     "400": {
@@ -2951,7 +2981,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ProfileResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse"
                         }
                     },
                     "400": {
@@ -3015,7 +3045,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateProfileRequest"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -3023,7 +3053,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.ProfileResponse"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse"
                         }
                     },
                     "400": {
@@ -3126,14 +3156,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.App": {
+        "green-anti-detect-browser-backend-v1_internal_models.App": {
             "type": "object",
             "properties": {
                 "box": {
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.Box"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Box"
                         }
                     ]
                 },
@@ -3152,7 +3182,7 @@ const docTemplate = `{
                 "profiles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Profile"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Profile"
                     }
                 },
                 "updated_at": {
@@ -3160,7 +3190,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.AppResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.AppResponse": {
             "type": "object",
             "properties": {
                 "box_id": {
@@ -3185,7 +3215,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.AuthResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -3201,17 +3231,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/models.User"
+                    "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.User"
                 }
             }
         },
-        "models.Box": {
+        "green-anti-detect-browser-backend-v1_internal_models.Box": {
             "type": "object",
             "properties": {
                 "apps": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.App"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.App"
                     }
                 },
                 "created_at": {
@@ -3233,7 +3263,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.User"
                         }
                     ]
                 },
@@ -3242,7 +3272,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BoxResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.BoxResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3271,7 +3301,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BoxSyncResult": {
+        "green-anti-detect-browser-backend-v1_internal_models.BoxSyncResult": {
             "type": "object",
             "properties": {
                 "box_id": {
@@ -3312,7 +3342,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Campaign": {
+        "green-anti-detect-browser-backend-v1_internal_models.Campaign": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3321,7 +3351,7 @@ const docTemplate = `{
                 "group_campaigns": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.GroupCampaign"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaign"
                     }
                 },
                 "id": {
@@ -3340,7 +3370,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.User"
                         }
                     ]
                 },
@@ -3349,7 +3379,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CampaignResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.CampaignResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3378,7 +3408,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ChangePasswordRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.ChangePasswordRequest": {
             "type": "object",
             "required": [
                 "current_password",
@@ -3394,7 +3424,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateAppRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.CreateAppRequest": {
             "type": "object",
             "required": [
                 "box_id",
@@ -3411,7 +3441,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateBoxRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.CreateBoxRequest": {
             "type": "object",
             "required": [
                 "machine_id",
@@ -3428,7 +3458,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateCampaignRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.CreateCampaignRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -3445,7 +3475,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateFlowRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.CreateFlowRequest": {
             "type": "object",
             "required": [
                 "group_campaign_id",
@@ -3474,7 +3504,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateProfileRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.CreateProfileRequest": {
             "type": "object",
             "required": [
                 "app_id",
@@ -3487,7 +3517,7 @@ const docTemplate = `{
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "data": {
-                    "$ref": "#/definitions/models.JSON"
+                    "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON"
                 },
                 "name": {
                     "type": "string",
@@ -3495,7 +3525,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Flow": {
+        "green-anti-detect-browser-backend-v1_internal_models.Flow": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3508,7 +3538,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.GroupCampaign"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaign"
                         }
                     ]
                 },
@@ -3519,7 +3549,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile": {
-                    "$ref": "#/definitions/models.Profile"
+                    "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Profile"
                 },
                 "profile_id": {
                     "type": "string"
@@ -3535,7 +3565,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.FlowResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.FlowResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3568,14 +3598,14 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GroupCampaign": {
+        "green-anti-detect-browser-backend-v1_internal_models.GroupCampaign": {
             "type": "object",
             "properties": {
                 "campaign": {
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.Campaign"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Campaign"
                         }
                     ]
                 },
@@ -3591,7 +3621,7 @@ const docTemplate = `{
                 "flows": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Flow"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Flow"
                     }
                 },
                 "id": {
@@ -3611,7 +3641,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GroupCampaignResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.GroupCampaignResponse": {
             "type": "object",
             "properties": {
                 "campaign_id": {
@@ -3648,7 +3678,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GroupCampaignStats": {
+        "green-anti-detect-browser-backend-v1_internal_models.GroupCampaignStats": {
             "type": "object",
             "properties": {
                 "duration": {
@@ -3681,11 +3711,11 @@ const docTemplate = `{
                 }
             }
         },
-        "models.JSON": {
+        "green-anti-detect-browser-backend-v1_internal_models.JSON": {
             "type": "object",
             "additionalProperties": true
         },
-        "models.LoginRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.LoginRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -3700,7 +3730,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.LogoutRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.LogoutRequest": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -3708,49 +3738,14 @@ const docTemplate = `{
                 }
             }
         },
-        "models.PaginatedProfileResponse": {
-            "type": "object",
-            "properties": {
-                "has_next": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "has_previous": {
-                    "type": "boolean",
-                    "example": false
-                },
-                "page": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "page_size": {
-                    "type": "integer",
-                    "example": 20
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ProfileResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer",
-                    "example": 150
-                },
-                "total_pages": {
-                    "type": "integer",
-                    "example": 8
-                }
-            }
-        },
-        "models.Profile": {
+        "green-anti-detect-browser-backend-v1_internal_models.Profile": {
             "type": "object",
             "properties": {
                 "app": {
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.App"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.App"
                         }
                     ]
                 },
@@ -3764,14 +3759,14 @@ const docTemplate = `{
                     "description": "Store complex profile data from anti-detect browsers",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.JSON"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON"
                         }
                     ]
                 },
                 "flows": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Flow"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Flow"
                     }
                 },
                 "id": {
@@ -3785,7 +3780,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ProfileResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.ProfileResponse": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -3797,7 +3792,7 @@ const docTemplate = `{
                     "example": "2025-01-09T10:00:00Z"
                 },
                 "data": {
-                    "$ref": "#/definitions/models.JSON"
+                    "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON"
                 },
                 "id": {
                     "type": "string",
@@ -3813,7 +3808,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.RefreshToken": {
+        "green-anti-detect-browser-backend-v1_internal_models.RefreshToken": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3841,7 +3836,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.User"
                         }
                     ]
                 },
@@ -3853,7 +3848,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.RefreshTokenRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -3864,7 +3859,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.RegisterRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.RegisterRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -3888,13 +3883,13 @@ const docTemplate = `{
                 }
             }
         },
-        "models.SyncAllUserBoxesResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.SyncAllUserBoxesResponse": {
             "type": "object",
             "properties": {
                 "box_results": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.BoxSyncResult"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxSyncResult"
                     }
                 },
                 "boxes_synced": {
@@ -3931,7 +3926,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.SyncBoxProfilesResponse": {
+        "green-anti-detect-browser-backend-v1_internal_models.SyncBoxProfilesResponse": {
             "type": "object",
             "properties": {
                 "box_id": {
@@ -3968,7 +3963,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UpdateAppRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.UpdateAppRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -3980,7 +3975,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UpdateBoxRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.UpdateBoxRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -3992,7 +3987,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UpdateCampaignRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.UpdateCampaignRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -4009,7 +4004,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UpdateFlowRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.UpdateFlowRequest": {
             "type": "object",
             "required": [
                 "status"
@@ -4028,14 +4023,14 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UpdateProfileRequest": {
+        "green-anti-detect-browser-backend-v1_internal_models.UpdateProfileRequest": {
             "type": "object",
             "required": [
                 "name"
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/models.JSON"
+                    "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON"
                 },
                 "name": {
                     "type": "string",
@@ -4043,19 +4038,19 @@ const docTemplate = `{
                 }
             }
         },
-        "models.User": {
+        "green-anti-detect-browser-backend-v1_internal_models.User": {
             "type": "object",
             "properties": {
                 "boxes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Box"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Box"
                     }
                 },
                 "campaigns": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Campaign"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.Campaign"
                     }
                 },
                 "created_at": {
@@ -4083,7 +4078,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.RefreshToken"
+                        "$ref": "#/definitions/green-anti-detect-browser-backend-v1_internal_models.RefreshToken"
                     }
                 },
                 "token_version": {

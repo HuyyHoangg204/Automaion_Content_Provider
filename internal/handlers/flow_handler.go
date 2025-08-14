@@ -6,6 +6,7 @@ import (
 
 	"green-anti-detect-browser-backend-v1/internal/models"
 	"green-anti-detect-browser-backend-v1/internal/services"
+	"green-anti-detect-browser-backend-v1/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,36 +58,55 @@ func (h *FlowHandler) CreateFlow(c *gin.Context) {
 
 // GetMyFlows godoc
 // @Summary Get user's flows
-// @Description Get all flows belonging to the authenticated user
+// @Description Get all flows belonging to the authenticated user with pagination
 // @Tags flows
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.FlowResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/flows [get]
 func (h *FlowHandler) GetMyFlows(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	flows, err := h.flowService.GetFlowsByUser(userID)
+	// Parse query parameters
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
+
+	flows, total, err := h.flowService.GetFlowsByUser(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, flows)
+	// Calculate pagination info
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
+
+	response := gin.H{
+		"data":         flows,
+		"total":        total,
+		"page":         paginationInfo.Page,
+		"limit":        paginationInfo.PageSize,
+		"total_pages":  paginationInfo.TotalPages,
+		"has_next":     paginationInfo.HasNext,
+		"has_previous": paginationInfo.HasPrevious,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // GetFlowsByCampaign godoc
 // @Summary Get flows by campaign
-// @Description Get all flows for a specific campaign (user must own the campaign)
+// @Description Get all flows for a specific campaign (user must own the campaign) with pagination
 // @Tags flows
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param campaign_id path string true "Campaign ID"
-// @Success 200 {array} models.FlowResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -95,7 +115,10 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	campaignID := c.Param("campaign_id")
 
-	flows, err := h.flowService.GetFlowsByCampaign(userID, campaignID)
+	// Parse query parameters
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
+
+	flows, total, err := h.flowService.GetFlowsByCampaign(userID, campaignID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -105,7 +128,19 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, flows)
+	// Calculate pagination info
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
+
+	response := gin.H{
+		"data":         flows,
+		"total":        total,
+		"page":         paginationInfo.Page,
+		"limit":        paginationInfo.PageSize,
+		"total_pages":  paginationInfo.TotalPages,
+		"has_next":     paginationInfo.HasNext,
+		"has_previous": paginationInfo.HasPrevious,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // GetFlowsByGroupCampaign godoc

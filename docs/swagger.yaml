@@ -1,10 +1,10 @@
 basePath: /
 definitions:
-  models.App:
+  green-anti-detect-browser-backend-v1_internal_models.App:
     properties:
       box:
         allOf:
-        - $ref: '#/definitions/models.Box'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Box'
         description: Relationships
       box_id:
         type: string
@@ -16,12 +16,12 @@ definitions:
         type: string
       profiles:
         items:
-          $ref: '#/definitions/models.Profile'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Profile'
         type: array
       updated_at:
         type: string
     type: object
-  models.AppResponse:
+  green-anti-detect-browser-backend-v1_internal_models.AppResponse:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -39,7 +39,7 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  models.AuthResponse:
+  green-anti-detect-browser-backend-v1_internal_models.AuthResponse:
     properties:
       access_token:
         type: string
@@ -50,13 +50,13 @@ definitions:
       token_type:
         type: string
       user:
-        $ref: '#/definitions/models.User'
+        $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.User'
     type: object
-  models.Box:
+  green-anti-detect-browser-backend-v1_internal_models.Box:
     properties:
       apps:
         items:
-          $ref: '#/definitions/models.App'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.App'
         type: array
       created_at:
         type: string
@@ -70,12 +70,12 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/models.User'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.User'
         description: Relationships
       user_id:
         type: string
     type: object
-  models.BoxResponse:
+  green-anti-detect-browser-backend-v1_internal_models.BoxResponse:
     properties:
       created_at:
         example: "2025-01-09T10:30:00Z"
@@ -96,7 +96,7 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
-  models.BoxSyncResult:
+  green-anti-detect-browser-backend-v1_internal_models.BoxSyncResult:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -126,13 +126,13 @@ definitions:
         example: true
         type: boolean
     type: object
-  models.Campaign:
+  green-anti-detect-browser-backend-v1_internal_models.Campaign:
     properties:
       created_at:
         type: string
       group_campaigns:
         items:
-          $ref: '#/definitions/models.GroupCampaign'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaign'
         type: array
       id:
         type: string
@@ -144,12 +144,12 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/models.User'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.User'
         description: Relationships
       user_id:
         type: string
     type: object
-  models.CampaignResponse:
+  green-anti-detect-browser-backend-v1_internal_models.CampaignResponse:
     properties:
       created_at:
         example: "2025-01-09T10:30:00Z"
@@ -170,7 +170,7 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
-  models.ChangePasswordRequest:
+  green-anti-detect-browser-backend-v1_internal_models.ChangePasswordRequest:
     properties:
       current_password:
         type: string
@@ -181,7 +181,7 @@ definitions:
     - current_password
     - new_password
     type: object
-  models.CreateAppRequest:
+  green-anti-detect-browser-backend-v1_internal_models.CreateAppRequest:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -193,7 +193,7 @@ definitions:
     - box_id
     - name
     type: object
-  models.CreateBoxRequest:
+  green-anti-detect-browser-backend-v1_internal_models.CreateBoxRequest:
     properties:
       machine_id:
         example: PC-001
@@ -205,7 +205,7 @@ definitions:
     - machine_id
     - name
     type: object
-  models.CreateCampaignRequest:
+  green-anti-detect-browser-backend-v1_internal_models.CreateCampaignRequest:
     properties:
       name:
         example: Auto Post Campaign
@@ -217,7 +217,7 @@ definitions:
     - name
     - script_name
     type: object
-  models.CreateFlowRequest:
+  green-anti-detect-browser-backend-v1_internal_models.CreateFlowRequest:
     properties:
       group_campaign_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -239,13 +239,13 @@ definitions:
     - profile_id
     - status
     type: object
-  models.CreateProfileRequest:
+  green-anti-detect-browser-backend-v1_internal_models.CreateProfileRequest:
     properties:
       app_id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       data:
-        $ref: '#/definitions/models.JSON'
+        $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON'
       name:
         example: My Profile
         type: string
@@ -254,7 +254,7 @@ definitions:
     - data
     - name
     type: object
-  models.Flow:
+  green-anti-detect-browser-backend-v1_internal_models.Flow:
     properties:
       created_at:
         type: string
@@ -262,14 +262,14 @@ definitions:
         type: string
       group_campaign:
         allOf:
-        - $ref: '#/definitions/models.GroupCampaign'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaign'
         description: Relationships
       group_campaign_id:
         type: string
       id:
         type: string
       profile:
-        $ref: '#/definitions/models.Profile'
+        $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Profile'
       profile_id:
         type: string
       started_at:
@@ -279,7 +279,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  models.FlowResponse:
+  green-anti-detect-browser-backend-v1_internal_models.FlowResponse:
     properties:
       created_at:
         example: "2025-01-09T10:30:00Z"
@@ -303,11 +303,11 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  models.GroupCampaign:
+  green-anti-detect-browser-backend-v1_internal_models.GroupCampaign:
     properties:
       campaign:
         allOf:
-        - $ref: '#/definitions/models.Campaign'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Campaign'
         description: Relationships
       campaign_id:
         type: string
@@ -317,7 +317,7 @@ definitions:
         type: string
       flows:
         items:
-          $ref: '#/definitions/models.Flow'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Flow'
         type: array
       id:
         type: string
@@ -330,7 +330,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  models.GroupCampaignResponse:
+  green-anti-detect-browser-backend-v1_internal_models.GroupCampaignResponse:
     properties:
       campaign_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -357,7 +357,7 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  models.GroupCampaignStats:
+  green-anti-detect-browser-backend-v1_internal_models.GroupCampaignStats:
     properties:
       duration:
         example: 30m
@@ -381,10 +381,10 @@ definitions:
         example: 80
         type: number
     type: object
-  models.JSON:
+  green-anti-detect-browser-backend-v1_internal_models.JSON:
     additionalProperties: true
     type: object
-  models.LoginRequest:
+  green-anti-detect-browser-backend-v1_internal_models.LoginRequest:
     properties:
       password:
         type: string
@@ -394,41 +394,16 @@ definitions:
     - password
     - username
     type: object
-  models.LogoutRequest:
+  green-anti-detect-browser-backend-v1_internal_models.LogoutRequest:
     properties:
       refresh_token:
         type: string
     type: object
-  models.PaginatedProfileResponse:
-    properties:
-      has_next:
-        example: true
-        type: boolean
-      has_previous:
-        example: false
-        type: boolean
-      page:
-        example: 1
-        type: integer
-      page_size:
-        example: 20
-        type: integer
-      profiles:
-        items:
-          $ref: '#/definitions/models.ProfileResponse'
-        type: array
-      total:
-        example: 150
-        type: integer
-      total_pages:
-        example: 8
-        type: integer
-    type: object
-  models.Profile:
+  green-anti-detect-browser-backend-v1_internal_models.Profile:
     properties:
       app:
         allOf:
-        - $ref: '#/definitions/models.App'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.App'
         description: Relationships
       app_id:
         type: string
@@ -436,11 +411,11 @@ definitions:
         type: string
       data:
         allOf:
-        - $ref: '#/definitions/models.JSON'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON'
         description: Store complex profile data from anti-detect browsers
       flows:
         items:
-          $ref: '#/definitions/models.Flow'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Flow'
         type: array
       id:
         type: string
@@ -449,7 +424,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  models.ProfileResponse:
+  green-anti-detect-browser-backend-v1_internal_models.ProfileResponse:
     properties:
       app_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -458,7 +433,7 @@ definitions:
         example: "2025-01-09T10:00:00Z"
         type: string
       data:
-        $ref: '#/definitions/models.JSON'
+        $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON'
       id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
@@ -469,7 +444,7 @@ definitions:
         example: "2025-01-09T10:00:00Z"
         type: string
     type: object
-  models.RefreshToken:
+  green-anti-detect-browser-backend-v1_internal_models.RefreshToken:
     properties:
       created_at:
         type: string
@@ -487,21 +462,21 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/models.User'
+        - $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.User'
         description: Relationships
       user_agent:
         type: string
       user_id:
         type: string
     type: object
-  models.RefreshTokenRequest:
+  green-anti-detect-browser-backend-v1_internal_models.RefreshTokenRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  models.RegisterRequest:
+  green-anti-detect-browser-backend-v1_internal_models.RegisterRequest:
     properties:
       first_name:
         type: string
@@ -518,11 +493,11 @@ definitions:
     - password
     - username
     type: object
-  models.SyncAllUserBoxesResponse:
+  green-anti-detect-browser-backend-v1_internal_models.SyncAllUserBoxesResponse:
     properties:
       box_results:
         items:
-          $ref: '#/definitions/models.BoxSyncResult'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxSyncResult'
         type: array
       boxes_synced:
         example: 4
@@ -549,7 +524,7 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
-  models.SyncBoxProfilesResponse:
+  green-anti-detect-browser-backend-v1_internal_models.SyncBoxProfilesResponse:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -576,7 +551,7 @@ definitions:
         example: http://pc-91542.agent-controller.onegreen.cloud/frps
         type: string
     type: object
-  models.UpdateAppRequest:
+  green-anti-detect-browser-backend-v1_internal_models.UpdateAppRequest:
     properties:
       name:
         example: Updated App Name
@@ -584,7 +559,7 @@ definitions:
     required:
     - name
     type: object
-  models.UpdateBoxRequest:
+  green-anti-detect-browser-backend-v1_internal_models.UpdateBoxRequest:
     properties:
       name:
         example: Updated Computer Name
@@ -592,7 +567,7 @@ definitions:
     required:
     - name
     type: object
-  models.UpdateCampaignRequest:
+  green-anti-detect-browser-backend-v1_internal_models.UpdateCampaignRequest:
     properties:
       name:
         example: Updated Campaign Name
@@ -604,7 +579,7 @@ definitions:
     - name
     - script_name
     type: object
-  models.UpdateFlowRequest:
+  green-anti-detect-browser-backend-v1_internal_models.UpdateFlowRequest:
     properties:
       status:
         enum:
@@ -618,25 +593,25 @@ definitions:
     required:
     - status
     type: object
-  models.UpdateProfileRequest:
+  green-anti-detect-browser-backend-v1_internal_models.UpdateProfileRequest:
     properties:
       data:
-        $ref: '#/definitions/models.JSON'
+        $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.JSON'
       name:
         example: Updated Profile Name
         type: string
     required:
     - name
     type: object
-  models.User:
+  green-anti-detect-browser-backend-v1_internal_models.User:
     properties:
       boxes:
         items:
-          $ref: '#/definitions/models.Box'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Box'
         type: array
       campaigns:
         items:
-          $ref: '#/definitions/models.Campaign'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.Campaign'
         type: array
       created_at:
         type: string
@@ -655,7 +630,7 @@ definitions:
       refresh_tokens:
         description: Relationships
         items:
-          $ref: '#/definitions/models.RefreshToken'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.RefreshToken'
         type: array
       token_version:
         type: integer
@@ -689,7 +664,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.AppResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse'
             type: array
         "401":
           description: Unauthorized
@@ -723,7 +698,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.BoxResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse'
             type: array
         "401":
           description: Unauthorized
@@ -757,7 +732,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.CampaignResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse'
             type: array
         "401":
           description: Unauthorized
@@ -791,7 +766,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.FlowResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
             type: array
         "401":
           description: Unauthorized
@@ -825,7 +800,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.ProfileResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse'
             type: array
         "401":
           description: Unauthorized
@@ -859,14 +834,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.RegisterRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.AuthResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -1063,8 +1038,7 @@ paths:
       consumes:
       - application/json
       description: Get all profiles for a specific app (user must own the app) with
-        optional pagination. When page and page_size parameters are provided, returns
-        paginated response. Otherwise returns all profiles.
+        pagination
       parameters:
       - description: App ID
         in: path
@@ -1076,11 +1050,11 @@ paths:
         minimum: 1
         name: page
         type: integer
-      - description: 'Page size (default: 20, max: 100)'
+      - description: 'Number of items per page (default: 20, max: 100)'
         in: query
         maximum: 100
         minimum: 1
-        name: page_size
+        name: limit
         type: integer
       produces:
       - application/json
@@ -1088,7 +1062,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.PaginatedProfileResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1121,7 +1096,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.AppResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse'
             type: array
         "401":
           description: Unauthorized
@@ -1148,14 +1123,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CreateAppRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateAppRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.AppResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1238,7 +1213,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AppResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1279,14 +1254,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateAppRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateAppRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AppResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1328,7 +1303,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.ChangePasswordRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.ChangePasswordRequest'
       produces:
       - application/json
       responses:
@@ -1368,14 +1343,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.LoginRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AuthResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -1405,7 +1380,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.LogoutRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.LogoutRequest'
       produces:
       - application/json
       responses:
@@ -1445,7 +1420,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.User'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.User'
         "401":
           description: Unauthorized
           schema:
@@ -1472,14 +1447,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.RefreshTokenRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.RefreshTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AuthResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -1516,7 +1491,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.AppResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.AppResponse'
             type: array
         "400":
           description: Bad Request
@@ -1588,14 +1563,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CreateBoxRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateBoxRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.BoxResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse'
         "400":
           description: Bad Request
           schema:
@@ -1678,7 +1653,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.BoxResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse'
         "400":
           description: Bad Request
           schema:
@@ -1719,14 +1694,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateBoxRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateBoxRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.BoxResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.BoxResponse'
         "400":
           description: Bad Request
           schema:
@@ -1769,7 +1744,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.SyncBoxProfilesResponse'
         "400":
           description: Bad Request
           schema:
@@ -1806,7 +1781,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.SyncAllUserBoxesResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.SyncAllUserBoxesResponse'
         "401":
           description: Unauthorized
           schema:
@@ -1827,21 +1802,32 @@ paths:
       consumes:
       - application/json
       description: Get all flows for a specific campaign (user must own the campaign)
+        with pagination
       parameters:
       - description: Campaign ID
         in: path
         name: campaign_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -1874,7 +1860,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.CampaignResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse'
             type: array
         "401":
           description: Unauthorized
@@ -1901,14 +1887,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CreateCampaignRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateCampaignRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.CampaignResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -1991,7 +1977,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.CampaignResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -2032,14 +2018,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateCampaignRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateCampaignRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.CampaignResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -2088,7 +2074,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.GroupCampaignResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaignResponse'
             type: array
         "400":
           description: Bad Request
@@ -2109,16 +2095,27 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get all flows belonging to the authenticated user
+      description: Get all flows belonging to the authenticated user with pagination
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "401":
           description: Unauthorized
           schema:
@@ -2144,14 +2141,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CreateFlowRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateFlowRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.FlowResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
         "400":
           description: Bad Request
           schema:
@@ -2229,7 +2226,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.FlowResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
         "400":
           description: Bad Request
           schema:
@@ -2270,14 +2267,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateFlowRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateFlowRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.FlowResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
         "400":
           description: Bad Request
           schema:
@@ -2327,7 +2324,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.FlowResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
             type: array
         "400":
           description: Bad Request
@@ -2368,7 +2365,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.FlowResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
             type: array
         "400":
           description: Bad Request
@@ -2407,7 +2404,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.GroupCampaignResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -2445,7 +2442,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.GroupCampaignStats'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.GroupCampaignStats'
         "400":
           description: Bad Request
           schema:
@@ -2484,7 +2481,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.FlowResponse'
+              $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.FlowResponse'
             type: array
         "400":
           description: Bad Request
@@ -2511,8 +2508,7 @@ paths:
       consumes:
       - application/json
       description: Get all profiles for a specific box (user must own the box) with
-        optional pagination. When page and page_size parameters are provided, returns
-        paginated response. Otherwise returns all profiles.
+        pagination
       parameters:
       - description: Box ID
         in: query
@@ -2524,11 +2520,11 @@ paths:
         minimum: 1
         name: page
         type: integer
-      - description: 'Page size (default: 20, max: 100)'
+      - description: 'Number of items per page (default: 20, max: 100)'
         in: query
         maximum: 100
         minimum: 1
-        name: page_size
+        name: limit
         type: integer
       produces:
       - application/json
@@ -2536,7 +2532,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.PaginatedProfileResponse'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2568,14 +2565,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CreateProfileRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.CreateProfileRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.ProfileResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse'
         "400":
           description: Bad Request
           schema:
@@ -2658,7 +2655,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ProfileResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse'
         "400":
           description: Bad Request
           schema:
@@ -2699,14 +2696,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateProfileRequest'
+          $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.UpdateProfileRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.ProfileResponse'
+            $ref: '#/definitions/green-anti-detect-browser-backend-v1_internal_models.ProfileResponse'
         "400":
           description: Bad Request
           schema:
