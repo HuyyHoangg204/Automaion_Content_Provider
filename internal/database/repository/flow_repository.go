@@ -43,6 +43,34 @@ func (r *FlowRepository) GetByGroupCampaignID(groupCampaignID string) ([]*models
 	return flows, err
 }
 
+// GetByGroupCampaignIDPaginated retrieves paginated flows for a specific group campaign
+func (r *FlowRepository) GetByGroupCampaignIDPaginated(groupCampaignID string, page, pageSize int) ([]*models.Flow, int, error) {
+	var flows []*models.Flow
+	var total int64
+
+	// Count total records
+	err := r.db.Where("group_campaign_id = ?", groupCampaignID).
+		Model(&models.Flow{}).
+		Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get paginated results
+	err = r.db.Where("group_campaign_id = ?", groupCampaignID).
+		Preload("Profile").
+		Preload("GroupCampaign").
+		Offset(offset).
+		Limit(pageSize).
+		Order("created_at DESC").
+		Find(&flows).Error
+
+	return flows, int(total), err
+}
+
 // GetByCampaignIDPaginated retrieves paginated flows for a specific campaign
 func (r *FlowRepository) GetByCampaignIDPaginated(campaignID string, page, pageSize int) ([]*models.Flow, int, error) {
 	var flows []*models.Flow

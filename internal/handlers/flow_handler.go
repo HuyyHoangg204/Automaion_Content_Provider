@@ -145,13 +145,15 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 
 // GetFlowsByGroupCampaign godoc
 // @Summary Get flows by group campaign
-// @Description Get all flows for a specific group campaign (user must own the campaign)
+// @Description Get all flows for a specific group campaign (user must own the campaign) with pagination
 // @Tags flows
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param group_campaign_id path string true "Group Campaign ID"
-// @Success 200 {array} models.FlowResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -160,7 +162,10 @@ func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	groupCampaignID := c.Param("group_campaign_id")
 
-	flows, err := h.flowService.GetFlowsByGroupCampaign(userID, groupCampaignID)
+	// Parse query parameters
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
+
+	flows, total, err := h.flowService.GetFlowsByGroupCampaign(userID, groupCampaignID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -170,7 +175,19 @@ func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, flows)
+	// Calculate pagination info
+	paginationInfo := utils.CalculatePaginationInfo(total, page, pageSize)
+
+	response := gin.H{
+		"data":         flows,
+		"total":        total,
+		"page":         paginationInfo.Page,
+		"limit":        paginationInfo.PageSize,
+		"total_pages":  paginationInfo.TotalPages,
+		"has_next":     paginationInfo.HasNext,
+		"has_previous": paginationInfo.HasPrevious,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // GetFlowsByProfile godoc
