@@ -69,7 +69,6 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	campaignHandler := handlers.NewCampaignHandler(campaignService)
 	groupCampaignHandler := handlers.NewGroupCampaignHandler(groupCampaignService)
 	flowHandler := handlers.NewFlowHandler(flowService)
-	platformHandler := handlers.NewPlatformHandler()
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -200,15 +199,6 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				flows.PUT("/:id", flowHandler.UpdateFlow)
 				flows.DELETE("/:id", flowHandler.DeleteFlow)
 				flows.GET("/status/:status", flowHandler.GetFlowsByStatus)
-			}
-
-			// Platform routes
-			platforms := protected.Group("/platforms")
-			{
-				platforms.GET("/routes", platformHandler.GetPlatformRoutes)
-				platforms.GET("/supported", platformHandler.GetSupportedPlatforms)
-				platforms.GET("/:platform/endpoints/:endpoint", platformHandler.GetPlatformEndpointInfo)
-				platforms.GET("/:platform/endpoints/:endpoint/url", platformHandler.GetPlatformEndpointURL)
 			}
 
 			// Admin routes (requires admin privileges)

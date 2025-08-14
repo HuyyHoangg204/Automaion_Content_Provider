@@ -1,5 +1,60 @@
 basePath: /
 definitions:
+  config.GenloginEndpoint:
+    properties:
+      description:
+        type: string
+      method:
+        type: string
+      parameters:
+        additionalProperties:
+          type: string
+        type: object
+      path:
+        type: string
+    type: object
+  config.GenloginRoutes:
+    properties:
+      base_url:
+        type: string
+      description:
+        type: string
+      endpoints:
+        additionalProperties:
+          $ref: '#/definitions/config.GenloginEndpoint'
+        type: object
+    type: object
+  config.HidemiumEndpoint:
+    properties:
+      description:
+        type: string
+      method:
+        type: string
+      parameters:
+        additionalProperties:
+          type: string
+        type: object
+      path:
+        type: string
+    type: object
+  config.HidemiumRoutes:
+    properties:
+      base_url:
+        type: string
+      description:
+        type: string
+      endpoints:
+        additionalProperties:
+          $ref: '#/definitions/config.HidemiumEndpoint'
+        type: object
+    type: object
+  config.PlatformRoutes:
+    properties:
+      genlogin:
+        $ref: '#/definitions/config.GenloginRoutes'
+      hidemium:
+        $ref: '#/definitions/config.HidemiumRoutes'
+    type: object
   models.App:
     properties:
       box:
@@ -2569,6 +2624,253 @@ paths:
       summary: Get group campaign statistics
       tags:
       - group-campaigns
+  /api/v1/platforms/{platform}/endpoints/{endpoint}:
+    get:
+      consumes:
+      - application/json
+      description: Get information about a specific platform endpoint
+      parameters:
+      - description: Platform name (hidemium, genlogin)
+        in: path
+        name: platform
+        required: true
+        type: string
+      - description: Endpoint name
+        in: path
+        name: endpoint
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema: {}
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get platform endpoint info
+      tags:
+      - platforms
+  /api/v1/platforms/{platform}/endpoints/{endpoint}/url:
+    get:
+      consumes:
+      - application/json
+      description: Get the full URL for a specific platform endpoint
+      parameters:
+      - description: Platform name (hidemium, genlogin)
+        in: path
+        name: platform
+        required: true
+        type: string
+      - description: Endpoint name
+        in: path
+        name: endpoint
+        required: true
+        type: string
+      - description: Machine ID
+        in: query
+        name: machine_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get platform endpoint URL
+      tags:
+      - platforms
+  /api/v1/platforms/genlogin/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get profiles from Genlogin platform
+      parameters:
+      - description: Machine ID
+        in: query
+        name: machine_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Genlogin profiles
+      tags:
+      - platforms
+  /api/v1/platforms/hidemium/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get profiles from Hidemium platform
+      parameters:
+      - description: Machine ID
+        in: query
+        name: machine_id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 100)'
+        in: query
+        maximum: 1000
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Hidemium profiles
+      tags:
+      - platforms
+  /api/v1/platforms/routes:
+    get:
+      consumes:
+      - application/json
+      description: Get all available platform routes and endpoints
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/config.PlatformRoutes'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get platform routes
+      tags:
+      - platforms
+  /api/v1/platforms/supported:
+    get:
+      consumes:
+      - application/json
+      description: Get list of supported platforms
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get supported platforms
+      tags:
+      - platforms
   /api/v1/profile-flows/{profile_id}/flows:
     get:
       consumes:
