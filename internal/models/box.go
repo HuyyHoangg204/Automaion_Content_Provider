@@ -23,6 +23,17 @@ func (Box) TableName() string {
 	return "boxes"
 }
 
+// BoxAlreadyExistsError represents an error when a box with the same machine ID already exists
+type BoxAlreadyExistsError struct {
+	BoxID     string `json:"box_id"`
+	MachineID string `json:"machine_id"`
+	Message   string `json:"message"`
+}
+
+func (e *BoxAlreadyExistsError) Error() string {
+	return e.Message
+}
+
 // CreateBoxRequest represents the request to create a new box
 type CreateBoxRequest struct {
 	MachineID string `json:"machine_id" binding:"required" example:"PC-001"`

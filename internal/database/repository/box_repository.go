@@ -99,13 +99,6 @@ func (r *BoxRepository) DeleteByUserIDAndID(userID, boxID string) error {
 	return r.db.Where("user_id = ? AND id = ?", userID, boxID).Delete(&models.Box{}).Error
 }
 
-// CheckMachineIDExists checks if a machine ID already exists
-func (r *BoxRepository) CheckMachineIDExists(machineID string) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Box{}).Where("machine_id = ?", machineID).Count(&count).Error
-	return count > 0, err
-}
-
 // GetAll retrieves all boxes (admin only)
 func (r *BoxRepository) GetAll() ([]*models.Box, error) {
 	var boxes []*models.Box
