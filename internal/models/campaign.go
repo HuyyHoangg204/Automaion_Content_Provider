@@ -12,17 +12,17 @@ type Campaign struct {
 	ScriptName string `json:"script_name" gorm:"type:varchar(255);not null"`
 
 	// Campaign type and target
-	CampaignType string `json:"campaign_type" gorm:"type:varchar(50);index;default:'video_views'"` // video_views, likes, comments, reads, shares, etc.
-	TargetURL    string `json:"target_url" gorm:"type:text"`                                       // URL mục tiêu (video, post, article, etc.)
+	CampaignType string `json:"campaign_type" gorm:"type:varchar(50);index;default:'video_views'"`
+	TargetURL    string `json:"target_url" gorm:"type:text"`
 
 	// Campaign details
-	TargetCount  int `json:"target_count" gorm:"default:0"`  // Số lượng mục tiêu (views, likes, comments, etc.)
-	CurrentCount int `json:"current_count" gorm:"default:0"` // Số lượng hiện tại đã đạt được
+	TargetCount  int `json:"target_count" gorm:"default:0"`
+	CurrentCount int `json:"current_count" gorm:"default:0"`
 
 	// Scheduling
-	Frequency string     `json:"frequency" gorm:"type:varchar(20);default:'once'"` // once, daily, weekly, monthly, custom
-	StartDate *time.Time `json:"start_date" gorm:"index"`                          // Ngày bắt đầu
-	EndDate   *time.Time `json:"end_date" gorm:"index"`                            // Ngày kết thúc
+	Frequency string     `json:"frequency" gorm:"type:varchar(20);default:'once'"`
+	StartDate *time.Time `json:"start_date" gorm:"index"`
+	EndDate   *time.Time `json:"end_date" gorm:"index"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
