@@ -24,16 +24,16 @@ func GetHidemiumConfig() *HidemiumConfig {
 			// Remote profile management - Based on Hidemium v4 API docs
 			"open_profile":  "/openProfile?uuid={uuid}",  //Get Method
 			"close_profile": "/closeProfile?uuid={uuid}", //Get Method
-			"checking":      "/authorize?uuid={uuid}",
+			"checking":      "/authorize?uuid={uuid}",    //Get Method
 
 			// Profile Management - Based on Hidemium v4 API docs
-			"list_profiles":       "/v1/browser/list?is_local=false",
-			"list_config_default": "/v1/browser/list?is_local=false",
-			"list_status":         "/v2/status-profile?is_local=false",
-			"list_tag":            "/v2/tag?is_local=false",
-			"list_version":        "/v2/browser/get-list-version",
-			"get_profile_by_uuid": "/v2/browser/get-profile-by-uuid/{uuid}?is_local=false",
-			"get_list_folder":     "/v1/folder/list?is_local=false&page={page}&limit={limit}",
+			"list_profiles":       "/v1/browser/list?is_local=false",                          //Post Method
+			"list_config_default": "/v1/browser/list?is_local=false",                          // Get Method
+			"list_status":         "/v2/status-profile?is_local=false",                        // Get Method
+			"list_tag":            "/v2/tag?is_local=false",                                   // Get Method
+			"list_version":        "/v2/browser/get-list-version",                             // Get Method
+			"get_profile_by_uuid": "/v2/browser/get-profile-by-uuid/{uuid}?is_local=false",    // Get Method
+			"get_list_folder":     "/v1/folder/list?is_local=false&page={page}&limit={limit}", // Get Method
 
 			// Interaction profile - Based on Hidemium v4 API docs
 			"create_profile_by_default": "/create-profile-by-default?is_local=false",
