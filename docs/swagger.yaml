@@ -272,6 +272,7 @@ definitions:
         type: string
     required:
     - campaign_type
+    - frequency
     - name
     - script_name
     - target_count
@@ -659,6 +660,7 @@ definitions:
         type: string
     required:
     - campaign_type
+    - frequency
     - name
     - script_name
     - target_count

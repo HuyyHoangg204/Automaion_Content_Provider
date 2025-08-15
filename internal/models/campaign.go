@@ -44,7 +44,7 @@ type CreateCampaignRequest struct {
 	CampaignType string     `json:"campaign_type" binding:"required" example:"video_views"`
 	TargetURL    string     `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
 	TargetCount  int        `json:"target_count" binding:"required,min=1" example:"1000"`
-	Frequency    string     `json:"frequency" example:"once"`
+	Frequency    string     `json:"frequency" binding:"required" example:"once"`
 	StartDate    *time.Time `json:"start_date" example:"2025-08-14T00:00:00Z"`
 	EndDate      *time.Time `json:"end_date" example:"2025-08-14T23:59:59Z"`
 }
@@ -56,7 +56,7 @@ type UpdateCampaignRequest struct {
 	CampaignType string     `json:"campaign_type" binding:"required" example:"video_views"`
 	TargetURL    string     `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
 	TargetCount  int        `json:"target_count" binding:"required,min=1" example:"1000"`
-	Frequency    string     `json:"frequency" example:"daily"`
+	Frequency    string     `json:"frequency" binding:"required" example:"daily"`
 	StartDate    *time.Time `json:"start_date" example:"2025-08-14T00:00:00Z"`
 	EndDate      *time.Time `json:"end_date" example:"2025-08-14T23:59:59Z"`
 }

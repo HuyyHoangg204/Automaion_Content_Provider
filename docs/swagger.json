@@ -3546,6 +3546,7 @@
             "type": "object",
             "required": [
                 "campaign_type",
+                "frequency",
                 "name",
                 "script_name",
                 "target_count",
@@ -4107,6 +4108,7 @@
             "type": "object",
             "required": [
                 "campaign_type",
+                "frequency",
                 "name",
                 "script_name",
                 "target_count",
