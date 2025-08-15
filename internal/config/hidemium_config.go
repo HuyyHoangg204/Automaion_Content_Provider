@@ -21,7 +21,8 @@ func GetHidemiumConfig() *HidemiumConfig {
 		Name:    "Hidemium",
 		BaseURL: fmt.Sprintf("http://{machine_id}.%s%s", domain, path),
 		Routes: map[string]string{
-			"list_profiles": "/v1/browser/list",
+			// Profile Management - Based on Hidemium v4 API docs
+			"list_profiles": "/v1/browser/list?is_local=false",
 		},
 	}
 }
