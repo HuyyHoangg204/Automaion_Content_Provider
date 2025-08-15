@@ -3553,6 +3553,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "campaign_type",
+                "frequency",
                 "name",
                 "script_name",
                 "target_count",
@@ -4114,6 +4115,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "campaign_type",
+                "frequency",
                 "name",
                 "script_name",
                 "target_count",
