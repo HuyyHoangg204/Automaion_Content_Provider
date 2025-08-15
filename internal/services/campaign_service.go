@@ -46,9 +46,15 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 
 	// Create campaign
 	campaign := &models.Campaign{
-		UserID:     userID,
-		Name:       req.Name,
-		ScriptName: req.ScriptName,
+		UserID:       userID,
+		Name:         req.Name,
+		ScriptName:   req.ScriptName,
+		CampaignType: req.CampaignType,
+		TargetURL:    req.TargetURL,
+		TargetCount:  req.TargetCount,
+		Frequency:    req.Frequency,
+		StartDate:    req.StartDate,
+		EndDate:      req.EndDate,
 	}
 
 	if err := s.campaignRepo.Create(campaign); err != nil {
@@ -129,6 +135,12 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 	// Update fields
 	campaign.Name = req.Name
 	campaign.ScriptName = req.ScriptName
+	campaign.CampaignType = req.CampaignType
+	campaign.TargetURL = req.TargetURL
+	campaign.TargetCount = req.TargetCount
+	campaign.Frequency = req.Frequency
+	campaign.StartDate = req.StartDate
+	campaign.EndDate = req.EndDate
 
 	if err := s.campaignRepo.Update(campaign); err != nil {
 		return nil, fmt.Errorf("failed to update campaign: %w", err)
@@ -170,11 +182,18 @@ func (s *CampaignService) GetAllCampaigns() ([]*models.CampaignResponse, error) 
 // toResponse converts Campaign model to response DTO
 func (s *CampaignService) toResponse(campaign *models.Campaign) *models.CampaignResponse {
 	return &models.CampaignResponse{
-		ID:         campaign.ID,
-		UserID:     campaign.UserID,
-		Name:       campaign.Name,
-		ScriptName: campaign.ScriptName,
-		CreatedAt:  campaign.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:  campaign.UpdatedAt.Format(time.RFC3339),
+		ID:           campaign.ID,
+		UserID:       campaign.UserID,
+		Name:         campaign.Name,
+		ScriptName:   campaign.ScriptName,
+		CampaignType: campaign.CampaignType,
+		TargetURL:    campaign.TargetURL,
+		TargetCount:  campaign.TargetCount,
+		CurrentCount: campaign.CurrentCount,
+		Frequency:    campaign.Frequency,
+		StartDate:    campaign.StartDate,
+		EndDate:      campaign.EndDate,
+		CreatedAt:    campaign.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:    campaign.UpdatedAt.Format(time.RFC3339),
 	}
 }
