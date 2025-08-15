@@ -42,7 +42,7 @@ type CreateBoxRequest struct {
 
 // UpdateBoxRequest represents the request to update a box
 type UpdateBoxRequest struct {
-	UserID string `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001" description:"Optional: New user ID to transfer box ownership. Must be a valid user ID."`
+	UserID string `json:"user_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440001" description:"Optional: New user ID to transfer box ownership. Must be a valid user ID."`
 	Name   string `json:"name" binding:"required" example:"Updated Computer Name" description:"Required: New name for the box"`
 }
 

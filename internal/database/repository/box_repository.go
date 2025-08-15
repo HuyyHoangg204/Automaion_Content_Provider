@@ -86,7 +86,9 @@ func (r *BoxRepository) GetByUserIDAndID(userID, boxID string) (*models.Box, err
 
 // Update updates a box
 func (r *BoxRepository) Update(box *models.Box) error {
-	return r.db.Save(box).Error
+	// Use raw SQL to ensure all fields are updated
+	return r.db.Exec("UPDATE boxes SET user_id = ?, name = ?, updated_at = NOW() WHERE id = ?",
+		box.UserID, box.Name, box.ID).Error
 }
 
 // Delete deletes a box
