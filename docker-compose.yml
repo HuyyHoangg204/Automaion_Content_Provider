@@ -38,6 +38,11 @@ services:
       - PORT=8080
       - LOG_LEVEL=info
       - BASE_PATH=/
+
+      # Hidemium Configuration
+      - HIDEMIUM_DOMAIN=agent-controller.onegreen.cloud
+      - HIDEMIUM_PATH=/frps
+
     depends_on:
       postgres:
         condition: service_healthy
