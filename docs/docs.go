@@ -1556,7 +1556,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update a box (user must own it). Can update both name and user_id. If user_id is provided, it must be a valid user ID.",
+                "description": "Update a box. Can update both name and user_id. If user_id is provided, it must be a valid user ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1576,7 +1576,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update box request - name is required, user_id is optional",
+                        "description": "Update box request - name is required, user_id is optional for ownership transfer",
                         "name": "request",
                         "in": "body",
                         "required": true,
