@@ -95,17 +95,17 @@ func (s *BoxService) GetBoxByID(userID, boxID string) (*models.BoxResponse, erro
 
 // UpdateBox updates a box (user must own it)
 func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxRequest) (*models.BoxResponse, error) {
-	var box *models.Box
-	var err error
+	// Get box by ID (no ownership check)
+	box, err := s.boxRepo.GetByID(boxID)
+	if err != nil {
+		return nil, errors.New("box not found")
+	}
 
-	// Check if we're updating user_id (transferring ownership)
+	fmt.Printf("Before update - Box ID: %s, Current UserID: %s, Request UserID: %s, Request Name: %s\n",
+		box.ID, box.UserID, req.UserID, req.Name)
+
+	// If updating user_id (transferring ownership)
 	if req.UserID != "" {
-		// For user_id updates, we need to check if box exists (not necessarily owned by current user)
-		box, err = s.boxRepo.GetByID(boxID)
-		if err != nil {
-			return nil, errors.New("box not found")
-		}
-
 		// Verify that the new user exists
 		_, err := s.userRepo.GetByID(req.UserID)
 		if err != nil {
@@ -114,22 +114,28 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 
 		// Update user_id
 		box.UserID = req.UserID
-	} else {
-		// For name-only updates, user must own the box
-		box, err = s.boxRepo.GetByUserIDAndID(userID, boxID)
-		if err != nil {
-			return nil, errors.New("box not found")
-		}
+		fmt.Printf("Updated UserID to: %s\n", box.UserID)
 	}
 
 	// Update name
 	box.Name = req.Name
+	fmt.Printf("Updated Name to: %s\n", box.Name)
 
 	if err := s.boxRepo.Update(box); err != nil {
+		fmt.Printf("Database update error: %v\n", err)
 		return nil, fmt.Errorf("failed to update box: %w", err)
 	}
 
-	return s.toResponse(box), nil
+	// Get the updated box to verify changes
+	updatedBox, err := s.boxRepo.GetByID(boxID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get updated box: %w", err)
+	}
+
+	fmt.Printf("After update - Box ID: %s, UserID: %s, Name: %s\n",
+		updatedBox.ID, updatedBox.UserID, updatedBox.Name)
+
+	return s.toResponse(updatedBox), nil
 }
 
 // DeleteBox deletes a box (user must own it)

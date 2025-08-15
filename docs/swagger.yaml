@@ -272,6 +272,7 @@ definitions:
         type: string
     required:
     - campaign_type
+    - frequency
     - name
     - script_name
     - target_count
@@ -659,6 +660,7 @@ definitions:
         type: string
     required:
     - campaign_type
+    - frequency
     - name
     - script_name
     - target_count
@@ -1767,15 +1769,16 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update a box (user must own it). Can update both name and user_id.
-        If user_id is provided, it must be a valid user ID.
+      description: Update a box. Can update both name and user_id. If user_id is provided,
+        it must be a valid user ID.
       parameters:
       - description: Box ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update box request - name is required, user_id is optional
+      - description: Update box request - name is required, user_id is optional for
+          ownership transfer
         in: body
         name: request
         required: true
