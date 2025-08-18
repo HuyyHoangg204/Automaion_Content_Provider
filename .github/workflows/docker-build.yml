@@ -1,49 +1,18 @@
-name: Build and Push Green Anti-Detect Browser Backend v1
+name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
     tags: [ 'v*.*.*' ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/green-anti-detect-browser-backend-v1
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/green-provider-services-backend
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23'
-
-      - name: Cache Go modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Install dependencies
-        run: go mod download
-
-      - name: Run tests
-        run: go test -v ./...
-
-      - name: Build application
-        run: go build -v ./cmd/server
-
   build-and-push:
-    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,24 +20,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v2
         
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v4
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -76,38 +44,16 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
             type=sha,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            latest
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64/v8
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            TARGETARCH=${{ matrix.platform }}
-
-  security-scan:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    
-    steps:
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: 'trivy-results.sarif'
