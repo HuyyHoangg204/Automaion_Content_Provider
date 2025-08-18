@@ -3,7 +3,7 @@ package repository
 import (
 	"time"
 
-	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-provider-services-backend/internal/models"
 
 	"gorm.io/gorm"
 )

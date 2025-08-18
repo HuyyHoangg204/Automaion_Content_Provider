@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-provider-services-backend/internal/models"
 )
 
 // DB is the global database instance

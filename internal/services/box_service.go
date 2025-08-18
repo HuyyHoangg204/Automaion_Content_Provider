@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"green-anti-detect-browser-backend-v1/internal/config"
-	"green-anti-detect-browser-backend-v1/internal/database/repository"
-	"green-anti-detect-browser-backend-v1/internal/models"
-	"green-anti-detect-browser-backend-v1/internal/utils"
+	"green-provider-services-backend/internal/config"
+	"green-provider-services-backend/internal/database/repository"
+	"green-provider-services-backend/internal/models"
+	"green-provider-services-backend/internal/utils"
 )
 
 type BoxService struct {

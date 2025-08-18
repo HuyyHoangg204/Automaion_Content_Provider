@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"green-anti-detect-browser-backend-v1/internal/database/repository"
-	"green-anti-detect-browser-backend-v1/internal/services/auth"
+	"green-provider-services-backend/internal/database/repository"
+	"green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-gonic/gin"
 )

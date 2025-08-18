@@ -10,18 +10,18 @@ import (
 	"syscall"
 	"time"
 
-	"green-anti-detect-browser-backend-v1/docs"
-	"green-anti-detect-browser-backend-v1/internal/database"
-	"green-anti-detect-browser-backend-v1/internal/database/repository"
-	"green-anti-detect-browser-backend-v1/internal/router"
-	"green-anti-detect-browser-backend-v1/internal/services/auth"
-	"green-anti-detect-browser-backend-v1/internal/utils"
+	"green-provider-services-backend/docs"
+	"green-provider-services-backend/internal/database"
+	"green-provider-services-backend/internal/database/repository"
+	"green-provider-services-backend/internal/router"
+	"green-provider-services-backend/internal/services/auth"
+	"green-provider-services-backend/internal/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 
 	// Import Swagger docs
-	_ "green-anti-detect-browser-backend-v1/docs"
+	_ "green-provider-services-backend/docs"
 )
 
 // @title User Management API

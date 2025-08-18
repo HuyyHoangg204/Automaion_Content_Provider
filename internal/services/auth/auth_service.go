@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"green-anti-detect-browser-backend-v1/internal/database/repository"
-	"green-anti-detect-browser-backend-v1/internal/models"
-	"green-anti-detect-browser-backend-v1/internal/utils"
+	"green-provider-services-backend/internal/database/repository"
+	"green-provider-services-backend/internal/models"
+	"green-provider-services-backend/internal/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
