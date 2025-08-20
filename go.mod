@@ -1,4 +1,4 @@
-module green-provider-services-backend
+module github.com/onegreenvn/green-provider-services-backend
 
 go 1.23.0
 

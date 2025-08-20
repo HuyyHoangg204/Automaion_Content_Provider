@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"green-provider-services-backend/internal/models"
-	"green-provider-services-backend/internal/services"
-	"green-provider-services-backend/internal/utils"
+	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"green-provider-services-backend/internal/database/repository"
-	"green-provider-services-backend/internal/models"
-	"green-provider-services-backend/internal/utils"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
+	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 )
 
 type FlowService struct {

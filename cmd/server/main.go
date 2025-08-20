@@ -10,18 +10,18 @@ import (
 	"syscall"
 	"time"
 
-	"green-provider-services-backend/docs"
-	"green-provider-services-backend/internal/database"
-	"green-provider-services-backend/internal/database/repository"
-	"green-provider-services-backend/internal/router"
-	"green-provider-services-backend/internal/services/auth"
-	"green-provider-services-backend/internal/utils"
+	"github.com/onegreenvn/green-provider-services-backend/docs"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
+	"github.com/onegreenvn/green-provider-services-backend/internal/router"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 
 	// Import Swagger docs
-	_ "green-provider-services-backend/docs"
+	_ "github.com/onegreenvn/green-provider-services-backend/docs"
 )
 
 // @title User Management API

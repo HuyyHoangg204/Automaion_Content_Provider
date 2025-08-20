@@ -3,11 +3,11 @@ package router
 import (
 	"time"
 
-	"green-provider-services-backend/internal/database/repository"
-	"green-provider-services-backend/internal/handlers"
-	"green-provider-services-backend/internal/middleware"
-	"green-provider-services-backend/internal/services"
-	"green-provider-services-backend/internal/services/auth"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
+	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
+	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

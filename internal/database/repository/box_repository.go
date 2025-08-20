@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 
 	"gorm.io/gorm"
 )

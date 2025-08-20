@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
 // DB is the global database instance

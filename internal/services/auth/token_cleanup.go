@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	"green-provider-services-backend/internal/database/repository"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 
 	"github.com/sirupsen/logrus"
 )
