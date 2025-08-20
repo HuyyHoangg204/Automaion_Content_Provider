@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"green-provider-services-backend/internal/models"
 	"green-provider-services-backend/internal/utils"
 
@@ -117,10 +118,29 @@ func (r *ProfileRepository) Delete(id string) error {
 
 // DeleteByUserIDAndID deletes a profile by user ID and profile ID
 func (r *ProfileRepository) DeleteByUserIDAndID(userID, profileID string) error {
-	return r.db.Joins("JOIN apps ON profiles.app_id = apps.id").
-		Joins("JOIN boxes ON apps.box_id = boxes.id").
-		Where("boxes.user_id = ? AND profiles.id = ?", userID, profileID).
-		Delete(&models.Profile{}).Error
+	// Use a transaction to ensure data consistency
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// First verify the profile belongs to the user through the relationship chain
+		var profile models.Profile
+		err := tx.Joins("JOIN apps ON profiles.app_id = apps.id").
+			Joins("JOIN boxes ON apps.box_id = boxes.id").
+			Where("boxes.user_id = ? AND profiles.id = ?", userID, profileID).
+			First(&profile).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return fmt.Errorf("profile not found or access denied")
+			}
+			return fmt.Errorf("failed to verify profile ownership: %w", err)
+		}
+
+		// Then delete the profile directly by ID
+		// Note: Flows will be automatically deleted due to CASCADE constraint
+		if err := tx.Delete(&models.Profile{}, "id = ?", profileID).Error; err != nil {
+			return fmt.Errorf("failed to delete profile: %w", err)
+		}
+
+		return nil
+	})
 }
 
 // CheckNameExistsInApp checks if a profile name already exists in a specific app
