@@ -67,12 +67,6 @@ func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (
 		Status:      req.Status,
 	}
 
-	// Set StartedAt if status indicates flow has started
-	if req.Status == "Started" || req.Status == "Running" || req.Status == "Completed" || req.Status == "Failed" {
-		now := time.Now()
-		flow.StartedAt = &now
-	}
-
 	if err := s.flowRepo.Create(flow); err != nil {
 		return nil, fmt.Errorf("failed to create flow: %w", err)
 	}
@@ -196,19 +190,6 @@ func (s *FlowService) UpdateFlow(userID, flowID string, req *models.UpdateFlowRe
 	// Update status
 	flow.Status = req.Status
 
-	// Update timestamps based on status
-	now := time.Now()
-	if req.Status == "Started" || req.Status == "Running" {
-		if flow.StartedAt == nil {
-			flow.StartedAt = &now
-		}
-	} else if req.Status == "Completed" || req.Status == "Failed" || req.Status == "Stopped" {
-		if flow.StartedAt == nil {
-			flow.StartedAt = &now
-		}
-		flow.FinishedAt = &now
-	}
-
 	if err := s.flowRepo.Update(flow); err != nil {
 		return nil, fmt.Errorf("failed to update flow: %w", err)
 	}
@@ -272,14 +253,6 @@ func (s *FlowService) toResponse(flow *models.Flow) *models.FlowResponse {
 		Status:    flow.Status,
 		CreatedAt: flow.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: flow.UpdatedAt.Format(time.RFC3339),
-	}
-
-	if flow.StartedAt != nil {
-		response.StartedAt = flow.StartedAt.Format(time.RFC3339)
-	}
-
-	if flow.FinishedAt != nil {
-		response.FinishedAt = flow.FinishedAt.Format(time.RFC3339)
 	}
 
 	return response

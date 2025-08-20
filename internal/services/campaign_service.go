@@ -78,8 +78,6 @@ func (s *CampaignService) CompleteCampaign(campaignID string, startedAt *time.Ti
 		CampaignID: campaignID,
 		Name:       "Lần chạy " + now.Format("2006-01-02 15:04:05"),
 		Status:     "completed",
-		StartedAt:  startedAt,
-		FinishedAt: &now,
 	}
 
 	err = s.flowGroupRepo.Create(flowGroup)

@@ -57,13 +57,6 @@ func (h *FlowGroupHandler) GetFlowGroupByID(c *gin.Context) {
 		UpdatedAt:  flowGroup.UpdatedAt.Format(time.RFC3339),
 	}
 
-	if flowGroup.StartedAt != nil {
-		response.StartedAt = flowGroup.StartedAt.Format(time.RFC3339)
-	}
-	if flowGroup.FinishedAt != nil {
-		response.FinishedAt = flowGroup.FinishedAt.Format(time.RFC3339)
-	}
-
 	c.JSON(http.StatusOK, response)
 }
 
@@ -104,14 +97,6 @@ func (h *FlowGroupHandler) GetFlowGroupsByCampaign(c *gin.Context) {
 			CreatedAt:  flowGroup.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:  flowGroup.UpdatedAt.Format(time.RFC3339),
 		}
-
-		if flowGroup.StartedAt != nil {
-			response.StartedAt = flowGroup.StartedAt.Format(time.RFC3339)
-		}
-		if flowGroup.FinishedAt != nil {
-			response.FinishedAt = flowGroup.FinishedAt.Format(time.RFC3339)
-		}
-
 		responses[i] = response
 	}
 

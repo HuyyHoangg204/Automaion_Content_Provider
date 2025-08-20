@@ -2,22 +2,37 @@ package models
 
 import (
 	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-// Flow represents the execution flow of a campaign on a specific profile
+// Flow represents an automation flow
 type Flow struct {
-	ID          string     `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	FlowGroupID string     `json:"flow_group_id" gorm:"not null;index;type:uuid"`
-	ProfileID   string     `json:"profile_id" gorm:"not null;index;type:uuid"`
-	Status      string     `json:"status" gorm:"type:varchar(255);not null"`
-	StartedAt   *time.Time `json:"started_at"`
-	FinishedAt  *time.Time `json:"finished_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID          string    `json:"id" gorm:"primaryKey;type:varchar(255)"`
+	CreatedAt   time.Time `json:"created_at" gorm:"index"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Name        string    `json:"name" gorm:"type:varchar(255);not null"`
+	Description string    `json:"description" gorm:"type:text"`
+	ScriptName  string    `json:"script_name" gorm:"type:varchar(255);index"`
+	FlowGroupID string    `json:"flow_group_id" gorm:"column:flow_group_id;type:varchar(255);index"`
+	ProfileID   string    `json:"profile_id" gorm:"column:profile_id;index"`
+	Status      string    `json:"status" gorm:"type:varchar(50);default:'pending';index"`
+	Result      JSON      `json:"result" gorm:"type:jsonb"`
+	UserID      string    `json:"user_id" gorm:"index"`
 
 	// Relationships
-	FlowGroup FlowGroup `json:"flow_group,omitempty" gorm:"foreignKey:FlowGroupID;references:ID;constraint:OnDelete:CASCADE"`
-	Profile   Profile   `json:"profile,omitempty" gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE"`
+	FlowGroup FlowGroup `json:"-" gorm:"foreignKey:FlowGroupID;references:ID;constraint:OnDelete:CASCADE"`
+	Profile   Profile   `json:"-" gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE"`
+	User      User      `json:"-" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+}
+
+// BeforeCreate is a GORM hook that runs before creating a new record
+func (f *Flow) BeforeCreate(tx *gorm.DB) error {
+	if f.ID == "" {
+		f.ID = uuid.New().String()
+	}
+	return nil
 }
 
 // TableName specifies the table name for the Flow model

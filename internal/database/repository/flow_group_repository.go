@@ -93,23 +93,11 @@ func (r *FlowGroupRepository) GetStats(id string) (*models.FlowGroupStats, error
 		successRate = float64(completedFlows) / float64(totalFlows) * 100
 	}
 
-	// Calculate duration
-	var duration string
-	if flowGroup.StartedAt != nil && flowGroup.FinishedAt != nil {
-		duration = flowGroup.FinishedAt.Sub(*flowGroup.StartedAt).String()
-	}
-
 	stats := &models.FlowGroupStats{
 		ID:          flowGroup.ID,
 		Name:        flowGroup.Name,
 		Status:      flowGroup.Status,
 		SuccessRate: successRate,
-		Duration:    duration,
-		StartedAt:   flowGroup.StartedAt.Format("2006-01-02T15:04:05Z"),
-	}
-
-	if flowGroup.FinishedAt != nil {
-		stats.FinishedAt = flowGroup.FinishedAt.Format("2006-01-02T15:04:05Z")
 	}
 
 	return stats, nil
