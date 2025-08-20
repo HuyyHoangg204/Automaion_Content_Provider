@@ -3,8 +3,8 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123
-      POSTGRES_DB: green_anti_detect_browser
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: greenproviderservices
     ports:
       - "5432:5432"
     volumes:
@@ -27,8 +27,8 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=postgres
-      - DB_PASSWORD=123
-      - DB_NAME=green_anti_detect_browser
+      - DB_PASSWORD=postgres
+      - DB_NAME=greenproviderservices
       - DB_SSLMODE=disable
       
       # JWT Configuration
