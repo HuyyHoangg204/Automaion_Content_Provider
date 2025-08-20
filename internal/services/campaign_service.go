@@ -51,8 +51,6 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 		Description:      req.Description,
 		ScriptName:       req.ScriptName,
 		ScriptVariables:  req.ScriptVariables,
-		CampaignType:     req.CampaignType,
-		TargetURL:        req.TargetURL,
 		ConcurrentPhones: req.ConcurrentPhones,
 		Schedule:         req.Schedule,
 	}
@@ -140,8 +138,6 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 	campaign.Description = req.Description
 	campaign.ScriptName = req.ScriptName
 	campaign.ScriptVariables = req.ScriptVariables
-	campaign.CampaignType = req.CampaignType
-	campaign.TargetURL = req.TargetURL
 	campaign.ConcurrentPhones = req.ConcurrentPhones
 	campaign.Schedule = req.Schedule
 	if req.IsActive != nil {
@@ -194,8 +190,6 @@ func (s *CampaignService) toResponse(campaign *models.Campaign) *models.Campaign
 		Description:      campaign.Description,
 		ScriptName:       campaign.ScriptName,
 		ScriptVariables:  campaign.ScriptVariables,
-		CampaignType:     campaign.CampaignType,
-		TargetURL:        campaign.TargetURL,
 		ConcurrentPhones: campaign.ConcurrentPhones,
 		Schedule:         campaign.Schedule,
 		IsActive:         campaign.IsActive,

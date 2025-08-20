@@ -13,10 +13,6 @@ type Campaign struct {
 	ScriptName      string `json:"script_name" gorm:"type:varchar(255);not null"`
 	ScriptVariables JSON   `json:"script_variables" gorm:"type:jsonb;default:'{}'"`
 
-	// Campaign type and target
-	CampaignType string `json:"campaign_type" gorm:"type:varchar(50);index;default:'video_views'"`
-	TargetURL    string `json:"target_url" gorm:"type:text"`
-
 	// Campaign details
 	ConcurrentPhones int `json:"concurrent_phones" gorm:"type:int;default:50"`
 
@@ -45,8 +41,6 @@ type CreateCampaignRequest struct {
 	Description      string `json:"description" example:"This is a campaign to increase views"`
 	ScriptName       string `json:"script_name" binding:"required" example:"increase_views.js"`
 	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"value\"}"`
-	CampaignType     string `json:"campaign_type" binding:"required" example:"video_views"`
-	TargetURL        string `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
 	ConcurrentPhones int    `json:"concurrent_phones" example:"10"`
 	Schedule         JSON   `json:"schedule" binding:"required" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
 	IsActive         *bool  `json:"is_active" example:"true"`
@@ -58,8 +52,6 @@ type UpdateCampaignRequest struct {
 	Description      string `json:"description" example:"This is an updated campaign"`
 	ScriptName       string `json:"script_name" binding:"required" example:"updated_script.js"`
 	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"new_value\"}"`
-	CampaignType     string `json:"campaign_type" binding:"required" example:"video_views"`
-	TargetURL        string `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
 	ConcurrentPhones int    `json:"concurrent_phones" example:"20"`
 	Schedule         JSON   `json:"schedule" binding:"required" example:"{\"type\":\"daily\",\"time\":\"10:00\"}"`
 	IsActive         *bool  `json:"is_active" example:"false"`
@@ -73,8 +65,6 @@ type CampaignResponse struct {
 	Description      string `json:"description" example:"This is a campaign to increase views"`
 	ScriptName       string `json:"script_name" example:"increase_views.js"`
 	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"value\"}"`
-	CampaignType     string `json:"campaign_type" example:"video_views"`
-	TargetURL        string `json:"target_url" example:"https://youtube.com/watch?v=..."`
 	ConcurrentPhones int    `json:"concurrent_phones" example:"10"`
 	Schedule         JSON   `json:"schedule" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
 	IsActive         bool   `json:"is_active" example:"true"`
