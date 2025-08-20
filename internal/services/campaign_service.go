@@ -10,20 +10,20 @@ import (
 )
 
 type CampaignService struct {
-	campaignRepo      *repository.CampaignRepository
-	groupCampaignRepo *repository.GroupCampaignRepository
-	userRepo          *repository.UserRepository
+	campaignRepo  *repository.CampaignRepository
+	flowGroupRepo *repository.FlowGroupRepository
+	userRepo      *repository.UserRepository
 }
 
 func NewCampaignService(
 	campaignRepo *repository.CampaignRepository,
-	groupCampaignRepo *repository.GroupCampaignRepository,
+	flowGroupRepo *repository.FlowGroupRepository,
 	userRepo *repository.UserRepository,
 ) *CampaignService {
 	return &CampaignService{
-		campaignRepo:      campaignRepo,
-		groupCampaignRepo: groupCampaignRepo,
-		userRepo:          userRepo,
+		campaignRepo:  campaignRepo,
+		flowGroupRepo: flowGroupRepo,
+		userRepo:      userRepo,
 	}
 }
 
@@ -46,15 +46,18 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 
 	// Create campaign
 	campaign := &models.Campaign{
-		UserID:       userID,
-		Name:         req.Name,
-		ScriptName:   req.ScriptName,
-		CampaignType: req.CampaignType,
-		TargetURL:    req.TargetURL,
-		TargetCount:  req.TargetCount,
-		Frequency:    req.Frequency,
-		StartDate:    req.StartDate,
-		EndDate:      req.EndDate,
+		UserID:           userID,
+		Name:             req.Name,
+		Description:      req.Description,
+		ScriptName:       req.ScriptName,
+		ScriptVariables:  req.ScriptVariables,
+		CampaignType:     req.CampaignType,
+		TargetURL:        req.TargetURL,
+		ConcurrentPhones: req.ConcurrentPhones,
+		Schedule:         req.Schedule,
+	}
+	if req.IsActive != nil {
+		campaign.IsActive = *req.IsActive
 	}
 
 	if err := s.campaignRepo.Create(campaign); err != nil {
@@ -73,7 +76,7 @@ func (s *CampaignService) CompleteCampaign(campaignID string, startedAt *time.Ti
 	}
 
 	now := time.Now()
-	groupCampaign := &models.GroupCampaign{
+	flowGroup := &models.FlowGroup{
 		CampaignID: campaignID,
 		Name:       "Lần chạy " + now.Format("2006-01-02 15:04:05"),
 		Status:     "completed",
@@ -81,7 +84,7 @@ func (s *CampaignService) CompleteCampaign(campaignID string, startedAt *time.Ti
 		FinishedAt: &now,
 	}
 
-	err = s.groupCampaignRepo.Create(groupCampaign)
+	err = s.flowGroupRepo.Create(flowGroup)
 	if err != nil {
 		return fmt.Errorf("failed to create group campaign: %w", err)
 	}
@@ -134,13 +137,16 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 
 	// Update fields
 	campaign.Name = req.Name
+	campaign.Description = req.Description
 	campaign.ScriptName = req.ScriptName
+	campaign.ScriptVariables = req.ScriptVariables
 	campaign.CampaignType = req.CampaignType
 	campaign.TargetURL = req.TargetURL
-	campaign.TargetCount = req.TargetCount
-	campaign.Frequency = req.Frequency
-	campaign.StartDate = req.StartDate
-	campaign.EndDate = req.EndDate
+	campaign.ConcurrentPhones = req.ConcurrentPhones
+	campaign.Schedule = req.Schedule
+	if req.IsActive != nil {
+		campaign.IsActive = *req.IsActive
+	}
 
 	if err := s.campaignRepo.Update(campaign); err != nil {
 		return nil, fmt.Errorf("failed to update campaign: %w", err)
@@ -182,18 +188,19 @@ func (s *CampaignService) GetAllCampaigns() ([]*models.CampaignResponse, error) 
 // toResponse converts Campaign model to response DTO
 func (s *CampaignService) toResponse(campaign *models.Campaign) *models.CampaignResponse {
 	return &models.CampaignResponse{
-		ID:           campaign.ID,
-		UserID:       campaign.UserID,
-		Name:         campaign.Name,
-		ScriptName:   campaign.ScriptName,
-		CampaignType: campaign.CampaignType,
-		TargetURL:    campaign.TargetURL,
-		TargetCount:  campaign.TargetCount,
-		CurrentCount: campaign.CurrentCount,
-		Frequency:    campaign.Frequency,
-		StartDate:    campaign.StartDate,
-		EndDate:      campaign.EndDate,
-		CreatedAt:    campaign.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:    campaign.UpdatedAt.Format(time.RFC3339),
+		ID:               campaign.ID,
+		UserID:           campaign.UserID,
+		Name:             campaign.Name,
+		Description:      campaign.Description,
+		ScriptName:       campaign.ScriptName,
+		ScriptVariables:  campaign.ScriptVariables,
+		CampaignType:     campaign.CampaignType,
+		TargetURL:        campaign.TargetURL,
+		ConcurrentPhones: campaign.ConcurrentPhones,
+		Schedule:         campaign.Schedule,
+		IsActive:         campaign.IsActive,
+		Status:           campaign.Status,
+		CreatedAt:        campaign.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:        campaign.UpdatedAt.Format(time.RFC3339),
 	}
 }

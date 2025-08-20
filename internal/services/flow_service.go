@@ -11,26 +11,26 @@ import (
 )
 
 type FlowService struct {
-	flowRepo          *repository.FlowRepository
-	campaignRepo      *repository.CampaignRepository
-	groupCampaignRepo *repository.GroupCampaignRepository
-	profileRepo       *repository.ProfileRepository
-	userRepo          *repository.UserRepository
+	flowRepo      *repository.FlowRepository
+	campaignRepo  *repository.CampaignRepository
+	flowGroupRepo *repository.FlowGroupRepository
+	profileRepo   *repository.ProfileRepository
+	userRepo      *repository.UserRepository
 }
 
 func NewFlowService(
 	flowRepo *repository.FlowRepository,
 	campaignRepo *repository.CampaignRepository,
-	groupCampaignRepo *repository.GroupCampaignRepository,
+	flowGroupRepo *repository.FlowGroupRepository,
 	profileRepo *repository.ProfileRepository,
 	userRepo *repository.UserRepository,
 ) *FlowService {
 	return &FlowService{
-		flowRepo:          flowRepo,
-		campaignRepo:      campaignRepo,
-		groupCampaignRepo: groupCampaignRepo,
-		profileRepo:       profileRepo,
-		userRepo:          userRepo,
+		flowRepo:      flowRepo,
+		campaignRepo:  campaignRepo,
+		flowGroupRepo: flowGroupRepo,
+		profileRepo:   profileRepo,
+		userRepo:      userRepo,
 	}
 }
 
@@ -43,13 +43,13 @@ func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (
 	}
 
 	// Verify group campaign exists and belongs to user's campaign
-	groupCampaign, err := s.groupCampaignRepo.GetByID(req.GroupCampaignID)
+	flowGroup, err := s.flowGroupRepo.GetByID(req.FlowGroupID)
 	if err != nil {
 		return nil, errors.New("group campaign not found")
 	}
 
 	// Verify the campaign belongs to user
-	_, err = s.campaignRepo.GetByUserIDAndID(userID, groupCampaign.CampaignID)
+	_, err = s.campaignRepo.GetByUserIDAndID(userID, flowGroup.CampaignID)
 	if err != nil {
 		return nil, errors.New("group campaign access denied")
 	}
@@ -62,9 +62,9 @@ func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (
 
 	// Create flow
 	flow := &models.Flow{
-		GroupCampaignID: req.GroupCampaignID,
-		ProfileID:       req.ProfileID,
-		Status:          req.Status,
+		FlowGroupID: req.FlowGroupID,
+		ProfileID:   req.ProfileID,
+		Status:      req.Status,
 	}
 
 	// Set StartedAt if status indicates flow has started
@@ -122,16 +122,16 @@ func (s *FlowService) GetFlowsByCampaign(userID, campaignID string, page, pageSi
 	return responses, total, nil
 }
 
-// GetFlowsByGroupCampaign retrieves paginated flows for a specific group campaign
-func (s *FlowService) GetFlowsByGroupCampaign(userID, groupCampaignID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+// GetFlowsByFlowGroup retrieves paginated flows for a specific group campaign
+func (s *FlowService) GetFlowsByFlowGroup(userID, flowGroupID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Verify group campaign exists and belongs to user's campaign
-	groupCampaign, err := s.groupCampaignRepo.GetByID(groupCampaignID)
+	flowGroup, err := s.flowGroupRepo.GetByID(flowGroupID)
 	if err != nil {
 		return nil, 0, errors.New("group campaign not found")
 	}
 
 	// Verify the campaign belongs to user
-	_, err = s.campaignRepo.GetByUserIDAndID(userID, groupCampaign.CampaignID)
+	_, err = s.campaignRepo.GetByUserIDAndID(userID, flowGroup.CampaignID)
 	if err != nil {
 		return nil, 0, errors.New("group campaign access denied")
 	}
@@ -139,7 +139,7 @@ func (s *FlowService) GetFlowsByGroupCampaign(userID, groupCampaignID string, pa
 	// Validate and normalize pagination parameters
 	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
 
-	flows, total, err := s.flowRepo.GetByGroupCampaignIDPaginated(groupCampaignID, page, pageSize)
+	flows, total, err := s.flowRepo.GetByFlowGroupIDPaginated(flowGroupID, page, pageSize)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get flows: %w", err)
 	}

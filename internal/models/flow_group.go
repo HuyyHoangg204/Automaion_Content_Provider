@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// GroupCampaign represents a campaign execution history/group
-type GroupCampaign struct {
+// FlowGroup represents a campaign execution history/group
+type FlowGroup struct {
 	ID         string     `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
 	CampaignID string     `json:"campaign_id" gorm:"not null;index;type:uuid"`
 	Name       string     `json:"name" gorm:"type:varchar(255);not null"`
@@ -17,16 +17,16 @@ type GroupCampaign struct {
 
 	// Relationships
 	Campaign Campaign `json:"campaign,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
-	Flows    []Flow   `json:"flows,omitempty" gorm:"foreignKey:GroupCampaignID;references:ID;constraint:OnDelete:CASCADE"`
+	Flows    []Flow   `json:"flows,omitempty" gorm:"foreignKey:FlowGroupID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
-// TableName specifies the table name for the GroupCampaign model
-func (GroupCampaign) TableName() string {
-	return "group_campaigns"
+// TableName specifies the table name for the FlowGroup model
+func (FlowGroup) TableName() string {
+	return "flow_groups"
 }
 
-// GroupCampaignResponse represents the response for group campaign operations
-type GroupCampaignResponse struct {
+// FlowGroupResponse represents the response for group campaign operations
+type FlowGroupResponse struct {
 	ID         string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	CampaignID string `json:"campaign_id" example:"550e8400-e29b-41d4-a716-446655440001"`
 	Name       string `json:"name" example:"Campaign Run #1"`
@@ -37,8 +37,8 @@ type GroupCampaignResponse struct {
 	UpdatedAt  string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }
 
-// GroupCampaignStats represents statistics for a group campaign
-type GroupCampaignStats struct {
+// FlowGroupStats represents statistics for a group campaign
+type FlowGroupStats struct {
 	ID          string  `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
 	Name        string  `json:"name" example:"Campaign Run #1"`
 	Status      string  `json:"status" example:"completed"`

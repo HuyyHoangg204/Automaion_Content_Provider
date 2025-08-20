@@ -143,29 +143,29 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetFlowsByGroupCampaign godoc
+// GetFlowsByFlowGroup godoc
 // @Summary Get flows by group campaign
 // @Description Get all flows for a specific group campaign (user must own the campaign) with pagination
 // @Tags flows
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param group_campaign_id path string true "Group Campaign ID"
+// @Param flow_group_id path string true "Group Campaign ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/group-campaign-flows/{group_campaign_id}/flows [get]
-func (h *FlowHandler) GetFlowsByGroupCampaign(c *gin.Context) {
+// @Router /api/v1/flow-group-flows/{flow_group_id}/flows [get]
+func (h *FlowHandler) GetFlowsByFlowGroup(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	groupCampaignID := c.Param("group_campaign_id")
+	flowGroupID := c.Param("flow_group_id")
 
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	flows, total, err := h.flowService.GetFlowsByGroupCampaign(userID, groupCampaignID, page, pageSize)
+	flows, total, err := h.flowService.GetFlowsByFlowGroup(userID, flowGroupID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

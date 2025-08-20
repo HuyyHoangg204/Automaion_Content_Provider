@@ -6,30 +6,32 @@ import (
 
 // Campaign represents a campaign that belongs to a user
 type Campaign struct {
-	ID         string `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID     string `json:"user_id" gorm:"not null;index;type:uuid"`
-	Name       string `json:"name" gorm:"type:varchar(255);not null"`
-	ScriptName string `json:"script_name" gorm:"type:varchar(255);not null"`
+	ID              string `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID          string `json:"user_id" gorm:"not null;index;type:uuid"`
+	Name            string `json:"name" gorm:"type:varchar(255);not null"`
+	Description     string `json:"description" gorm:"type:text"`
+	ScriptName      string `json:"script_name" gorm:"type:varchar(255);not null"`
+	ScriptVariables JSON   `json:"script_variables" gorm:"type:jsonb;default:'{}'"`
 
 	// Campaign type and target
 	CampaignType string `json:"campaign_type" gorm:"type:varchar(50);index;default:'video_views'"`
 	TargetURL    string `json:"target_url" gorm:"type:text"`
 
 	// Campaign details
-	TargetCount  int `json:"target_count" gorm:"default:0"`
-	CurrentCount int `json:"current_count" gorm:"default:0"`
+	ConcurrentPhones int `json:"concurrent_phones" gorm:"type:int;default:50"`
 
 	// Scheduling
-	Frequency string     `json:"frequency" gorm:"type:varchar(20);default:'once'"`
-	StartDate *time.Time `json:"start_date" gorm:"index"`
-	EndDate   *time.Time `json:"end_date" gorm:"index"`
+	Schedule JSON `json:"schedule" gorm:"type:jsonb"`
+
+	IsActive bool   `json:"is_active" gorm:"default:true"`
+	Status   string `json:"status" gorm:"type:varchar(50);default:'idle';index"` // idle, running, failed, completed
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relationships
-	User           User            `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	GroupCampaigns []GroupCampaign `json:"group_campaigns,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
+	User       User        `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	FlowGroups []FlowGroup `json:"flow_groups,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for the Campaign model
@@ -39,41 +41,44 @@ func (Campaign) TableName() string {
 
 // CreateCampaignRequest represents the request to create a new campaign
 type CreateCampaignRequest struct {
-	Name         string     `json:"name" binding:"required" example:"Tăng view campaign"`
-	ScriptName   string     `json:"script_name" binding:"required" example:"increase_views.js"`
-	CampaignType string     `json:"campaign_type" binding:"required" example:"video_views"`
-	TargetURL    string     `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
-	TargetCount  int        `json:"target_count" binding:"required,min=1" example:"1000"`
-	Frequency    string     `json:"frequency" binding:"required" example:"once"`
-	StartDate    *time.Time `json:"start_date" example:"2025-08-14T00:00:00Z"`
-	EndDate      *time.Time `json:"end_date" example:"2025-08-14T23:59:59Z"`
+	Name             string `json:"name" binding:"required" example:"Tăng view campaign"`
+	Description      string `json:"description" example:"This is a campaign to increase views"`
+	ScriptName       string `json:"script_name" binding:"required" example:"increase_views.js"`
+	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"value\"}"`
+	CampaignType     string `json:"campaign_type" binding:"required" example:"video_views"`
+	TargetURL        string `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
+	ConcurrentPhones int    `json:"concurrent_phones" example:"10"`
+	Schedule         JSON   `json:"schedule" binding:"required" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
+	IsActive         *bool  `json:"is_active" example:"true"`
 }
 
 // UpdateCampaignRequest represents the request to update a campaign
 type UpdateCampaignRequest struct {
-	Name         string     `json:"name" binding:"required" example:"Updated Campaign Name"`
-	ScriptName   string     `json:"script_name" binding:"required" example:"updated_script.js"`
-	CampaignType string     `json:"campaign_type" binding:"required" example:"video_views"`
-	TargetURL    string     `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
-	TargetCount  int        `json:"target_count" binding:"required,min=1" example:"1000"`
-	Frequency    string     `json:"frequency" binding:"required" example:"daily"`
-	StartDate    *time.Time `json:"start_date" example:"2025-08-14T00:00:00Z"`
-	EndDate      *time.Time `json:"end_date" example:"2025-08-14T23:59:59Z"`
+	Name             string `json:"name" binding:"required" example:"Updated Campaign Name"`
+	Description      string `json:"description" example:"This is an updated campaign"`
+	ScriptName       string `json:"script_name" binding:"required" example:"updated_script.js"`
+	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"new_value\"}"`
+	CampaignType     string `json:"campaign_type" binding:"required" example:"video_views"`
+	TargetURL        string `json:"target_url" binding:"required" example:"https://youtube.com/watch?v=..."`
+	ConcurrentPhones int    `json:"concurrent_phones" example:"20"`
+	Schedule         JSON   `json:"schedule" binding:"required" example:"{\"type\":\"daily\",\"time\":\"10:00\"}"`
+	IsActive         *bool  `json:"is_active" example:"false"`
 }
 
 // CampaignResponse represents the response for campaign operations
 type CampaignResponse struct {
-	ID           string     `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserID       string     `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
-	Name         string     `json:"name" example:"Tăng view campaign"`
-	ScriptName   string     `json:"script_name" example:"increase_views.js"`
-	CampaignType string     `json:"campaign_type" example:"video_views"`
-	TargetURL    string     `json:"target_url" example:"https://youtube.com/watch?v=..."`
-	TargetCount  int        `json:"target_count" example:"1000"`
-	CurrentCount int        `json:"current_count" example:"150"`
-	Frequency    string     `json:"frequency" example:"once"`
-	StartDate    *time.Time `json:"start_date" example:"2025-08-14T00:00:00Z"`
-	EndDate      *time.Time `json:"end_date" example:"2025-08-14T23:59:59Z"`
-	CreatedAt    string     `json:"created_at" example:"2025-01-09T10:30:00Z"`
-	UpdatedAt    string     `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+	ID               string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID           string `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Name             string `json:"name" example:"Tăng view campaign"`
+	Description      string `json:"description" example:"This is a campaign to increase views"`
+	ScriptName       string `json:"script_name" example:"increase_views.js"`
+	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"value\"}"`
+	CampaignType     string `json:"campaign_type" example:"video_views"`
+	TargetURL        string `json:"target_url" example:"https://youtube.com/watch?v=..."`
+	ConcurrentPhones int    `json:"concurrent_phones" example:"10"`
+	Schedule         JSON   `json:"schedule" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
+	IsActive         bool   `json:"is_active" example:"true"`
+	Status           string `json:"status" example:"idle"`
+	CreatedAt        string `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt        string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }

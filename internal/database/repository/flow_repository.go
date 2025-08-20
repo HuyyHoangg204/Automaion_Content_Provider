@@ -22,7 +22,7 @@ func (r *FlowRepository) Create(flow *models.Flow) error {
 // GetByID retrieves a flow by ID
 func (r *FlowRepository) GetByID(id string) (*models.Flow, error) {
 	var flow models.Flow
-	err := r.db.Preload("GroupCampaign").Preload("Profile").First(&flow, "id = ?", id).Error
+	err := r.db.Preload("FlowGroup").Preload("Profile").First(&flow, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (r *FlowRepository) GetByID(id string) (*models.Flow, error) {
 // GetByProfileID retrieves all flows for a specific profile
 func (r *FlowRepository) GetByProfileID(profileID string) ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Where("profile_id = ?", profileID).Preload("GroupCampaign").Preload("Profile").Find(&flows).Error
+	err := r.db.Where("profile_id = ?", profileID).Preload("FlowGroup").Preload("Profile").Find(&flows).Error
 	return flows, err
 }
 
@@ -54,7 +54,7 @@ func (r *FlowRepository) GetByProfileIDPaginated(profileID string, page, pageSiz
 
 	// Get paginated results
 	err = r.db.Where("profile_id = ?", profileID).
-		Preload("GroupCampaign").
+		Preload("FlowGroup").
 		Preload("Profile").
 		Offset(offset).
 		Limit(pageSize).
@@ -64,20 +64,20 @@ func (r *FlowRepository) GetByProfileIDPaginated(profileID string, page, pageSiz
 	return flows, int(total), err
 }
 
-// GetByGroupCampaignID retrieves all flows for a specific group campaign
-func (r *FlowRepository) GetByGroupCampaignID(groupCampaignID string) ([]*models.Flow, error) {
+// GetByFlowGroupID retrieves all flows for a specific group campaign
+func (r *FlowRepository) GetByFlowGroupID(flowGroupID string) ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Where("group_campaign_id = ?", groupCampaignID).Preload("Profile").Preload("GroupCampaign").Find(&flows).Error
+	err := r.db.Where("flow_group_id = ?", flowGroupID).Preload("Profile").Preload("FlowGroup").Find(&flows).Error
 	return flows, err
 }
 
-// GetByGroupCampaignIDPaginated retrieves paginated flows for a specific group campaign
-func (r *FlowRepository) GetByGroupCampaignIDPaginated(groupCampaignID string, page, pageSize int) ([]*models.Flow, int, error) {
+// GetByFlowGroupIDPaginated retrieves paginated flows for a specific group campaign
+func (r *FlowRepository) GetByFlowGroupIDPaginated(flowGroupID string, page, pageSize int) ([]*models.Flow, int, error) {
 	var flows []*models.Flow
 	var total int64
 
 	// Count total records
-	err := r.db.Where("group_campaign_id = ?", groupCampaignID).
+	err := r.db.Where("flow_group_id = ?", flowGroupID).
 		Model(&models.Flow{}).
 		Count(&total).Error
 	if err != nil {
@@ -88,9 +88,9 @@ func (r *FlowRepository) GetByGroupCampaignIDPaginated(groupCampaignID string, p
 	offset := (page - 1) * pageSize
 
 	// Get paginated results
-	err = r.db.Where("group_campaign_id = ?", groupCampaignID).
+	err = r.db.Where("flow_group_id = ?", flowGroupID).
 		Preload("Profile").
-		Preload("GroupCampaign").
+		Preload("FlowGroup").
 		Offset(offset).
 		Limit(pageSize).
 		Order("created_at DESC").
@@ -105,8 +105,8 @@ func (r *FlowRepository) GetByCampaignIDPaginated(campaignID string, page, pageS
 	var total int64
 
 	// Count total records
-	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Where("group_campaigns.campaign_id = ?", campaignID).
+	err := r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Where("flow_groups.campaign_id = ?", campaignID).
 		Model(&models.Flow{}).
 		Count(&total).Error
 	if err != nil {
@@ -117,9 +117,9 @@ func (r *FlowRepository) GetByCampaignIDPaginated(campaignID string, page, pageS
 	offset := (page - 1) * pageSize
 
 	// Get paginated results
-	err = r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Where("group_campaigns.campaign_id = ?", campaignID).
-		Preload("GroupCampaign").
+	err = r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Where("flow_groups.campaign_id = ?", campaignID).
+		Preload("FlowGroup").
 		Preload("Profile").
 		Offset(offset).
 		Limit(pageSize).
@@ -135,8 +135,8 @@ func (r *FlowRepository) GetByUserIDPaginated(userID string, page, pageSize int)
 	var total int64
 
 	// Count total records
-	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	err := r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ?", userID).
 		Model(&models.Flow{}).
 		Count(&total).Error
@@ -148,10 +148,10 @@ func (r *FlowRepository) GetByUserIDPaginated(userID string, page, pageSize int)
 	offset := (page - 1) * pageSize
 
 	// Get paginated results
-	err = r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	err = r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ?", userID).
-		Preload("GroupCampaign").
+		Preload("FlowGroup").
 		Preload("Profile").
 		Offset(offset).
 		Limit(pageSize).
@@ -164,10 +164,10 @@ func (r *FlowRepository) GetByUserIDPaginated(userID string, page, pageSize int)
 // GetByUserIDAndID retrieves a flow by user ID and flow ID
 func (r *FlowRepository) GetByUserIDAndID(userID, flowID string) (*models.Flow, error) {
 	var flow models.Flow
-	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	err := r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.id = ?", userID, flowID).
-		Preload("GroupCampaign").
+		Preload("FlowGroup").
 		Preload("Profile").
 		First(&flow).Error
 	if err != nil {
@@ -188,8 +188,8 @@ func (r *FlowRepository) Delete(id string) error {
 
 // DeleteByUserIDAndID deletes a flow by user ID and flow ID
 func (r *FlowRepository) DeleteByUserIDAndID(userID, flowID string) error {
-	return r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	return r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.id = ?", userID, flowID).
 		Delete(&models.Flow{}).Error
 }
@@ -197,17 +197,17 @@ func (r *FlowRepository) DeleteByUserIDAndID(userID, flowID string) error {
 // GetByStatus retrieves flows by status
 func (r *FlowRepository) GetByStatus(status string) ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Where("status = ?", status).Preload("GroupCampaign").Preload("Profile").Find(&flows).Error
+	err := r.db.Where("status = ?", status).Preload("FlowGroup").Preload("Profile").Find(&flows).Error
 	return flows, err
 }
 
 // GetByUserIDAndStatus retrieves flows by user ID and status
 func (r *FlowRepository) GetByUserIDAndStatus(userID, status string) ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	err := r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.status = ?", userID, status).
-		Preload("GroupCampaign").
+		Preload("FlowGroup").
 		Preload("Profile").
 		Find(&flows).Error
 	return flows, err
@@ -219,8 +219,8 @@ func (r *FlowRepository) GetByUserIDAndStatusPaginated(userID, status string, pa
 	var total int64
 
 	// Count total records
-	err := r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	err := r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.status = ?", userID, status).
 		Model(&models.Flow{}).
 		Count(&total).Error
@@ -232,10 +232,10 @@ func (r *FlowRepository) GetByUserIDAndStatusPaginated(userID, status string, pa
 	offset := (page - 1) * pageSize
 
 	// Get paginated results
-	err = r.db.Joins("JOIN group_campaigns ON flows.group_campaign_id = group_campaigns.id").
-		Joins("JOIN campaigns ON group_campaigns.campaign_id = campaigns.id").
+	err = r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
+		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
 		Where("campaigns.user_id = ? AND flows.status = ?", userID, status).
-		Preload("GroupCampaign").
+		Preload("FlowGroup").
 		Preload("Profile").
 		Offset(offset).
 		Limit(pageSize).
@@ -248,6 +248,6 @@ func (r *FlowRepository) GetByUserIDAndStatusPaginated(userID, status string, pa
 // GetAll retrieves all flows (admin only)
 func (r *FlowRepository) GetAll() ([]*models.Flow, error) {
 	var flows []*models.Flow
-	err := r.db.Preload("GroupCampaign").Preload("Profile").Find(&flows).Error
+	err := r.db.Preload("FlowGroup").Preload("Profile").Find(&flows).Error
 	return flows, err
 }
