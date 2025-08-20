@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	"green-anti-detect-browser-backend-v1/internal/database/repository"
+	"green-provider-services-backend/internal/database/repository"
 
 	"github.com/sirupsen/logrus"
 )

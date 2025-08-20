@@ -15,7 +15,7 @@ docs/SWAGGER_SETUP.md
 *.exe
 main
 app
-green-anti-detect-browser-backend-v1
+green-provider-services-backend
 
 # IDE
 .vscode/
@@ -39,6 +39,3 @@ node_modules/
 # Docker
 docker-compose.yml
 Dockerfile
-
-# Scripts
-scripts/ 

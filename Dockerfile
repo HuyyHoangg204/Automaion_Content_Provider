@@ -18,7 +18,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o green-anti-detect-browser-backend-v1 ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o green-provider-services-backend ./cmd/server
 
 # Production stage
 FROM alpine:3.21.3
@@ -30,11 +30,11 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 # Copy the compiled binary from the build stage
-COPY --from=builder /app/green-anti-detect-browser-backend-v1 .
+COPY --from=builder /app/green-provider-services-backend .
 COPY --from=builder /app/docs ./docs
 
 # Expose the application's port
 EXPOSE 8080
 
 # Run the application
-CMD ["./green-anti-detect-browser-backend-v1"]
+CMD ["./green-provider-services-backend"]

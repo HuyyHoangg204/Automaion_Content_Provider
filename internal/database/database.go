@@ -10,7 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-provider-services-backend/internal/models"
 )
 
 // DB is the global database instance
@@ -69,7 +69,7 @@ func InitDB() (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to enable UUID extension: %w", err)
 	}
 
-	// Auto migrate the schema - only User and RefreshToken models
+	// Auto migrate the schema
 	err = db.AutoMigrate(
 		&models.User{},
 		&models.RefreshToken{},

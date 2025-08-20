@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"green-anti-detect-browser-backend-v1/internal/database/repository"
-	"green-anti-detect-browser-backend-v1/internal/models"
+	"green-provider-services-backend/internal/database/repository"
+	"green-provider-services-backend/internal/models"
 )
 
 type CampaignService struct {

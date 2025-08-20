@@ -1,4 +1,4 @@
-module green-anti-detect-browser-backend-v1
+module green-provider-services-backend
 
 go 1.23.0
 
