@@ -69,7 +69,7 @@ func InitDB() (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to enable UUID extension: %w", err)
 	}
 
-	// Auto migrate the schema - only User and RefreshToken models
+	// Auto migrate the schema
 	err = db.AutoMigrate(
 		&models.User{},
 		&models.RefreshToken{},
