@@ -18,6 +18,9 @@ definitions:
         items:
           $ref: '#/definitions/models.Profile'
         type: array
+      tunnel_url:
+        description: Optional tunnel URL
+        type: string
       updated_at:
         type: string
     type: object
@@ -34,6 +37,9 @@ definitions:
         type: string
       name:
         example: Hidemium
+        type: string
+      tunnel_url:
+        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
         type: string
       updated_at:
         example: "2025-01-09T10:30:00Z"
@@ -143,8 +149,16 @@ definitions:
         type: string
       is_active:
         type: boolean
+      logs:
+        items:
+          $ref: '#/definitions/models.CampaignLog'
+        type: array
       name:
         type: string
+      profiles:
+        items:
+          $ref: '#/definitions/models.Profile'
+        type: array
       schedule:
         allOf:
         - $ref: '#/definitions/models.JSON'
@@ -165,6 +179,30 @@ definitions:
       user_id:
         type: string
     type: object
+  models.CampaignLog:
+    properties:
+      campaign_id:
+        type: string
+      created_at:
+        type: string
+      details:
+        $ref: '#/definitions/models.JSON'
+      executed_at:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      status:
+        description: e.g., "started", "completed", "failed"
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: string
+    type: object
   models.CampaignResponse:
     properties:
       concurrent_phones:
@@ -182,9 +220,17 @@ definitions:
       is_active:
         example: true
         type: boolean
+      logs:
+        items:
+          $ref: '#/definitions/models.CampaignLog'
+        type: array
       name:
         example: Tăng view campaign
         type: string
+      profiles:
+        items:
+          $ref: '#/definitions/models.Profile'
+        type: array
       schedule:
         $ref: '#/definitions/models.JSON'
       script_name:
@@ -213,6 +259,34 @@ definitions:
     - current_password
     - new_password
     type: object
+  models.CheckTunnelResponse:
+    properties:
+      error:
+        description: |-
+          @Description Error message if tunnel is not accessible
+          @Example "Connection timeout"
+        type: string
+      is_accessible:
+        description: |-
+          @Description Whether the tunnel URL is accessible
+          @Example true
+        type: boolean
+      message:
+        description: |-
+          @Description Status message
+          @Example "Tunnel is accessible and ready for Hidemium"
+        type: string
+      response_time_ms:
+        description: |-
+          @Description Response time in milliseconds
+          @Example 150
+        type: integer
+      status_code:
+        description: |-
+          @Description HTTP status code if available
+          @Example 200
+        type: integer
+    type: object
   models.CreateAppRequest:
     properties:
       box_id:
@@ -220,6 +294,9 @@ definitions:
         type: string
       name:
         example: Hidemium
+        type: string
+      tunnel_url:
+        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
         type: string
     required:
     - box_id
@@ -251,6 +328,10 @@ definitions:
       name:
         example: Tăng view campaign
         type: string
+      profile_ids:
+        items:
+          type: string
+        type: array
       schedule:
         $ref: '#/definitions/models.JSON'
       script_name:
@@ -260,6 +341,7 @@ definitions:
         $ref: '#/definitions/models.JSON'
     required:
     - name
+    - profile_ids
     - schedule
     - script_name
     type: object
@@ -459,6 +541,10 @@ definitions:
         description: Relationships
       app_id:
         type: string
+      campaigns:
+        items:
+          $ref: '#/definitions/models.Campaign'
+        type: array
       created_at:
         type: string
       data:
@@ -527,6 +613,37 @@ definitions:
         type: string
     required:
     - refresh_token
+    type: object
+  models.RegisterAppResponse:
+    description: Response containing subdomain and FRP configuration for app registration
+    properties:
+      frpDomain:
+        description: |-
+          @Description FRP domain
+          @Example "frp.onegreen.cloud"
+        type: string
+      frpProtocol:
+        description: |-
+          @Description FRP protocol
+          @Example "tcp"
+        type: string
+      frpServerPort:
+        description: |-
+          @Description FRP server port
+          @Example 8080
+        type: integer
+      frpToken:
+        description: |-
+          @Description FRP token
+          @Example "HelloWorld"
+        type: string
+      subDomain:
+        additionalProperties:
+          type: string
+        description: |-
+          @Description Subdomain configuration for the requested platform
+          @Example {"hidemium": "machineid-hidemium-userid"}
+        type: object
     type: object
   models.RegisterRequest:
     properties:
@@ -608,6 +725,9 @@ definitions:
       name:
         example: Updated App Name
         type: string
+      tunnel_url:
+        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
+        type: string
     required:
     - name
     type: object
@@ -636,6 +756,10 @@ definitions:
       name:
         example: Updated Campaign Name
         type: string
+      profile_ids:
+        items:
+          type: string
+        type: array
       schedule:
         $ref: '#/definitions/models.JSON'
       script_name:
@@ -645,6 +769,7 @@ definitions:
         $ref: '#/definitions/models.JSON'
     required:
     - name
+    - profile_ids
     - schedule
     - script_name
     type: object
@@ -1359,6 +1484,89 @@ paths:
       security:
       - BearerAuth: []
       summary: Update app
+      tags:
+      - apps
+  /api/v1/apps/check-tunnel:
+    get:
+      consumes:
+      - application/json
+      description: Check if a tunnel URL is accessible by testing the /user-settings/token
+        endpoint. Returns true if the endpoint is accessible and returns token data.
+      parameters:
+      - description: Tunnel URL to check (e.g., http://machineid-hidemium-userid.agent-controller.onegreen.cloud)
+        in: query
+        name: tunnel_url
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CheckTunnelResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if tunnel URL is accessible for Hidemium
+      tags:
+      - apps
+  /api/v1/apps/register-app:
+    get:
+      consumes:
+      - application/json
+      description: Get subdomain configuration and FRP settings for multiple platforms
+        based on box_id and platform_name (comma-separated)
+      parameters:
+      - description: Box ID to get machine_id
+        in: query
+        name: box_id
+        required: true
+        type: string
+      - description: Platform names separated by comma (e.g., hidemium,genlogin,adspower)
+        in: query
+        name: platform_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RegisterAppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get subdomain and FRP configuration for app registration
       tags:
       - apps
   /api/v1/auth/change-password:
