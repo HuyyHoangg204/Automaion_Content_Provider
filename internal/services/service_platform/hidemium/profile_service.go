@@ -63,8 +63,6 @@ func (s *ProfileService) CreateProfile(ctx context.Context, profileData *models.
 	// Construct full API URL
 	apiURL := baseURL + createProfileRoute
 
-	fmt.Printf("Calling Hidemium API: %s\n", apiURL)
-
 	// Create HTTP client with timeout
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -155,8 +153,6 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, profile *models.Prof
 
 	// Construct full API URL
 	apiURL := baseURL + deleteProfileRoute
-
-	fmt.Printf("Calling Hidemium API: %s\n", apiURL)
 
 	// Create HTTP client with timeout
 	client := &http.Client{
@@ -540,8 +536,6 @@ func (s *ProfileService) getBoolFromMap(m map[string]interface{}, key string) bo
 
 // GetDefaultConfigs retrieves default configurations from Hidemium platform
 func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error) {
-	fmt.Printf("Getting default configurations from Hidemium platform (page: %d, limit: %d)\n", page, limit)
-
 	// Get Hidemium config
 	hidemiumConfig := config.GetHidemiumConfig()
 
@@ -565,8 +559,6 @@ func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string
 
 	// Construct full API URL
 	apiURL := baseURL + routeWithParams
-
-	fmt.Printf("Calling Hidemium API: %s\n", apiURL)
 
 	// Create HTTP client with timeout
 	client := &http.Client{
@@ -603,9 +595,6 @@ func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string
 	if err := json.Unmarshal(body, &hidemiumResponse); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-
-	fmt.Printf("Successfully retrieved default configurations from Hidemium platform\n")
-	fmt.Printf("Response: %+v\n", hidemiumResponse)
 
 	return hidemiumResponse, nil
 }
