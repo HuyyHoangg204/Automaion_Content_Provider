@@ -2929,7 +2929,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new browser profile for the authenticated user. Profile data is required and must contain 'name' field along with configuration from anti-detect browser. Các trường không truyền trong data sẽ sử dụng giá trị mặc định từ Hidemium platform.",
+                "description": "Create a new browser profile for the authenticated user. Profile data is required and must contain 'name' field along with configuration from anti-detect browser. Fields not provided in data will use default values from Hidemium platform.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2942,7 +2942,7 @@ const docTemplate = `{
                 "summary": "Create a new profile",
                 "parameters": [
                     {
-                        "description": "Create profile request.",
+                        "description": "Create profile request. The data field must include 'name' and can contain other configuration parameters. Fields not provided will use default values.",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -3633,12 +3633,12 @@ const docTemplate = `{
             "properties": {
                 "app_id": {
                     "type": "string",
-                    "description": "ID của ứng dụng (box) mà profile sẽ thuộc về",
+                    "description": "ID of the application (box) where the profile will belong to",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
                 "data": {
                     "$ref": "#/definitions/models.JSON",
-                    "description": "Object chứa các thông số cấu hình profile. Phải bao gồm trường 'name' và có thể chứa các thông số khác. Các trường không truyền sẽ sử dụng giá trị mặc định.",
+                    "description": "Object containing profile configuration parameters. Supports the following fields:",
                     "example": {
                         "name": "My Hidemium Profile",
                         "os": "win",
@@ -3842,7 +3842,7 @@ const docTemplate = `{
         "models.JSON": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Object chứa các thông số cấu hình profile. Hỗ trợ các trường sau:",
+            "description": "Object containing profile configuration parameters. Supports the following fields:",
             "example": {
                 "name": "My Hidemium Profile",
                 "os": "win",
@@ -3861,42 +3861,42 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "Tên của profile (bắt buộc)",
+                    "description": "Profile name (required)",
                     "example": "My Hidemium Profile"
                 },
                 "os": {
                     "type": "string",
-                    "description": "Hệ điều hành (win, mac, linux)",
+                    "description": "Operating system (win, mac, linux)",
                     "example": "win"
                 },
                 "osVersion": {
                     "type": "string",
-                    "description": "Phiên bản hệ điều hành",
+                    "description": "Operating system version",
                     "example": "10"
                 },
                 "browser": {
                     "type": "string",
-                    "description": "Trình duyệt (chrome, firefox, edge)",
+                    "description": "Browser (chrome, firefox, edge)",
                     "example": "chrome"
                 },
                 "version": {
                     "type": "string",
-                    "description": "Phiên bản trình duyệt",
+                    "description": "Browser version",
                     "example": "136"
                 },
                 "language": {
                     "type": "string",
-                    "description": "Ngôn ngữ trình duyệt",
+                    "description": "Browser language",
                     "example": "en-US"
                 },
                 "resolution": {
                     "type": "string",
-                    "description": "Độ phân giải màn hình",
+                    "description": "Screen resolution",
                     "example": "1280x800"
                 },
                 "StartURL": {
                     "type": "string",
-                    "description": "URL khởi đầu khi mở profile",
+                    "description": "Starting URL when opening profile",
                     "example": "https://google.com"
                 },
                 "canvas": {
@@ -3916,12 +3916,12 @@ const docTemplate = `{
                 },
                 "deviceMemory": {
                     "type": "number",
-                    "description": "Bộ nhớ thiết bị (GB)",
+                    "description": "Device memory (GB)",
                     "example": 4
                 },
                 "hardwareConcurrency": {
                     "type": "number",
-                    "description": "Số core CPU",
+                    "description": "CPU core count",
                     "example": 32
                 }
             }

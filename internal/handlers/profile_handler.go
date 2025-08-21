@@ -28,7 +28,7 @@ func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler 
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body models.CreateProfileRequest true "Create profile request"
+// @Param request body models.CreateProfileRequest true "Create profile request (data field must include 'name' and can contain other configuration parameters)"
 // @Success 201 {object} models.ProfileResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
