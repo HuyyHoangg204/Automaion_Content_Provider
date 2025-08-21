@@ -259,6 +259,34 @@ definitions:
     - current_password
     - new_password
     type: object
+  models.CheckTunnelResponse:
+    properties:
+      error:
+        description: |-
+          @Description Error message if tunnel is not accessible
+          @Example "Connection timeout"
+        type: string
+      is_accessible:
+        description: |-
+          @Description Whether the tunnel URL is accessible
+          @Example true
+        type: boolean
+      message:
+        description: |-
+          @Description Status message
+          @Example "Tunnel is accessible and ready for Hidemium"
+        type: string
+      response_time_ms:
+        description: |-
+          @Description Response time in milliseconds
+          @Example 150
+        type: integer
+      status_code:
+        description: |-
+          @Description HTTP status code if available
+          @Example 200
+        type: integer
+    type: object
   models.CreateAppRequest:
     properties:
       box_id:
@@ -1456,6 +1484,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Update app
+      tags:
+      - apps
+  /api/v1/apps/check-tunnel:
+    get:
+      consumes:
+      - application/json
+      description: Check if a tunnel URL is accessible by testing the /user-settings/token
+        endpoint. Returns true if the endpoint is accessible and returns token data.
+      parameters:
+      - description: Tunnel URL to check (e.g., http://machineid-hidemium-userid.agent-controller.onegreen.cloud)
+        in: query
+        name: tunnel_url
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CheckTunnelResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if tunnel URL is accessible for Hidemium
       tags:
       - apps
   /api/v1/apps/register-app:

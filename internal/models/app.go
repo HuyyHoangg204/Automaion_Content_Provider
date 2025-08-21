@@ -69,3 +69,26 @@ type RegisterAppResponse struct {
 	// @Example "tcp"
 	FrpProtocol string `json:"frpProtocol"`
 }
+
+// CheckTunnelResponse represents the response for tunnel check API
+type CheckTunnelResponse struct {
+	// @Description Whether the tunnel URL is accessible
+	// @Example true
+	IsAccessible bool `json:"is_accessible"`
+
+	// @Description Response time in milliseconds
+	// @Example 150
+	ResponseTime int64 `json:"response_time_ms"`
+
+	// @Description Status message
+	// @Example "Tunnel is accessible and ready for Hidemium"
+	Message string `json:"message"`
+
+	// @Description HTTP status code if available
+	// @Example 200
+	StatusCode *int `json:"status_code,omitempty"`
+
+	// @Description Error message if tunnel is not accessible
+	// @Example "Connection timeout"
+	Error *string `json:"error,omitempty"`
+}

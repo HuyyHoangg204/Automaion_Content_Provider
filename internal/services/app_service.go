@@ -1,8 +1,10 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -210,6 +212,89 @@ func (s *AppService) GetRegisterAppDomains(userID, boxID, platformNames string) 
 	response.FrpToken = frpConfig.Token
 	response.FrpProtocol = frpConfig.Protocol
 	return response, nil
+}
+
+// CheckTunnelURL checks if a tunnel URL is accessible and ready for Hidemium
+func (s *AppService) CheckTunnelURL(tunnelURL string) (*models.CheckTunnelResponse, error) {
+	if tunnelURL == "" {
+		return nil, errors.New("tunnel URL is empty")
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Record start time for response time measurement
+	startTime := time.Now()
+
+	// Test tunnel by calling /user-settings/token endpoint
+	testURL := fmt.Sprintf("%s/user-settings/token", strings.TrimSuffix(tunnelURL, "/"))
+
+	resp, err := client.Get(testURL)
+	responseTime := time.Since(startTime).Milliseconds()
+
+	if err != nil {
+		errorMsg := err.Error()
+		return &models.CheckTunnelResponse{
+			IsAccessible: false,
+			ResponseTime: responseTime,
+			Message:      "Tunnel is not accessible",
+			Error:        &errorMsg,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	// Check if response is successful
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return &models.CheckTunnelResponse{
+			IsAccessible: false,
+			ResponseTime: responseTime,
+			Message:      fmt.Sprintf("Tunnel returned status code: %d", resp.StatusCode),
+			StatusCode:   &resp.StatusCode,
+		}, nil
+	}
+
+	// Try to parse response to check if it contains token data
+	var responseData map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&responseData); err != nil {
+		return &models.CheckTunnelResponse{
+			IsAccessible: false,
+			ResponseTime: responseTime,
+			Message:      "Tunnel accessible but response is not valid JSON",
+			StatusCode:   &resp.StatusCode,
+		}, nil
+	}
+
+	// Check if response contains token data
+	if _, hasToken := responseData["token"]; hasToken {
+		return &models.CheckTunnelResponse{
+			IsAccessible: true,
+			ResponseTime: responseTime,
+			Message:      "Tunnel is accessible and /user-settings/token endpoint is working",
+			StatusCode:   &resp.StatusCode,
+		}, nil
+	}
+
+	// Check for other possible token fields
+	tokenFields := []string{"access_token", "api_token", "auth_token", "key"}
+	for _, field := range tokenFields {
+		if _, hasField := responseData[field]; hasField {
+			return &models.CheckTunnelResponse{
+				IsAccessible: true,
+				ResponseTime: responseTime,
+				Message:      fmt.Sprintf("Tunnel is accessible and contains %s", field),
+				StatusCode:   &resp.StatusCode,
+			}, nil
+		}
+	}
+
+	return &models.CheckTunnelResponse{
+		IsAccessible: false,
+		ResponseTime: responseTime,
+		Message:      "Tunnel accessible but /user-settings/token endpoint does not return token data",
+		StatusCode:   &resp.StatusCode,
+	}, nil
 }
 
 // toResponse converts App model to response DTO

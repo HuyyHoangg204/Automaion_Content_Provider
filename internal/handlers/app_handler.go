@@ -291,3 +291,36 @@ func (h *AppHandler) GetRegisterAppDomains(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// CheckTunnelURL godoc
+// @Summary Check if tunnel URL is accessible for Hidemium
+// @Description Check if a tunnel URL is accessible by testing the /user-settings/token endpoint. Returns true if the endpoint is accessible and returns token data.
+// @Tags apps
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param tunnel_url query string true "Tunnel URL to check (e.g., http://machineid-hidemium-userid.agent-controller.onegreen.cloud)"
+// @Success 200 {object} models.CheckTunnelResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/apps/check-tunnel [get]
+func (h *AppHandler) CheckTunnelURL(c *gin.Context) {
+	// Get tunnel URL from query parameter
+	tunnelURL := c.Query("tunnel_url")
+
+	// Validate required parameter
+	if tunnelURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tunnel_url parameter is required"})
+		return
+	}
+
+	// Check tunnel accessibility
+	response, err := h.appService.CheckTunnelURL(tunnelURL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check tunnel URL", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

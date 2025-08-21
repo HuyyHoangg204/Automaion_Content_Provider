@@ -780,6 +780,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/apps/check-tunnel": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Check if a tunnel URL is accessible by testing the /user-settings/token endpoint. Returns true if the endpoint is accessible and returns token data.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Check if tunnel URL is accessible for Hidemium",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tunnel URL to check (e.g., http://machineid-hidemium-userid.agent-controller.onegreen.cloud)",
+                        "name": "tunnel_url",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.CheckTunnelResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/apps/register-app": {
             "get": {
                 "security": [
@@ -3721,6 +3779,31 @@ const docTemplate = `{
                 "new_password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "models.CheckTunnelResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "description": "@Description Error message if tunnel is not accessible\n@Example \"Connection timeout\"",
+                    "type": "string"
+                },
+                "is_accessible": {
+                    "description": "@Description Whether the tunnel URL is accessible\n@Example true",
+                    "type": "boolean"
+                },
+                "message": {
+                    "description": "@Description Status message\n@Example \"Tunnel is accessible and ready for Hidemium\"",
+                    "type": "string"
+                },
+                "response_time_ms": {
+                    "description": "@Description Response time in milliseconds\n@Example 150",
+                    "type": "integer"
+                },
+                "status_code": {
+                    "description": "@Description HTTP status code if available\n@Example 200",
+                    "type": "integer"
                 }
             }
         },

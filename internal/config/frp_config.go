@@ -15,7 +15,7 @@ type FrpConfig struct {
 
 // GetFrpConfig returns FRP configuration from environment variables
 func GetFrpConfig() *FrpConfig {
-	port, _ := strconv.Atoi(getEnv("FRP_SERVER_PORT", "8080"))
+	port, _ := strconv.Atoi(getEnv("FRP_SERVER_PORT", "8700"))
 
 	return &FrpConfig{
 		Domain:   getEnv("FRP_DOMAIN", "frp.onegreen.cloud"),
