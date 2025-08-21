@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
@@ -296,4 +297,78 @@ func (h *ProfileHandler) AdminGetAllProfiles(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profiles)
+}
+
+// GetDefaultConfigs godoc
+// @Summary Get default configurations from platform
+// @Description Get default configuration options available for creating profiles on a specific platform (Hidemium, Genlogin, etc.)
+// @Tags profiles
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param platform query string true "Platform type (hidemium, genlogin)"
+// @Param box_id query string true "Box ID (used to resolve machine_id for tunnel)"
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 10, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/profiles/default-configs [get]
+func (h *ProfileHandler) GetDefaultConfigs(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	platformType := c.Query("platform")
+	boxID := c.Query("box_id")
+
+	if platformType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "platform parameter is required"})
+		return
+	}
+	if boxID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "box_id parameter is required"})
+		return
+	}
+
+	// Validate platform type
+	validPlatforms := []string{"hidemium", "genlogin"}
+	isValid := false
+	for _, valid := range validPlatforms {
+		if platformType == valid {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid platform type. Supported platforms: hidemium, genlogin"})
+		return
+	}
+
+	// Parse pagination parameters
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 || limit > 100 {
+		limit = 10
+	}
+
+	configs, err := h.profileService.GetDefaultConfigs(userID, platformType, boxID, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get default configs", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"platform": platformType,
+		"box_id":   boxID,
+		"page":     page,
+		"limit":    limit,
+		"configs":  configs,
+	})
 }

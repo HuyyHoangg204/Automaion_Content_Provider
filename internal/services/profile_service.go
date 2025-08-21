@@ -275,6 +275,34 @@ func (s *ProfileService) DeleteProfile(userID, profileID string) error {
 	return nil
 }
 
+// GetDefaultConfigs retrieves default configurations from the platform
+func (s *ProfileService) GetDefaultConfigs(userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
+	if platformType == "" {
+		return nil, errors.New("platform type is required")
+	}
+	if boxID == "" {
+		return nil, errors.New("box_id is required")
+	}
+
+	// Verify box belongs to user and get machine_id
+	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+	if err != nil {
+		return nil, fmt.Errorf("box not found or access denied")
+	}
+	machineID := box.MachineID
+	if machineID == "" {
+		return nil, fmt.Errorf("machine_id not found for box")
+	}
+
+	// Use platform wrapper to get default configs
+	configs, err := s.platformWrapper.GetDefaultConfigsFromPlatform(context.Background(), platformType, machineID, page, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get default configs from %s platform: %w", platformType, err)
+	}
+
+	return configs, nil
+}
+
 // determinePlatformFromAppName determines platform type from app name
 func (s *ProfileService) determinePlatformFromAppName(appName string) string {
 	switch appName {

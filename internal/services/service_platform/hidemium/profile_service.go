@@ -63,8 +63,6 @@ func (s *ProfileService) CreateProfile(ctx context.Context, profileData *models.
 	// Construct full API URL
 	apiURL := baseURL + createProfileRoute
 
-	fmt.Printf("Calling Hidemium API: %s\n", apiURL)
-
 	// Create HTTP client with timeout
 	client := &http.Client{
 		Timeout: 30 * time.Second,
@@ -155,8 +153,6 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, profile *models.Prof
 
 	// Construct full API URL
 	apiURL := baseURL + deleteProfileRoute
-
-	fmt.Printf("Calling Hidemium API: %s\n", apiURL)
 
 	// Create HTTP client with timeout
 	client := &http.Client{
@@ -536,4 +532,69 @@ func (s *ProfileService) getBoolFromMap(m map[string]interface{}, key string) bo
 		}
 	}
 	return false
+}
+
+// GetDefaultConfigs retrieves default configurations from Hidemium platform
+func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error) {
+	// Get Hidemium config
+	hidemiumConfig := config.GetHidemiumConfig()
+
+	// Get list_config_default route from config
+	listConfigRoute, exists := hidemiumConfig.Routes["list_config_default"]
+	if !exists {
+		return nil, fmt.Errorf("list_config_default route not found in Hidemium config")
+	}
+
+	if machineID == "" {
+		return nil, fmt.Errorf("machine_id is required for tunnel")
+	}
+
+	// Construct base URL using machine ID from config (tunnel URL)
+	baseURL := hidemiumConfig.BaseURL
+	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
+
+	// Replace pagination parameters with actual values
+	routeWithParams := strings.Replace(listConfigRoute, "{page}", fmt.Sprintf("%d", page), 1)
+	routeWithParams = strings.Replace(routeWithParams, "{limit}", fmt.Sprintf("%d", limit), 1)
+
+	// Construct full API URL
+	apiURL := baseURL + routeWithParams
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Create GET request to Hidemium API
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make HTTP request to Hidemium API
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to Hidemium API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Hidemium API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var hidemiumResponse map[string]interface{}
+	if err := json.Unmarshal(body, &hidemiumResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	return hidemiumResponse, nil
 }

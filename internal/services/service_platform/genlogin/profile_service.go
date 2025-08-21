@@ -59,3 +59,8 @@ func (s *ProfileService) GetPlatformVersion() string {
 func (s *ProfileService) ValidateProfileData(profileData *models.CreateProfileRequest) error {
 	return fmt.Errorf("profile validation on Genlogin not implemented yet")
 }
+
+// GetDefaultConfigs retrieves default configurations from Genlogin platform
+func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error) {
+	return nil, fmt.Errorf("default configs retrieval on Genlogin not implemented yet")
+}

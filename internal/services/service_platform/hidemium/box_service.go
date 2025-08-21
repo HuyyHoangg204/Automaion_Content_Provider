@@ -27,8 +27,6 @@ func (s *BoxService) CreateBox(ctx context.Context, boxData *models.CreateBoxReq
 	if err := s.ValidateBoxData(boxData); err != nil {
 		return nil, err
 	}
-
-	// TODO: Implement Hidemium-specific box creation logic
 	// This would involve calling Hidemium API to create box
 	return nil, fmt.Errorf("box creation on Hidemium not implemented yet")
 }

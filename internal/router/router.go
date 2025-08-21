@@ -179,6 +179,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 			{
 				profiles.POST("", profileHandler.CreateProfile)
 				profiles.GET("", profileHandler.GetMyProfiles)
+				profiles.GET("/default-configs", profileHandler.GetDefaultConfigs)
 				profiles.GET("/:id", profileHandler.GetProfileByID)
 				profiles.PUT("/:id", profileHandler.UpdateProfile)
 				profiles.DELETE("/:id", profileHandler.DeleteProfile)
