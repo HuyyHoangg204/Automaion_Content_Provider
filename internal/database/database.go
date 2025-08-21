@@ -74,6 +74,7 @@ func InitDB() (*gorm.DB, error) {
 		&models.User{},
 		&models.RefreshToken{},
 		&models.Campaign{},
+		&models.CampaignLog{},
 		&models.Box{},
 		&models.App{},
 		&models.Profile{},
