@@ -28,7 +28,7 @@ func GetHidemiumConfig() *HidemiumConfig {
 
 			// Profile Management - Based on Hidemium v4 API docs
 			"list_profiles":       "/v1/browser/list?is_local=false",                          //Post Method
-			"list_config_default": "/v1/browser/list?is_local=false",                          // Get Method
+			"list_config_default": "/v2/default-config?page={page}&limit={limit}",             // Get Method
 			"list_status":         "/v2/status-profile?is_local=false",                        // Get Method
 			"list_tag":            "/v2/tag?is_local=false",                                   // Get Method
 			"list_version":        "/v2/browser/get-list-version",                             // Get Method

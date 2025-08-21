@@ -1690,7 +1690,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sync all profiles from a specific box's Hidemium instance via tunnel",
+                "description": "Sync all profiles from a specific box's platform instance via tunnel",
                 "consumes": [
                     "application/json"
                 ],
@@ -1700,7 +1700,7 @@ const docTemplate = `{
                 "tags": [
                     "boxes"
                 ],
-                "summary": "Sync profiles from box's Hidemium instance",
+                "summary": "Sync profiles from box's platform instance",
                 "parameters": [
                     {
                         "type": "string",
@@ -2136,7 +2136,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/campaigns/{id}/group-campaigns": {
+        "/api/v1/campaigns/{id}/flow-groups": {
             "get": {
                 "security": [
                     {
@@ -2151,7 +2151,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "group-campaigns"
+                    "flow-groups"
                 ],
                 "summary": "Get all group campaigns for a campaign",
                 "parameters": [
@@ -2169,7 +2169,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.GroupCampaignResponse"
+                                "$ref": "#/definitions/models.FlowGroupResponse"
                             }
                         }
                     },
@@ -2182,6 +2182,196 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flow-group-flows/{flow_group_id}/flows": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flows"
+                ],
+                "summary": "Get flows by group campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Campaign ID",
+                        "name": "flow_group_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flow-groups/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific group campaign by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flow-groups"
+                ],
+                "summary": "Get a group campaign by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.FlowGroupResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flow-groups/{id}/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get statistics for a specific group campaign",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flow-groups"
+                ],
+                "summary": "Get group campaign statistics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.FlowGroupStats"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2586,196 +2776,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/group-campaign-flows/{group_campaign_id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by group campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group Campaign ID",
-                        "name": "group_campaign_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/group-campaigns/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a specific group campaign by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "group-campaigns"
-                ],
-                "summary": "Get a group campaign by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.GroupCampaignResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/group-campaigns/{id}/stats": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get statistics for a specific group campaign",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "group-campaigns"
-                ],
-                "summary": "Get group campaign statistics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.GroupCampaignStats"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/profile-flows/{profile_id}/flows": {
             "get": {
                 "security": [
@@ -2929,7 +2929,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new browser profile for the authenticated user.",
+                "description": "Create a new browser profile for the authenticated user. Profile data is required and must contain 'name' field along with configuration from anti-detect browser.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2942,7 +2942,7 @@ const docTemplate = `{
                 "summary": "Create a new profile",
                 "parameters": [
                     {
-                        "description": "Create profile request.",
+                        "description": "Create profile request (data field must include 'name' and can contain other configuration parameters)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -2974,6 +2974,87 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profiles/default-configs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get default configuration options available for creating profiles on a specific platform (Hidemium, Genlogin, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "Get default configurations from platform",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Platform type (hidemium, genlogin)",
+                        "name": "platform",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Box ID (used to resolve machine_id for tunnel)",
+                        "name": "box_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3384,46 +3465,47 @@ const docTemplate = `{
         "models.Campaign": {
             "type": "object",
             "properties": {
-                "campaign_type": {
-                    "description": "Campaign type and target",
-                    "type": "string"
+                "concurrent_phones": {
+                    "description": "Campaign details",
+                    "type": "integer"
                 },
                 "created_at": {
                     "type": "string"
                 },
-                "current_count": {
-                    "type": "integer"
-                },
-                "end_date": {
+                "description": {
                     "type": "string"
                 },
-                "frequency": {
-                    "description": "Scheduling",
-                    "type": "string"
-                },
-                "group_campaigns": {
+                "flow_groups": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.GroupCampaign"
+                        "$ref": "#/definitions/models.FlowGroup"
                     }
                 },
                 "id": {
                     "type": "string"
                 },
+                "is_active": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
+                },
+                "schedule": {
+                    "description": "Scheduling",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
                 },
                 "script_name": {
                     "type": "string"
                 },
-                "start_date": {
-                    "type": "string"
+                "script_variables": {
+                    "$ref": "#/definitions/models.JSON"
                 },
-                "target_count": {
-                    "description": "Campaign details",
-                    "type": "integer"
-                },
-                "target_url": {
+                "status": {
+                    "description": "idle, running, failed, completed",
                     "type": "string"
                 },
                 "updated_at": {
@@ -3445,49 +3527,43 @@ const docTemplate = `{
         "models.CampaignResponse": {
             "type": "object",
             "properties": {
-                "campaign_type": {
-                    "type": "string",
-                    "example": "video_views"
+                "concurrent_phones": {
+                    "type": "integer",
+                    "example": 10
                 },
                 "created_at": {
                     "type": "string",
                     "example": "2025-01-09T10:30:00Z"
                 },
-                "current_count": {
-                    "type": "integer",
-                    "example": 150
-                },
-                "end_date": {
+                "description": {
                     "type": "string",
-                    "example": "2025-08-14T23:59:59Z"
-                },
-                "frequency": {
-                    "type": "string",
-                    "example": "once"
+                    "example": "This is a campaign to increase views"
                 },
                 "id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
                 "name": {
                     "type": "string",
                     "example": "Tăng view campaign"
+                },
+                "schedule": {
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "script_name": {
                     "type": "string",
                     "example": "increase_views.js"
                 },
-                "start_date": {
-                    "type": "string",
-                    "example": "2025-08-14T00:00:00Z"
+                "script_variables": {
+                    "$ref": "#/definitions/models.JSON"
                 },
-                "target_count": {
-                    "type": "integer",
-                    "example": 1000
-                },
-                "target_url": {
+                "status": {
                     "type": "string",
-                    "example": "https://youtube.com/watch?v=..."
+                    "example": "idle"
                 },
                 "updated_at": {
                     "type": "string",
@@ -3552,58 +3628,48 @@ const docTemplate = `{
         "models.CreateCampaignRequest": {
             "type": "object",
             "required": [
-                "campaign_type",
-                "frequency",
                 "name",
-                "script_name",
-                "target_count",
-                "target_url"
+                "schedule",
+                "script_name"
             ],
             "properties": {
-                "campaign_type": {
-                    "type": "string",
-                    "example": "video_views"
+                "concurrent_phones": {
+                    "type": "integer",
+                    "example": 10
                 },
-                "end_date": {
+                "description": {
                     "type": "string",
-                    "example": "2025-08-14T23:59:59Z"
+                    "example": "This is a campaign to increase views"
                 },
-                "frequency": {
-                    "type": "string",
-                    "example": "once"
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
                 },
                 "name": {
                     "type": "string",
                     "example": "Tăng view campaign"
                 },
+                "schedule": {
+                    "$ref": "#/definitions/models.JSON"
+                },
                 "script_name": {
                     "type": "string",
                     "example": "increase_views.js"
                 },
-                "start_date": {
-                    "type": "string",
-                    "example": "2025-08-14T00:00:00Z"
-                },
-                "target_count": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "example": 1000
-                },
-                "target_url": {
-                    "type": "string",
-                    "example": "https://youtube.com/watch?v=..."
+                "script_variables": {
+                    "$ref": "#/definitions/models.JSON"
                 }
             }
         },
         "models.CreateFlowRequest": {
             "type": "object",
             "required": [
-                "group_campaign_id",
+                "flow_group_id",
                 "profile_id",
                 "status"
             ],
             "properties": {
-                "group_campaign_id": {
+                "flow_group_id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
@@ -3625,6 +3691,7 @@ const docTemplate = `{
             }
         },
         "models.CreateProfileRequest": {
+            "description": "Create profile request with platform-specific configuration",
             "type": "object",
             "required": [
                 "app_id",
@@ -3632,24 +3699,16 @@ const docTemplate = `{
             ],
             "properties": {
                 "app_id": {
-                    "type": "string",
-                    "description": "ID of the application (box) where the profile will belong to",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                    "description": "@Description ID of the app where the profile will be created. App must belong to a box with machine_id.\n@Example 550e8400-e29b-41d4-a716-446655440000",
+                    "type": "string"
                 },
                 "data": {
-                    "$ref": "#/definitions/models.JSON",
-                    "description": "Object containing profile configuration parameters. Supports the following fields:",
-                    "example": {
-                        "name": "My Hidemium Profile",
-                        "os": "win",
-                        "osVersion": "10",
-                        "browser": "chrome",
-                        "version": "136",
-                        "canvas": "noise",
-                        "language": "en-US",
-                        "resolution": "1280x800",
-                        "StartURL": "https://google.com"
-                    }
+                    "description": "@Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.\n@Example {\"name\":\"My Hidemium Profile\",\"os\":\"win\",\"osVersion\":\"10\",\"browser\":\"chrome\",\"version\":\"136\",\"canvas\":\"noise\",\"language\":\"en-US\",\"resolution\":\"1280x800\",\"StartURL\":\"https://google.com\"}",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
                 }
             }
         },
@@ -3659,30 +3718,25 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "finished_at": {
+                "description": {
                     "type": "string"
                 },
-                "group_campaign": {
-                    "description": "Relationships",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.GroupCampaign"
-                        }
-                    ]
-                },
-                "group_campaign_id": {
+                "flow_group_id": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "profile": {
-                    "$ref": "#/definitions/models.Profile"
+                "name": {
+                    "type": "string"
                 },
                 "profile_id": {
                     "type": "string"
                 },
-                "started_at": {
+                "result": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "script_name": {
                     "type": "string"
                 },
                 "status": {
@@ -3690,61 +3744,31 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
-        "models.FlowResponse": {
+        "models.FlowGroup": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                },
-                "finished_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "profile_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
-                },
-                "started_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "Started"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                }
-            }
-        },
-        "models.GroupCampaign": {
-            "type": "object",
-            "properties": {
-                "campaign": {
-                    "description": "Relationships",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.Campaign"
-                        }
-                    ]
-                },
                 "campaign_id": {
                     "type": "string"
                 },
                 "created_at": {
                     "type": "string"
                 },
-                "finished_at": {
+                "description": {
                     "type": "string"
+                },
+                "execution_data": {
+                    "description": "Store execution metadata",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
                 },
                 "flows": {
                     "type": "array",
@@ -3758,18 +3782,22 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "started_at": {
+                "script_name": {
                     "type": "string"
                 },
                 "status": {
+                    "description": "pending, running, completed, failed",
                     "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
-        "models.GroupCampaignResponse": {
+        "models.FlowGroupResponse": {
             "type": "object",
             "properties": {
                 "campaign_id": {
@@ -3806,7 +3834,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.GroupCampaignStats": {
+        "models.FlowGroupStats": {
             "type": "object",
             "properties": {
                 "duration": {
@@ -3839,92 +3867,42 @@ const docTemplate = `{
                 }
             }
         },
-        "models.JSON": {
+        "models.FlowResponse": {
             "type": "object",
-            "additionalProperties": true,
-            "description": "Object containing profile configuration parameters. Supports the following fields:",
-            "example": {
-                "name": "My Hidemium Profile",
-                "os": "win",
-                "osVersion": "10",
-                "browser": "chrome",
-                "version": "136",
-                "language": "en-US",
-                "resolution": "1280x800",
-                "StartURL": "https://google.com",
-                "canvas": "noise",
-                "webGLImage": "false",
-                "audioContext": "false",
-                "deviceMemory": 4,
-                "hardwareConcurrency": 32
-            },
             "properties": {
-                "name": {
+                "created_at": {
                     "type": "string",
-                    "description": "Profile name (required)",
-                    "example": "My Hidemium Profile"
+                    "example": "2025-01-09T10:30:00Z"
                 },
-                "os": {
+                "finished_at": {
                     "type": "string",
-                    "description": "Operating system (win, mac, linux)",
-                    "example": "win"
+                    "example": "2025-01-09T10:30:00Z"
                 },
-                "osVersion": {
+                "id": {
                     "type": "string",
-                    "description": "Operating system version",
-                    "example": "10"
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
                 },
-                "browser": {
+                "profile_id": {
                     "type": "string",
-                    "description": "Browser (chrome, firefox, edge)",
-                    "example": "chrome"
+                    "example": "550e8400-e29b-41d4-a716-446655440002"
                 },
-                "version": {
+                "started_at": {
                     "type": "string",
-                    "description": "Browser version",
-                    "example": "136"
+                    "example": "2025-01-09T10:00:00Z"
                 },
-                "language": {
+                "status": {
                     "type": "string",
-                    "description": "Browser language",
-                    "example": "en-US"
+                    "example": "Started"
                 },
-                "resolution": {
+                "updated_at": {
                     "type": "string",
-                    "description": "Screen resolution",
-                    "example": "1280x800"
-                },
-                "StartURL": {
-                    "type": "string",
-                    "description": "Starting URL when opening profile",
-                    "example": "https://google.com"
-                },
-                "canvas": {
-                    "type": "string",
-                    "description": "Canvas fingerprint (noise, off, real)",
-                    "example": "noise"
-                },
-                "webGLImage": {
-                    "type": "string",
-                    "description": "WebGL image fingerprint",
-                    "example": "false"
-                },
-                "audioContext": {
-                    "type": "string",
-                    "description": "Audio context fingerprint",
-                    "example": "false"
-                },
-                "deviceMemory": {
-                    "type": "number",
-                    "description": "Device memory (GB)",
-                    "example": 4
-                },
-                "hardwareConcurrency": {
-                    "type": "number",
-                    "description": "CPU core count",
-                    "example": 32
+                    "example": "2025-01-09T10:30:00Z"
                 }
             }
+        },
+        "models.JSON": {
+            "type": "object",
+            "additionalProperties": true
         },
         "models.LoginRequest": {
             "type": "object",
@@ -4205,46 +4183,36 @@ const docTemplate = `{
         "models.UpdateCampaignRequest": {
             "type": "object",
             "required": [
-                "campaign_type",
-                "frequency",
                 "name",
-                "script_name",
-                "target_count",
-                "target_url"
+                "schedule",
+                "script_name"
             ],
             "properties": {
-                "campaign_type": {
-                    "type": "string",
-                    "example": "video_views"
+                "concurrent_phones": {
+                    "type": "integer",
+                    "example": 20
                 },
-                "end_date": {
+                "description": {
                     "type": "string",
-                    "example": "2025-08-14T23:59:59Z"
+                    "example": "This is an updated campaign"
                 },
-                "frequency": {
-                    "type": "string",
-                    "example": "daily"
+                "is_active": {
+                    "type": "boolean",
+                    "example": false
                 },
                 "name": {
                     "type": "string",
                     "example": "Updated Campaign Name"
                 },
+                "schedule": {
+                    "$ref": "#/definitions/models.JSON"
+                },
                 "script_name": {
                     "type": "string",
                     "example": "updated_script.js"
                 },
-                "start_date": {
-                    "type": "string",
-                    "example": "2025-08-14T00:00:00Z"
-                },
-                "target_count": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "example": 1000
-                },
-                "target_url": {
-                    "type": "string",
-                    "example": "https://youtube.com/watch?v=..."
+                "script_variables": {
+                    "$ref": "#/definitions/models.JSON"
                 }
             }
         },

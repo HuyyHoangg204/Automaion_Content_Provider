@@ -71,6 +71,23 @@ func (pws *PlatformWrapperService) SyncBoxProfilesFromPlatform(ctx context.Conte
 	return platform.SyncBoxProfilesFromPlatform(ctx, boxID, machineID)
 }
 
+// GetDefaultConfigsFromPlatform retrieves default configurations from a specific platform
+func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Context, platformType string, machineID string, page, limit int) (map[string]interface{}, error) {
+	platform, err := pws.getProfilePlatform(platformType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Type assertion to get the GetDefaultConfigs method
+	if profilePlatform, ok := platform.(interface {
+		GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error)
+	}); ok {
+		return profilePlatform.GetDefaultConfigs(ctx, machineID, page, limit)
+	}
+
+	return nil, fmt.Errorf("platform %s does not support GetDefaultConfigs", platformType)
+}
+
 // getProfilePlatform gets a profile platform instance (simplified)
 func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (interface {
 	CreateProfile(ctx context.Context, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error)

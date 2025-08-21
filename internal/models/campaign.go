@@ -40,9 +40,9 @@ type CreateCampaignRequest struct {
 	Name             string `json:"name" binding:"required" example:"Tăng view campaign"`
 	Description      string `json:"description" example:"This is a campaign to increase views"`
 	ScriptName       string `json:"script_name" binding:"required" example:"increase_views.js"`
-	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"value\"}"`
+	ScriptVariables  JSON   `json:"script_variables"`
 	ConcurrentPhones int    `json:"concurrent_phones" example:"10"`
-	Schedule         JSON   `json:"schedule" binding:"required" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
+	Schedule         JSON   `json:"schedule" binding:"required"`
 	IsActive         *bool  `json:"is_active" example:"true"`
 }
 
@@ -51,9 +51,9 @@ type UpdateCampaignRequest struct {
 	Name             string `json:"name" binding:"required" example:"Updated Campaign Name"`
 	Description      string `json:"description" example:"This is an updated campaign"`
 	ScriptName       string `json:"script_name" binding:"required" example:"updated_script.js"`
-	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"new_value\"}"`
+	ScriptVariables  JSON   `json:"script_variables"`
 	ConcurrentPhones int    `json:"concurrent_phones" example:"20"`
-	Schedule         JSON   `json:"schedule" binding:"required" example:"{\"type\":\"daily\",\"time\":\"10:00\"}"`
+	Schedule         JSON   `json:"schedule" binding:"required"`
 	IsActive         *bool  `json:"is_active" example:"false"`
 }
 
@@ -64,9 +64,9 @@ type CampaignResponse struct {
 	Name             string `json:"name" example:"Tăng view campaign"`
 	Description      string `json:"description" example:"This is a campaign to increase views"`
 	ScriptName       string `json:"script_name" example:"increase_views.js"`
-	ScriptVariables  JSON   `json:"script_variables" example:"{\"key\":\"value\"}"`
+	ScriptVariables  JSON   `json:"script_variables"`
 	ConcurrentPhones int    `json:"concurrent_phones" example:"10"`
-	Schedule         JSON   `json:"schedule" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
+	Schedule         JSON   `json:"schedule"`
 	IsActive         bool   `json:"is_active" example:"true"`
 	Status           string `json:"status" example:"idle"`
 	CreatedAt        string `json:"created_at" example:"2025-01-09T10:30:00Z"`

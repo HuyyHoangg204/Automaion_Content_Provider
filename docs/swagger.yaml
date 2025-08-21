@@ -128,34 +128,33 @@ definitions:
     type: object
   models.Campaign:
     properties:
-      campaign_type:
-        description: Campaign type and target
-        type: string
+      concurrent_phones:
+        description: Campaign details
+        type: integer
       created_at:
         type: string
-      current_count:
-        type: integer
-      end_date:
+      description:
         type: string
-      frequency:
-        description: Scheduling
-        type: string
-      group_campaigns:
+      flow_groups:
         items:
-          $ref: '#/definitions/models.GroupCampaign'
+          $ref: '#/definitions/models.FlowGroup'
         type: array
       id:
         type: string
+      is_active:
+        type: boolean
       name:
         type: string
+      schedule:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: Scheduling
       script_name:
         type: string
-      start_date:
-        type: string
-      target_count:
-        description: Campaign details
-        type: integer
-      target_url:
+      script_variables:
+        $ref: '#/definitions/models.JSON'
+      status:
+        description: idle, running, failed, completed
         type: string
       updated_at:
         type: string
@@ -168,38 +167,33 @@ definitions:
     type: object
   models.CampaignResponse:
     properties:
-      campaign_type:
-        example: video_views
-        type: string
+      concurrent_phones:
+        example: 10
+        type: integer
       created_at:
         example: "2025-01-09T10:30:00Z"
         type: string
-      current_count:
-        example: 150
-        type: integer
-      end_date:
-        example: "2025-08-14T23:59:59Z"
-        type: string
-      frequency:
-        example: once
+      description:
+        example: This is a campaign to increase views
         type: string
       id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
+      is_active:
+        example: true
+        type: boolean
       name:
         example: Tăng view campaign
         type: string
+      schedule:
+        $ref: '#/definitions/models.JSON'
       script_name:
         example: increase_views.js
         type: string
-      start_date:
-        example: "2025-08-14T00:00:00Z"
-        type: string
-      target_count:
-        example: 1000
-        type: integer
-      target_url:
-        example: https://youtube.com/watch?v=...
+      script_variables:
+        $ref: '#/definitions/models.JSON'
+      status:
+        example: idle
         type: string
       updated_at:
         example: "2025-01-09T10:30:00Z"
@@ -245,42 +239,33 @@ definitions:
     type: object
   models.CreateCampaignRequest:
     properties:
-      campaign_type:
-        example: video_views
+      concurrent_phones:
+        example: 10
+        type: integer
+      description:
+        example: This is a campaign to increase views
         type: string
-      end_date:
-        example: "2025-08-14T23:59:59Z"
-        type: string
-      frequency:
-        example: once
-        type: string
+      is_active:
+        example: true
+        type: boolean
       name:
         example: Tăng view campaign
         type: string
+      schedule:
+        $ref: '#/definitions/models.JSON'
       script_name:
         example: increase_views.js
         type: string
-      start_date:
-        example: "2025-08-14T00:00:00Z"
-        type: string
-      target_count:
-        example: 1000
-        minimum: 1
-        type: integer
-      target_url:
-        example: https://youtube.com/watch?v=...
-        type: string
+      script_variables:
+        $ref: '#/definitions/models.JSON'
     required:
-    - campaign_type
-    - frequency
     - name
+    - schedule
     - script_name
-    - target_count
-    - target_url
     type: object
   models.CreateFlowRequest:
     properties:
-      group_campaign_id:
+      flow_group_id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
       profile_id:
@@ -296,98 +281,65 @@ definitions:
         example: Started
         type: string
     required:
-    - group_campaign_id
+    - flow_group_id
     - profile_id
     - status
     type: object
   models.CreateProfileRequest:
+    description: Create profile request with platform-specific configuration
     properties:
       app_id:
-        description: "ID of the app where the profile will be created. App must belong to a box with machine_id."
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      name:
-        description: "Profile name. Must be unique within the app."
-        example: "My Hidemium Profile"
+        description: |-
+          @Description ID of the app where the profile will be created. App must belong to a box with machine_id.
+          @Example 550e8400-e29b-41d4-a716-446655440000
         type: string
       data:
-        description: "Profile configuration data. Can include Hidemium-specific parameters like os, browser, canvas, etc."
-        $ref: '#/definitions/models.JSON'
-        example:
-          os: "win"
-          osVersion: "10"
-          browser: "chrome"
-          version: "136"
-          canvas: "noise"
-          language: "en-US"
-          resolution: "1280x800"
-          StartURL: "https://google.com"
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: |-
+          @Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.
+          @Example {"name":"My Hidemium Profile","os":"win","osVersion":"10","browser":"chrome","version":"136","canvas":"noise","language":"en-US","resolution":"1280x800","StartURL":"https://google.com"}
     required:
     - app_id
-    - name
     - data
     type: object
   models.Flow:
     properties:
       created_at:
         type: string
-      finished_at:
+      description:
         type: string
-      group_campaign:
-        allOf:
-        - $ref: '#/definitions/models.GroupCampaign'
-        description: Relationships
-      group_campaign_id:
+      flow_group_id:
         type: string
       id:
         type: string
-      profile:
-        $ref: '#/definitions/models.Profile'
+      name:
+        type: string
       profile_id:
         type: string
-      started_at:
+      result:
+        $ref: '#/definitions/models.JSON'
+      script_name:
         type: string
       status:
         type: string
       updated_at:
         type: string
-    type: object
-  models.FlowResponse:
-    properties:
-      created_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      finished_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      profile_id:
-        example: 550e8400-e29b-41d4-a716-446655440002
-        type: string
-      started_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-      status:
-        example: Started
-        type: string
-      updated_at:
-        example: "2025-01-09T10:30:00Z"
+      user_id:
         type: string
     type: object
-  models.GroupCampaign:
+  models.FlowGroup:
     properties:
-      campaign:
-        allOf:
-        - $ref: '#/definitions/models.Campaign'
-        description: Relationships
       campaign_id:
         type: string
       created_at:
         type: string
-      finished_at:
+      description:
         type: string
+      execution_data:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: Store execution metadata
       flows:
         items:
           $ref: '#/definitions/models.Flow'
@@ -396,14 +348,17 @@ definitions:
         type: string
       name:
         type: string
-      started_at:
+      script_name:
         type: string
       status:
+        description: pending, running, completed, failed
         type: string
       updated_at:
         type: string
+      user_id:
+        type: string
     type: object
-  models.GroupCampaignResponse:
+  models.FlowGroupResponse:
     properties:
       campaign_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -430,7 +385,7 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  models.GroupCampaignStats:
+  models.FlowGroupStats:
     properties:
       duration:
         example: 30m
@@ -453,6 +408,30 @@ definitions:
       success_rate:
         example: 80
         type: number
+    type: object
+  models.FlowResponse:
+    properties:
+      created_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      finished_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      profile_id:
+        example: 550e8400-e29b-41d4-a716-446655440002
+        type: string
+      started_at:
+        example: "2025-01-09T10:00:00Z"
+        type: string
+      status:
+        example: Started
+        type: string
+      updated_at:
+        example: "2025-01-09T10:30:00Z"
+        type: string
     type: object
   models.JSON:
     additionalProperties: true
@@ -645,38 +624,29 @@ definitions:
     type: object
   models.UpdateCampaignRequest:
     properties:
-      campaign_type:
-        example: video_views
+      concurrent_phones:
+        example: 20
+        type: integer
+      description:
+        example: This is an updated campaign
         type: string
-      end_date:
-        example: "2025-08-14T23:59:59Z"
-        type: string
-      frequency:
-        example: daily
-        type: string
+      is_active:
+        example: false
+        type: boolean
       name:
         example: Updated Campaign Name
         type: string
+      schedule:
+        $ref: '#/definitions/models.JSON'
       script_name:
         example: updated_script.js
         type: string
-      start_date:
-        example: "2025-08-14T00:00:00Z"
-        type: string
-      target_count:
-        example: 1000
-        minimum: 1
-        type: integer
-      target_url:
-        example: https://youtube.com/watch?v=...
-        type: string
+      script_variables:
+        $ref: '#/definitions/models.JSON'
     required:
-    - campaign_type
-    - frequency
     - name
+    - schedule
     - script_name
-    - target_count
-    - target_url
     type: object
   models.UpdateFlowRequest:
     properties:
@@ -1832,7 +1802,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Sync all profiles from a specific box's Hidemium instance via tunnel
+      description: Sync all profiles from a specific box's platform instance via tunnel
       parameters:
       - description: Box ID
         in: path
@@ -1868,7 +1838,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Sync profiles from box's Hidemium instance
+      summary: Sync profiles from box's platform instance
       tags:
       - boxes
   /api/v1/boxes/sync-all:
@@ -2157,7 +2127,7 @@ paths:
       summary: Update campaign
       tags:
       - campaigns
-  /api/v1/campaigns/{id}/group-campaigns:
+  /api/v1/campaigns/{id}/flow-groups:
     get:
       consumes:
       - application/json
@@ -2175,7 +2145,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.GroupCampaignResponse'
+              $ref: '#/definitions/models.FlowGroupResponse'
             type: array
         "400":
           description: Bad Request
@@ -2191,7 +2161,134 @@ paths:
       - BearerAuth: []
       summary: Get all group campaigns for a campaign
       tags:
-      - group-campaigns
+      - flow-groups
+  /api/v1/flow-group-flows/{flow_group_id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific group campaign (user must own the
+        campaign) with pagination
+      parameters:
+      - description: Group Campaign ID
+        in: path
+        name: flow_group_id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by group campaign
+      tags:
+      - flows
+  /api/v1/flow-groups/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific group campaign by its ID
+      parameters:
+      - description: Group campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FlowGroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a group campaign by ID
+      tags:
+      - flow-groups
+  /api/v1/flow-groups/{id}/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics for a specific group campaign
+      parameters:
+      - description: Group campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FlowGroupStats'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get group campaign statistics
+      tags:
+      - flow-groups
   /api/v1/flows:
     get:
       consumes:
@@ -2457,133 +2554,6 @@ paths:
       summary: Get flows by status
       tags:
       - flows
-  /api/v1/group-campaign-flows/{group_campaign_id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific group campaign (user must own the
-        campaign) with pagination
-      parameters:
-      - description: Group Campaign ID
-        in: path
-        name: group_campaign_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by group campaign
-      tags:
-      - flows
-  /api/v1/group-campaigns/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific group campaign by its ID
-      parameters:
-      - description: Group campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.GroupCampaignResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get a group campaign by ID
-      tags:
-      - group-campaigns
-  /api/v1/group-campaigns/{id}/stats:
-    get:
-      consumes:
-      - application/json
-      description: Get statistics for a specific group campaign
-      parameters:
-      - description: Group campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.GroupCampaignStats'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get group campaign statistics
-      tags:
-      - group-campaigns
   /api/v1/profile-flows/{profile_id}/flows:
     get:
       consumes:
@@ -2689,46 +2659,12 @@ paths:
     post:
       consumes:
       - application/json
-      description: |
-        Create a new browser profile for the authenticated user. 
-        
-        **Platform Support:**
-        - **Hidemium**: Creates profile on Hidemium platform using customize method
-        - **Genlogin**: Placeholder for future implementation
-        
-        **How it works:**
-        1. Determines platform type from app name (Hidemium/Genlogin)
-        2. Gets machine_id from app's box
-        3. Creates profile on platform first
-        4. Then creates profile in local database
-        5. Updates local profile with UUID from platform
-        
-        **Hidemium Profile Creation:**
-        - Uses `/create-profile-custom?is_local=false` endpoint
-        - Supports custom OS, browser, fingerprint settings
-        - Automatically adds machine_id to profile data
-        - Returns platform UUID for future operations
-        
-        **Required fields:**
-        - `app_id`: Must belong to a box with machine_id
-        - `name`: Unique profile name within the app
-        - `data`: Profile configuration (can include Hidemium parameters)
-        
-        **Example Hidemium data:**
-        ```json
-        {
-          "os": "win",
-          "osVersion": "10", 
-          "browser": "chrome",
-          "version": "136",
-          "canvas": "noise",
-          "language": "en-US",
-          "resolution": "1280x800",
-          "StartURL": "https://google.com"
-        }
-        ```
+      description: Create a new browser profile for the authenticated user. Profile
+        data is required and must contain 'name' field along with configuration from
+        anti-detect browser.
       parameters:
-      - description: Create profile request with platform-specific configuration
+      - description: Create profile request (data field must include 'name' and can
+          contain other configuration parameters)
         in: body
         name: request
         required: true
@@ -2900,6 +2836,62 @@ paths:
       security:
       - BearerAuth: []
       summary: Update profile
+      tags:
+      - profiles
+  /api/v1/profiles/default-configs:
+    get:
+      consumes:
+      - application/json
+      description: Get default configuration options available for creating profiles
+        on a specific platform (Hidemium, Genlogin, etc.)
+      parameters:
+      - description: Platform type (hidemium, genlogin)
+        in: query
+        name: platform
+        required: true
+        type: string
+      - description: Box ID (used to resolve machine_id for tunnel)
+        in: query
+        name: box_id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get default configurations from platform
       tags:
       - profiles
 securityDefinitions:
