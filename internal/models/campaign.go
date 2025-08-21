@@ -26,9 +26,10 @@ type Campaign struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relationships
-	User       User        `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	FlowGroups []FlowGroup `json:"flow_groups,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
-	Profiles   []Profile   `json:"profiles,omitempty" gorm:"many2many:campaign_profiles;"`
+	User       User          `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	FlowGroups []FlowGroup   `json:"flow_groups,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
+	Profiles   []Profile     `json:"profiles,omitempty" gorm:"many2many:campaign_profiles;"`
+	Logs       []CampaignLog `json:"logs,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for the Campaign model
@@ -62,17 +63,18 @@ type UpdateCampaignRequest struct {
 
 // CampaignResponse represents the response for campaign operations
 type CampaignResponse struct {
-	ID               string    `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserID           string    `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
-	Name             string    `json:"name" example:"Tăng view campaign"`
-	Description      string    `json:"description" example:"This is a campaign to increase views"`
-	ScriptName       string    `json:"script_name" example:"increase_views.js"`
-	ScriptVariables  JSON      `json:"script_variables" example:"{\"key\":\"value\"}"`
-	ConcurrentPhones int       `json:"concurrent_phones" example:"10"`
-	Schedule         JSON      `json:"schedule" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
-	IsActive         bool      `json:"is_active" example:"true"`
-	Status           string    `json:"status" example:"idle"`
-	Profiles         []Profile `json:"profiles,omitempty"`
-	CreatedAt        string    `json:"created_at" example:"2025-01-09T10:30:00Z"`
-	UpdatedAt        string    `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+	ID               string        `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID           string        `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Name             string        `json:"name" example:"Tăng view campaign"`
+	Description      string        `json:"description" example:"This is a campaign to increase views"`
+	ScriptName       string        `json:"script_name" example:"increase_views.js"`
+	ScriptVariables  JSON          `json:"script_variables" example:"{\"key\":\"value\"}"`
+	ConcurrentPhones int           `json:"concurrent_phones" example:"10"`
+	Schedule         JSON          `json:"schedule" example:"{\"type\":\"once\",\"time\":\"2025-08-14T00:00:00Z\"}"`
+	IsActive         bool          `json:"is_active" example:"true"`
+	Status           string        `json:"status" example:"idle"`
+	Profiles         []Profile     `json:"profiles,omitempty"`
+	Logs             []CampaignLog `json:"logs,omitempty"`
+	CreatedAt        string        `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt        string        `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }
