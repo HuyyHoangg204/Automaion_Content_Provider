@@ -303,17 +303,29 @@ definitions:
   models.CreateProfileRequest:
     properties:
       app_id:
+        description: "ID of the app where the profile will be created. App must belong to a box with machine_id."
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
-      data:
-        $ref: '#/definitions/models.JSON'
       name:
-        example: My Profile
+        description: "Profile name. Must be unique within the app."
+        example: "My Hidemium Profile"
         type: string
+      data:
+        description: "Profile configuration data. Can include Hidemium-specific parameters like os, browser, canvas, etc."
+        $ref: '#/definitions/models.JSON'
+        example:
+          os: "win"
+          osVersion: "10"
+          browser: "chrome"
+          version: "136"
+          canvas: "noise"
+          language: "en-US"
+          resolution: "1280x800"
+          StartURL: "https://google.com"
     required:
     - app_id
-    - data
     - name
+    - data
     type: object
   models.Flow:
     properties:
@@ -2677,10 +2689,46 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new browser profile for the authenticated user. Profile
-        data is required and must contain configuration from anti-detect browser.
+      description: |
+        Create a new browser profile for the authenticated user. 
+        
+        **Platform Support:**
+        - **Hidemium**: Creates profile on Hidemium platform using customize method
+        - **Genlogin**: Placeholder for future implementation
+        
+        **How it works:**
+        1. Determines platform type from app name (Hidemium/Genlogin)
+        2. Gets machine_id from app's box
+        3. Creates profile on platform first
+        4. Then creates profile in local database
+        5. Updates local profile with UUID from platform
+        
+        **Hidemium Profile Creation:**
+        - Uses `/create-profile-custom?is_local=false` endpoint
+        - Supports custom OS, browser, fingerprint settings
+        - Automatically adds machine_id to profile data
+        - Returns platform UUID for future operations
+        
+        **Required fields:**
+        - `app_id`: Must belong to a box with machine_id
+        - `name`: Unique profile name within the app
+        - `data`: Profile configuration (can include Hidemium parameters)
+        
+        **Example Hidemium data:**
+        ```json
+        {
+          "os": "win",
+          "osVersion": "10", 
+          "browser": "chrome",
+          "version": "136",
+          "canvas": "noise",
+          "language": "en-US",
+          "resolution": "1280x800",
+          "StartURL": "https://google.com"
+        }
+        ```
       parameters:
-      - description: Create profile request (data field is required)
+      - description: Create profile request with platform-specific configuration
         in: body
         name: request
         required: true
