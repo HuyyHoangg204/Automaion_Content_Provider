@@ -74,3 +74,7 @@ func (r *CampaignRepository) GetAll() ([]*models.Campaign, error) {
 	err := r.db.Preload("FlowGroups").Find(&campaigns).Error
 	return campaigns, err
 }
+
+func (r *CampaignRepository) UpdateAssociations(campaign *models.Campaign, profiles []*models.Profile) error {
+	return r.db.Model(campaign).Association("Profiles").Replace(profiles)
+}

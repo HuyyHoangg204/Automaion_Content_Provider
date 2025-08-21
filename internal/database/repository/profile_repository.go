@@ -32,6 +32,13 @@ func (r *ProfileRepository) GetByID(id string) (*models.Profile, error) {
 	return &profile, nil
 }
 
+// GetByIDs retrieves profiles by a list of IDs
+func (r *ProfileRepository) GetByIDs(ids []string) ([]*models.Profile, error) {
+	var profiles []*models.Profile
+	err := r.db.Where("id IN ?", ids).Find(&profiles).Error
+	return profiles, err
+}
+
 // GetByAppID retrieves all profiles for a specific app
 func (r *ProfileRepository) GetByAppID(appID string) ([]*models.Profile, error) {
 	var profiles []*models.Profile
