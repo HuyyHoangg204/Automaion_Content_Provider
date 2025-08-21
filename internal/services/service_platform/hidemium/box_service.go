@@ -13,7 +13,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
-// BoxService implements BoxPlatformInterface for Hidemium
+// BoxService implements box operations for Hidemium platform
 type BoxService struct{}
 
 // NewBoxService creates a new Hidemium box service
@@ -58,7 +58,7 @@ func (s *BoxService) ListBoxes(ctx context.Context, filters map[string]interface
 }
 
 // SyncBoxProfilesFromPlatform syncs profiles from Hidemium platform for a specific box
-func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) (*models.SyncBoxProfilesResponse, error) {
+func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	fmt.Printf("Starting profile sync from Hidemium for box ID: %s (MachineID: %s)\n", boxID, machineID)
 
 	// Get Hidemium config
@@ -118,20 +118,8 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID stri
 
 	fmt.Printf("Successfully fetched %d profiles from Hidemium for box %s\n", len(hidemiumProfiles), boxID)
 
-	// NOTE: This platform service only fetches profiles from Hidemium API
-	// The actual database processing (create/update/delete) should be handled by the main BoxService
-	// that calls this method through the platform wrapper
-
-	// Return basic sync response - the main service will handle database operations
-	return &models.SyncBoxProfilesResponse{
-		BoxID:           boxID,
-		MachineID:       machineID,
-		TunnelURL:       baseURL,
-		ProfilesSynced:  len(hidemiumProfiles),
-		ProfilesCreated: 0,
-		ProfilesUpdated: 0,
-		ProfilesDeleted: 0,
-	}, nil
+	// Return the fetched profiles - the main service will handle database operations
+	return hidemiumProfiles, nil
 }
 
 // GetPlatformName returns the platform name
@@ -158,23 +146,48 @@ func (s *BoxService) ValidateBoxData(boxData *models.CreateBoxRequest) error {
 // Helper methods
 
 // extractProfilesFromResponse extracts profiles from Hidemium API response
+// FIXED: Now properly handles data.content structure from Hidemium API
 func (s *BoxService) extractProfilesFromResponse(rawResponse map[string]interface{}, body []byte) []models.HidemiumProfile {
 	var hidemiumProfiles []models.HidemiumProfile
 
 	// Try to extract profiles from different possible response structures
+	// First try: data.content structure (Hidemium API format)
 	if data, exists := rawResponse["data"]; exists {
-		if dataArray, ok := data.([]interface{}); ok {
-			for _, item := range dataArray {
-				if profileMap, ok := item.(map[string]interface{}); ok {
-					profile := models.HidemiumProfile{
-						ID:        s.getStringFromMap(profileMap, "id"),
-						Name:      s.getStringFromMap(profileMap, "name"),
-						CreatedAt: s.getStringFromMap(profileMap, "created_at"),
-						UpdatedAt: s.getStringFromMap(profileMap, "updated_at"),
-						IsActive:  s.getBoolFromMap(profileMap, "is_active"),
-						Data:      profileMap,
+		if dataMap, ok := data.(map[string]interface{}); ok {
+			if content, exists := dataMap["content"]; exists {
+				if contentArray, ok := content.([]interface{}); ok {
+					for _, item := range contentArray {
+						if profileMap, ok := item.(map[string]interface{}); ok {
+							profile := models.HidemiumProfile{
+								ID:        s.getStringFromMap(profileMap, "uuid"), // Use 'uuid' instead of 'id'
+								Name:      s.getStringFromMap(profileMap, "name"),
+								CreatedAt: s.getStringFromMap(profileMap, "created_at"),
+								UpdatedAt: s.getStringFromMap(profileMap, "updated_at"),
+								IsActive:  s.getBoolFromMap(profileMap, "is_active"),
+								Data:      profileMap,
+							}
+							hidemiumProfiles = append(hidemiumProfiles, profile)
+						}
 					}
-					hidemiumProfiles = append(hidemiumProfiles, profile)
+				}
+			}
+		}
+
+		// Fallback: try data as direct array
+		if len(hidemiumProfiles) == 0 {
+			if dataArray, ok := data.([]interface{}); ok {
+				for _, item := range dataArray {
+					if profileMap, ok := item.(map[string]interface{}); ok {
+						profile := models.HidemiumProfile{
+							ID:        s.getStringFromMap(profileMap, "uuid"),
+							Name:      s.getStringFromMap(profileMap, "name"),
+							CreatedAt: s.getStringFromMap(profileMap, "created_at"),
+							UpdatedAt: s.getStringFromMap(profileMap, "updated_at"),
+							IsActive:  s.getBoolFromMap(profileMap, "is_active"),
+							Data:      profileMap,
+						}
+						hidemiumProfiles = append(hidemiumProfiles, profile)
+					}
 				}
 			}
 		}

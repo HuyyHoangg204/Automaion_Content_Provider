@@ -7,7 +7,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
-// BoxService implements BoxPlatformInterface for Genlogin
+// BoxService implements box operations for Genlogin platform
 type BoxService struct{}
 
 // NewBoxService creates a new Genlogin box service
@@ -41,7 +41,7 @@ func (s *BoxService) ListBoxes(ctx context.Context, filters map[string]interface
 }
 
 // SyncBoxProfilesFromPlatform syncs profiles from Genlogin platform for a specific box
-func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) (*models.SyncBoxProfilesResponse, error) {
+func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	return nil, fmt.Errorf("profile sync from Genlogin not implemented yet")
 }
 

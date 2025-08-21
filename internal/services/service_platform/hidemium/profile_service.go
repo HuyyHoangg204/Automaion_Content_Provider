@@ -14,7 +14,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
-// ProfileService implements ProfilePlatformInterface for Hidemium
+// ProfileService implements profile operations for Hidemium platform
 type ProfileService struct{}
 
 // NewProfileService creates a new Hidemium profile service

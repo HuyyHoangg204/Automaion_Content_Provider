@@ -7,7 +7,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
-// ProfileService implements ProfilePlatformInterface for Genlogin
+// ProfileService implements profile operations for Genlogin platform
 type ProfileService struct{}
 
 // NewProfileService creates a new Genlogin profile service

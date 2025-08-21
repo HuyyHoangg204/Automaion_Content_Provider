@@ -206,7 +206,7 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.
 	fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s\n", boxID, box.MachineID, platformType)
 
 	// Use platform wrapper to sync profiles from platform
-	platformProfiles, err := s.platformWrapper.SyncProfilesFromPlatform(context.Background(), platformType, boxID, box.MachineID)
+	platformProfiles, err := s.platformWrapper.SyncBoxProfilesFromPlatform(context.Background(), platformType, boxID, box.MachineID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sync profiles from %s: %w", platformType, err)
 	}
@@ -486,7 +486,7 @@ func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesRe
 			}
 
 			// Fetch profiles from platform
-			platformProfiles, err := s.platformWrapper.SyncProfilesFromPlatform(context.Background(), platformType, box.ID, box.MachineID)
+			platformProfiles, err := s.platformWrapper.SyncBoxProfilesFromPlatform(context.Background(), platformType, box.ID, box.MachineID)
 			if err != nil {
 				syncErr = err
 				break
