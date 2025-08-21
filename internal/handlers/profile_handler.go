@@ -23,12 +23,12 @@ func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler 
 
 // CreateProfile godoc
 // @Summary Create a new profile
-// @Description Create a new browser profile for the authenticated user. Profile data is required and must contain configuration from anti-detect browser.
+// @Description Create a new browser profile for the authenticated user. Profile data is required and must contain 'name' field along with configuration from anti-detect browser.
 // @Tags profiles
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body models.CreateProfileRequest true "Create profile request (data field is required)"
+// @Param request body models.CreateProfileRequest true "Create profile request"
 // @Success 201 {object} models.ProfileResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}

@@ -44,28 +44,77 @@ func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileR
 	}
 
 	// Validate data field is not empty
-	if len(req.Data) == 0 {
+	if req.Data == nil || len(req.Data) == 0 {
 		return nil, errors.New("profile data is required")
 	}
 
+	// Validate that name exists in data
+	if req.Data["name"] == nil || req.Data["name"] == "" {
+		return nil, fmt.Errorf("name field is required in data")
+	}
+
 	// Check if profile name already exists in this app
-	exists, err := s.profileRepo.CheckNameExistsInApp(req.AppID, req.Name)
+	profileName := req.Data["name"].(string)
+	exists, err := s.profileRepo.CheckNameExistsInApp(req.AppID, profileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check profile name: %w", err)
 	}
 	if exists {
-		return nil, fmt.Errorf("profile with name '%s' already exists in this app", req.Name)
+		return nil, fmt.Errorf("profile with name '%s' already exists in this app", profileName)
 	}
 
-	// Create profile
+	// Get app to determine platform type
+	app, err := s.appRepo.GetByID(req.AppID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app: %w", err)
+	}
+
+	// Determine platform from app name
+	platformType := s.determinePlatformFromAppName(app.Name)
+	if platformType == "" {
+		return nil, fmt.Errorf("unsupported platform: %s", app.Name)
+	}
+
+	// Get box to get machine_id
+	box, err := s.boxRepo.GetByID(app.BoxID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get box: %w", err)
+	}
+
+	// Add machine_id to profile data for platform operations
+	if req.Data == nil {
+		req.Data = make(map[string]interface{})
+	}
+	req.Data["machine_id"] = box.MachineID
+
+	// Create profile on platform first
+	platformProfile, err := s.platformWrapper.CreateProfileOnPlatform(context.Background(), platformType, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create profile on %s platform: %w", platformType, err)
+	}
+
+	// Create profile in local database
 	profile := &models.Profile{
 		AppID: req.AppID,
-		Name:  req.Name,
+		Name:  req.Data["name"].(string),
 		Data:  req.Data,
 	}
 
 	if err := s.profileRepo.Create(profile); err != nil {
-		return nil, fmt.Errorf("failed to create profile: %w", err)
+		return nil, fmt.Errorf("failed to create profile in database: %w", err)
+	}
+
+	// Update profile with platform UUID if available
+	if platformProfile.ID != "" {
+		if profile.Data == nil {
+			profile.Data = make(map[string]interface{})
+		}
+		profile.Data["uuid"] = platformProfile.ID
+
+		// Update the profile with UUID
+		if err := s.profileRepo.Update(profile); err != nil {
+			fmt.Printf("Warning: Failed to update profile with UUID: %v\n", err)
+		}
 	}
 
 	return s.toResponse(profile), nil

@@ -22,16 +22,102 @@ func NewProfileService() *ProfileService {
 	return &ProfileService{}
 }
 
-// CreateProfile creates a new profile on Hidemium platform
+// CreateProfile creates a new profile on Hidemium platform using customize method
 func (s *ProfileService) CreateProfile(ctx context.Context, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
 	// Validate profile data
 	if err := s.ValidateProfileData(profileData); err != nil {
 		return nil, err
 	}
 
-	// TODO: Implement Hidemium-specific profile creation logic
-	// This would involve calling Hidemium API to create profile
-	return nil, fmt.Errorf("profile creation on Hidemium not implemented yet")
+	// Get machine_id from profile data
+	machineID := s.getMachineIDFromProfileData(profileData)
+	if machineID == "" {
+		return nil, fmt.Errorf("machine_id is required for Hidemium profile creation")
+	}
+
+	// Get profile name from data for logging
+	var profileName string
+	if profileData.Data != nil {
+		if name, exists := profileData.Data["name"]; exists {
+			if nameStr, ok := name.(string); ok {
+				profileName = nameStr
+			}
+		}
+	}
+
+	fmt.Printf("Creating profile '%s' on Hidemium (MachineID: %s)\n", profileName, machineID)
+
+	// Get Hidemium config
+	hidemiumConfig := config.GetHidemiumConfig()
+
+	// Construct tunnel URL using machine ID
+	baseURL := hidemiumConfig.BaseURL
+	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
+
+	// Get create_profile_customize route from config
+	createProfileRoute, exists := hidemiumConfig.Routes["create_profile_customize"]
+	if !exists {
+		return nil, fmt.Errorf("create_profile_customize route not found in Hidemium config")
+	}
+
+	// Construct full API URL
+	apiURL := baseURL + createProfileRoute
+
+	fmt.Printf("Calling Hidemium API: %s\n", apiURL)
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Prepare request body for profile creation
+	requestBody := s.buildCreateProfileRequestBody(profileData)
+
+	// Convert to JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Create POST request to Hidemium API
+	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Make HTTP request to Hidemium API
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to Hidemium API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Hidemium API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var hidemiumResponse map[string]interface{}
+	if err := json.Unmarshal(body, &hidemiumResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Extract profile information from response
+	profileResponse, err := s.extractCreatedProfileFromResponse(hidemiumResponse, profileData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract created profile: %w", err)
+	}
+
+	fmt.Printf("Profile successfully created on Hidemium platform\n")
+	return profileResponse, nil
 }
 
 // UpdateProfile updates an existing profile on Hidemium platform
@@ -200,9 +286,15 @@ func (s *ProfileService) GetPlatformVersion() string {
 
 // ValidateProfileData validates profile data for Hidemium platform
 func (s *ProfileService) ValidateProfileData(profileData *models.CreateProfileRequest) error {
-	if profileData.Name == "" {
-		return fmt.Errorf("profile name is required")
+	// Check if name exists in data
+	if profileData.Data == nil {
+		return fmt.Errorf("profile data is required")
 	}
+
+	if name, exists := profileData.Data["name"]; !exists || name == "" {
+		return fmt.Errorf("profile name is required in data")
+	}
+
 	if len(profileData.Data) == 0 {
 		return fmt.Errorf("profile data is required")
 	}
@@ -210,6 +302,108 @@ func (s *ProfileService) ValidateProfileData(profileData *models.CreateProfileRe
 }
 
 // Helper methods
+
+// getMachineIDFromProfileData extracts machine_id from profile data
+func (s *ProfileService) getMachineIDFromProfileData(profileData *models.CreateProfileRequest) string {
+	if profileData.Data == nil {
+		return ""
+	}
+
+	// Try to get machine_id from profile data
+	if machineID, exists := profileData.Data["machine_id"]; exists {
+		if machineIDStr, ok := machineID.(string); ok {
+			return machineIDStr
+		}
+	}
+
+	return ""
+}
+
+// buildCreateProfileRequestBody builds the request body for Hidemium profile creation
+func (s *ProfileService) buildCreateProfileRequestBody(profileData *models.CreateProfileRequest) map[string]interface{} {
+	// Get name from data
+	var profileName string
+	if profileData.Data != nil {
+		if name, exists := profileData.Data["name"]; exists {
+			if nameStr, ok := name.(string); ok {
+				profileName = nameStr
+			}
+		}
+	}
+
+	// Start with default values based on Hidemium API documentation
+	requestBody := map[string]interface{}{
+		"os":                    "win",    // Default to Windows
+		"osVersion":             "10",     // Default to Windows 10
+		"browser":               "chrome", // Default to Chrome
+		"version":               "136",    // Default Chrome version
+		"userAgent":             "",
+		"canvas":                "noise", // Default canvas fingerprint
+		"webGLImage":            "false", // Default webGL image
+		"audioContext":          "false", // Default audio context
+		"webGLMetadata":         "false", // Default webGL metadata
+		"webGLVendor":           "",
+		"webGLMetadataRenderer": "",
+		"clientRectsEnable":     "false",                // Default client rects
+		"noiseFont":             "false",                // Default noise font
+		"language":              "en-US",                // Default language
+		"deviceMemory":          4,                      // Default device memory
+		"hardwareConcurrency":   32,                     // Default hardware concurrency
+		"resolution":            "1280x800",             // Default resolution
+		"StartURL":              "https://hidemium.io/", // Default start URL
+		"name":                  profileName,            // Profile name from data
+		"checkname":             true,                   // Check for duplicate names
+	}
+
+	// Override with values from profileData.Data if provided
+	if profileData.Data != nil {
+		for key, value := range profileData.Data {
+			// Skip internal fields
+			if key == "machine_id" || key == "uuid" {
+				continue
+			}
+			requestBody[key] = value
+		}
+	}
+
+	return requestBody
+}
+
+// extractCreatedProfileFromResponse extracts profile information from Hidemium API response
+func (s *ProfileService) extractCreatedProfileFromResponse(hidemiumResponse map[string]interface{}, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
+	// Get profile name from data
+	var profileName string
+	if profileData.Data != nil {
+		if name, exists := profileData.Data["name"]; exists {
+			if nameStr, ok := name.(string); ok {
+				profileName = nameStr
+			}
+		}
+	}
+
+	// Check if response indicates success
+	if responseType, exists := hidemiumResponse["type"]; exists {
+		if typeStr, ok := responseType.(string); ok && typeStr == "success" {
+			// Extract content from response
+			if content, exists := hidemiumResponse["content"]; exists {
+				if contentMap, ok := content.(map[string]interface{}); ok {
+					// Create profile response with extracted data
+					profileResponse := &models.ProfileResponse{
+						ID:        s.getStringFromMap(contentMap, "uuid"),
+						Name:      profileName,
+						AppID:     profileData.AppID,
+						Data:      contentMap,
+						CreatedAt: time.Now().Format(time.RFC3339),
+						UpdatedAt: time.Now().Format(time.RFC3339),
+					}
+					return profileResponse, nil
+				}
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to extract profile from Hidemium response")
+}
 
 // getHidemiumProfileID extracts Hidemium profile ID from profile data
 func (s *ProfileService) getHidemiumProfileID(profile *models.Profile) string {
