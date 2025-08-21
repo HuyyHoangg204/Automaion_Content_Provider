@@ -175,9 +175,9 @@ func (s *BoxService) GetBoxByMachineID(machineID string) (*models.BoxResponse, e
 	return s.toResponse(box), nil
 }
 
-// SyncBoxProfilesFromHidemium syncs all profiles from a box's Hidemium instance
-// Now supports multiple platforms through platform system
-func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
+// SyncBoxProfilesFromPlatform syncs all profiles from a box's platform instance
+// Supports multiple platforms through platform system
+func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
 	// Get box by ID and verify ownership
 	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {

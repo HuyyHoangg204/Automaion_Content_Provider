@@ -215,9 +215,9 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// SyncBoxProfilesFromHidemium godoc
-// @Summary Sync profiles from box's Hidemium instance
-// @Description Sync all profiles from a specific box's Hidemium instance via tunnel
+// SyncBoxProfilesFromPlatform godoc
+// @Summary Sync profiles from box's platform instance
+// @Description Sync all profiles from a specific box's platform instance via tunnel
 // @Tags boxes
 // @Accept json
 // @Produce json
@@ -229,7 +229,7 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/boxes/{id}/sync-profiles [post]
-func (h *BoxHandler) SyncBoxProfilesFromHidemium(c *gin.Context) {
+func (h *BoxHandler) SyncBoxProfilesFromPlatform(c *gin.Context) {
 	// Get user ID from context
 	userID := c.MustGet("user_id").(string)
 
@@ -240,8 +240,8 @@ func (h *BoxHandler) SyncBoxProfilesFromHidemium(c *gin.Context) {
 		return
 	}
 
-	// Sync profiles from Hidemium
-	response, err := h.boxService.SyncBoxProfilesFromHidemium(userID, boxID)
+	// Sync profiles from platform
+	response, err := h.boxService.SyncBoxProfilesFromPlatform(userID, boxID)
 	if err != nil {
 		if err.Error() == "box not found" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
