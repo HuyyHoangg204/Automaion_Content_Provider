@@ -13,8 +13,9 @@ type Profile struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	// Relationships
-	App   App    `json:"app,omitempty" gorm:"foreignKey:AppID;references:ID;constraint:OnDelete:CASCADE"`
-	Flows []Flow `json:"flows,omitempty" gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE"`
+	App       App        `json:"app,omitempty" gorm:"foreignKey:AppID;references:ID;constraint:OnDelete:CASCADE"`
+	Flows     []Flow     `json:"flows,omitempty" gorm:"foreignKey:ProfileID;references:ID;constraint:OnDelete:CASCADE"`
+	Campaigns []Campaign `json:"campaigns,omitempty" gorm:"many2many:campaign_profiles;"`
 }
 
 // TableName specifies the table name for the Profile model

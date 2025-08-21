@@ -13,17 +13,20 @@ type CampaignService struct {
 	campaignRepo  *repository.CampaignRepository
 	flowGroupRepo *repository.FlowGroupRepository
 	userRepo      *repository.UserRepository
+	profileRepo   *repository.ProfileRepository
 }
 
 func NewCampaignService(
 	campaignRepo *repository.CampaignRepository,
 	flowGroupRepo *repository.FlowGroupRepository,
 	userRepo *repository.UserRepository,
+	profileRepo *repository.ProfileRepository,
 ) *CampaignService {
 	return &CampaignService{
 		campaignRepo:  campaignRepo,
 		flowGroupRepo: flowGroupRepo,
 		userRepo:      userRepo,
+		profileRepo:   profileRepo,
 	}
 }
 
@@ -44,6 +47,15 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 		return nil, fmt.Errorf("campaign with name '%s' already exists", req.Name)
 	}
 
+	// Fetch profiles
+	profiles, err := s.profileRepo.GetByIDs(req.ProfileIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch profiles: %w", err)
+	}
+	if len(profiles) != len(req.ProfileIDs) {
+		return nil, errors.New("one or more profiles not found")
+	}
+
 	// Create campaign
 	campaign := &models.Campaign{
 		UserID:           userID,
@@ -60,6 +72,11 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 
 	if err := s.campaignRepo.Create(campaign); err != nil {
 		return nil, fmt.Errorf("failed to create campaign: %w", err)
+	}
+
+	// Associate profiles with campaign
+	if err := s.campaignRepo.UpdateAssociations(campaign, profiles); err != nil {
+		return nil, fmt.Errorf("failed to associate profiles with campaign: %w", err)
 	}
 
 	return s.toResponse(campaign), nil
@@ -131,6 +148,15 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 		}
 	}
 
+	// Fetch profiles
+	profiles, err := s.profileRepo.GetByIDs(req.ProfileIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch profiles: %w", err)
+	}
+	if len(profiles) != len(req.ProfileIDs) {
+		return nil, errors.New("one or more profiles not found")
+	}
+
 	// Update fields
 	campaign.Name = req.Name
 	campaign.Description = req.Description
@@ -144,6 +170,11 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 
 	if err := s.campaignRepo.Update(campaign); err != nil {
 		return nil, fmt.Errorf("failed to update campaign: %w", err)
+	}
+
+	// Update profile associations
+	if err := s.campaignRepo.UpdateAssociations(campaign, profiles); err != nil {
+		return nil, fmt.Errorf("failed to update profile associations: %w", err)
 	}
 
 	return s.toResponse(campaign), nil
@@ -192,6 +223,7 @@ func (s *CampaignService) toResponse(campaign *models.Campaign) *models.Campaign
 		Schedule:         campaign.Schedule,
 		IsActive:         campaign.IsActive,
 		Status:           campaign.Status,
+		Profiles:         campaign.Profiles,
 		CreatedAt:        campaign.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:        campaign.UpdatedAt.Format(time.RFC3339),
 	}
