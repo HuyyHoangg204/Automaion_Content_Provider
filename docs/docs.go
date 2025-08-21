@@ -780,6 +780,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/apps/register-app": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get subdomain configuration and FRP settings for different platforms based on box_id and platform_name",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Get subdomain and FRP configuration for app registration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID to get machine_id",
+                        "name": "box_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Platform name (hidemium, genlogin, etc.)",
+                        "name": "platform_name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterAppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/apps/{id}": {
             "get": {
                 "security": [
@@ -3487,8 +3552,20 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
+                "logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.CampaignLog"
+                    }
+                },
                 "name": {
                     "type": "string"
+                },
+                "profiles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Profile"
+                    }
                 },
                 "schedule": {
                     "description": "Scheduling",
@@ -3524,6 +3601,42 @@ const docTemplate = `{
                 }
             }
         },
+        "models.CampaignLog": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "details": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "executed_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "e.g., \"started\", \"completed\", \"failed\"",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "models.CampaignResponse": {
             "type": "object",
             "properties": {
@@ -3547,9 +3660,21 @@ const docTemplate = `{
                     "type": "boolean",
                     "example": true
                 },
+                "logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.CampaignLog"
+                    }
+                },
                 "name": {
                     "type": "string",
                     "example": "Tăng view campaign"
+                },
+                "profiles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Profile"
+                    }
                 },
                 "schedule": {
                     "$ref": "#/definitions/models.JSON"
@@ -3629,6 +3754,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "name",
+                "profile_ids",
                 "schedule",
                 "script_name"
             ],
@@ -3648,6 +3774,12 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Tăng view campaign"
+                },
+                "profile_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "schedule": {
                     "$ref": "#/definitions/models.JSON"
@@ -3941,6 +4073,12 @@ const docTemplate = `{
                 "app_id": {
                     "type": "string"
                 },
+                "campaigns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Campaign"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -4045,6 +4183,38 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "models.RegisterAppResponse": {
+            "description": "Response containing subdomain and FRP configuration for app registration",
+            "type": "object",
+            "properties": {
+                "frpDomain": {
+                    "description": "@Description FRP domain\n@Example \"frp.onegreen.cloud\"",
+                    "type": "string"
+                },
+                "frpServerPort": {
+                    "description": "@Description FRP server port\n@Example 8080",
+                    "type": "integer"
+                },
+                "frpToken": {
+                    "description": "@Description FRP token\n@Example \"8080\"",
+                    "type": "string"
+                },
+                "subDomain": {
+                    "description": "@Description Subdomain configuration for different platforms",
+                    "type": "object",
+                    "properties": {
+                        "genlogin": {
+                            "description": "@Description Genlogin subdomain\n@Example \"machineid-genlogin-userid\"",
+                            "type": "string"
+                        },
+                        "hidemium": {
+                            "description": "@Description Hidemium subdomain\n@Example \"machineid-hidemium-userid\"",
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
@@ -4184,6 +4354,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "name",
+                "profile_ids",
                 "schedule",
                 "script_name"
             ],
@@ -4203,6 +4374,12 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Updated Campaign Name"
+                },
+                "profile_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "schedule": {
                     "$ref": "#/definitions/models.JSON"

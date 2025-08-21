@@ -143,8 +143,16 @@ definitions:
         type: string
       is_active:
         type: boolean
+      logs:
+        items:
+          $ref: '#/definitions/models.CampaignLog'
+        type: array
       name:
         type: string
+      profiles:
+        items:
+          $ref: '#/definitions/models.Profile'
+        type: array
       schedule:
         allOf:
         - $ref: '#/definitions/models.JSON'
@@ -165,6 +173,30 @@ definitions:
       user_id:
         type: string
     type: object
+  models.CampaignLog:
+    properties:
+      campaign_id:
+        type: string
+      created_at:
+        type: string
+      details:
+        $ref: '#/definitions/models.JSON'
+      executed_at:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      status:
+        description: e.g., "started", "completed", "failed"
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: string
+    type: object
   models.CampaignResponse:
     properties:
       concurrent_phones:
@@ -182,9 +214,17 @@ definitions:
       is_active:
         example: true
         type: boolean
+      logs:
+        items:
+          $ref: '#/definitions/models.CampaignLog'
+        type: array
       name:
         example: Tăng view campaign
         type: string
+      profiles:
+        items:
+          $ref: '#/definitions/models.Profile'
+        type: array
       schedule:
         $ref: '#/definitions/models.JSON'
       script_name:
@@ -251,6 +291,10 @@ definitions:
       name:
         example: Tăng view campaign
         type: string
+      profile_ids:
+        items:
+          type: string
+        type: array
       schedule:
         $ref: '#/definitions/models.JSON'
       script_name:
@@ -260,6 +304,7 @@ definitions:
         $ref: '#/definitions/models.JSON'
     required:
     - name
+    - profile_ids
     - schedule
     - script_name
     type: object
@@ -459,6 +504,10 @@ definitions:
         description: Relationships
       app_id:
         type: string
+      campaigns:
+        items:
+          $ref: '#/definitions/models.Campaign'
+        type: array
       created_at:
         type: string
       data:
@@ -527,6 +576,39 @@ definitions:
         type: string
     required:
     - refresh_token
+    type: object
+  models.RegisterAppResponse:
+    description: Response containing subdomain and FRP configuration for app registration
+    properties:
+      frpDomain:
+        description: |-
+          @Description FRP domain
+          @Example "frp.onegreen.cloud"
+        type: string
+      frpServerPort:
+        description: |-
+          @Description FRP server port
+          @Example 8080
+        type: integer
+      frpToken:
+        description: |-
+          @Description FRP token
+          @Example "8080"
+        type: string
+      subDomain:
+        description: '@Description Subdomain configuration for different platforms'
+        properties:
+          genlogin:
+            description: |-
+              @Description Genlogin subdomain
+              @Example "machineid-genlogin-userid"
+            type: string
+          hidemium:
+            description: |-
+              @Description Hidemium subdomain
+              @Example "machineid-hidemium-userid"
+            type: string
+        type: object
     type: object
   models.RegisterRequest:
     properties:
@@ -636,6 +718,10 @@ definitions:
       name:
         example: Updated Campaign Name
         type: string
+      profile_ids:
+        items:
+          type: string
+        type: array
       schedule:
         $ref: '#/definitions/models.JSON'
       script_name:
@@ -645,6 +731,7 @@ definitions:
         $ref: '#/definitions/models.JSON'
     required:
     - name
+    - profile_ids
     - schedule
     - script_name
     type: object
@@ -1359,6 +1446,50 @@ paths:
       security:
       - BearerAuth: []
       summary: Update app
+      tags:
+      - apps
+  /api/v1/apps/register-app:
+    get:
+      consumes:
+      - application/json
+      description: Get subdomain configuration and FRP settings for different platforms
+        based on box_id and platform_name
+      parameters:
+      - description: Box ID to get machine_id
+        in: query
+        name: box_id
+        required: true
+        type: string
+      - description: Platform name (hidemium, genlogin, etc.)
+        in: query
+        name: platform_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RegisterAppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get subdomain and FRP configuration for app registration
       tags:
       - apps
   /api/v1/auth/change-password:

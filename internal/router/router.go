@@ -133,6 +133,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 			{
 				apps.POST("", appHandler.CreateApp)
 				apps.GET("", appHandler.GetMyApps)
+				apps.GET("/register-app", appHandler.GetRegisterAppDomains)
 				apps.GET("/:id", appHandler.GetAppByID)
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)

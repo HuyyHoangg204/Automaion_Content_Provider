@@ -246,3 +246,48 @@ func (h *AppHandler) AdminGetAllApps(c *gin.Context) {
 
 	c.JSON(http.StatusOK, apps)
 }
+
+// GetRegisterAppDomains godoc
+// @Summary Get subdomain and FRP configuration for app registration
+// @Description Get subdomain configuration and FRP settings for different platforms based on box_id and platform_name
+// @Tags apps
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param box_id query string true "Box ID to get machine_id"
+// @Param platform_name query string true "Platform name (hidemium, genlogin, etc.)"
+// @Success 200 {object} models.RegisterAppResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/apps/register-app [get]
+func (h *AppHandler) GetRegisterAppDomains(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	
+	// Get query parameters
+	boxID := c.Query("box_id")
+	platformName := c.Query("platform_name")
+	
+	// Validate required parameters
+	if boxID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "box_id parameter is required"})
+		return
+	}
+	
+	if platformName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "platform_name parameter is required"})
+		return
+	}
+
+	response, err := h.appService.GetRegisterAppDomains(userID, boxID, platformName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get register app domains", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

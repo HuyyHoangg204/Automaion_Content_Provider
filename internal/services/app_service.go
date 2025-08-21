@@ -163,6 +163,40 @@ func (s *AppService) GetAllApps() ([]*models.AppResponse, error) {
 	return responses, nil
 }
 
+// GetRegisterAppDomains generates subdomain and FRP configuration for app registration
+func (s *AppService) GetRegisterAppDomains(userID, boxID, platformName string) (*models.RegisterAppResponse, error) {
+	// Get user to verify it exists
+	_, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+
+	// Verify box belongs to user and get machine_id
+	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+	if err != nil {
+		return nil, fmt.Errorf("box not found or access denied: %w", err)
+	}
+
+	machineID := box.MachineID
+	if machineID == "" {
+		return nil, fmt.Errorf("box has no machine_id")
+	}
+
+	// Create response
+	response := &models.RegisterAppResponse{}
+
+	// Set subdomain based on platform name
+	response.SubDomain.Hidemium = fmt.Sprintf("%s-hidemium-%s", machineID, userID)
+	response.SubDomain.Genlogin = fmt.Sprintf("%s-genlogin-%s", machineID, userID)
+
+	// Set FRP configuration
+	response.FrpDomain = "frp.onegreen.cloud"
+	response.FrpServerPort = 8080
+	response.FrpToken = "HelloWorld"
+
+	return response, nil
+}
+
 // toResponse converts App model to response DTO
 func (s *AppService) toResponse(app *models.App) *models.AppResponse {
 	return &models.AppResponse{
