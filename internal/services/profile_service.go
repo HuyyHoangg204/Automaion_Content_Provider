@@ -1,34 +1,31 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 )
 
 type ProfileService struct {
-	profileRepo *repository.ProfileRepository
-	appRepo     *repository.AppRepository
-	userRepo    *repository.UserRepository
-	boxRepo     *repository.BoxRepository
+	profileRepo     *repository.ProfileRepository
+	appRepo         *repository.AppRepository
+	userRepo        *repository.UserRepository
+	boxRepo         *repository.BoxRepository
+	platformWrapper *PlatformWrapperService
 }
 
 func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
 	return &ProfileService{
-		profileRepo: profileRepo,
-		appRepo:     appRepo,
-		userRepo:    userRepo,
-		boxRepo:     boxRepo,
+		profileRepo:     profileRepo,
+		appRepo:         appRepo,
+		userRepo:        userRepo,
+		boxRepo:         boxRepo,
+		platformWrapper: NewPlatformWrapperService(),
 	}
 }
 
@@ -47,28 +44,77 @@ func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileR
 	}
 
 	// Validate data field is not empty
-	if len(req.Data) == 0 {
+	if req.Data == nil || len(req.Data) == 0 {
 		return nil, errors.New("profile data is required")
 	}
 
+	// Validate that name exists in data
+	if req.Data["name"] == nil || req.Data["name"] == "" {
+		return nil, fmt.Errorf("name field is required in data")
+	}
+
 	// Check if profile name already exists in this app
-	exists, err := s.profileRepo.CheckNameExistsInApp(req.AppID, req.Name)
+	profileName := req.Data["name"].(string)
+	exists, err := s.profileRepo.CheckNameExistsInApp(req.AppID, profileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check profile name: %w", err)
 	}
 	if exists {
-		return nil, fmt.Errorf("profile with name '%s' already exists in this app", req.Name)
+		return nil, fmt.Errorf("profile with name '%s' already exists in this app", profileName)
 	}
 
-	// Create profile
+	// Get app to determine platform type
+	app, err := s.appRepo.GetByID(req.AppID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app: %w", err)
+	}
+
+	// Determine platform from app name
+	platformType := s.determinePlatformFromAppName(app.Name)
+	if platformType == "" {
+		return nil, fmt.Errorf("unsupported platform: %s", app.Name)
+	}
+
+	// Get box to get machine_id
+	box, err := s.boxRepo.GetByID(app.BoxID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get box: %w", err)
+	}
+
+	// Add machine_id to profile data for platform operations
+	if req.Data == nil {
+		req.Data = make(map[string]interface{})
+	}
+	req.Data["machine_id"] = box.MachineID
+
+	// Create profile on platform first
+	platformProfile, err := s.platformWrapper.CreateProfileOnPlatform(context.Background(), platformType, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create profile on %s platform: %w", platformType, err)
+	}
+
+	// Create profile in local database
 	profile := &models.Profile{
 		AppID: req.AppID,
-		Name:  req.Name,
+		Name:  req.Data["name"].(string),
 		Data:  req.Data,
 	}
 
 	if err := s.profileRepo.Create(profile); err != nil {
-		return nil, fmt.Errorf("failed to create profile: %w", err)
+		return nil, fmt.Errorf("failed to create profile in database: %w", err)
+	}
+
+	// Update profile with platform UUID if available
+	if platformProfile.ID != "" {
+		if profile.Data == nil {
+			profile.Data = make(map[string]interface{})
+		}
+		profile.Data["uuid"] = platformProfile.ID
+
+		// Update the profile with UUID
+		if err := s.profileRepo.Update(profile); err != nil {
+			fmt.Printf("Warning: Failed to update profile with UUID: %v\n", err)
+		}
 	}
 
 	return s.toResponse(profile), nil
@@ -197,8 +243,7 @@ func (s *ProfileService) UpdateProfile(userID, profileID string, req *models.Upd
 	return s.toResponse(profile), nil
 }
 
-// DeleteProfile deletes a profile on the appropriate platform
-// Currently only supports Hidemium
+// Now supports multiple platforms through platform system
 func (s *ProfileService) DeleteProfile(userID, profileID string) error {
 	// Check if profile exists and belongs to user
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
@@ -206,134 +251,72 @@ func (s *ProfileService) DeleteProfile(userID, profileID string) error {
 		return errors.New("profile not found")
 	}
 
-	// Check platform from app name
-	switch profile.App.Name {
-	case "Hidemium":
-		fmt.Printf("Starting profile deletion on Hidemium for profile ID: %s, Name: %s\n", profileID, profile.Name)
-
-		// Get the actual Hidemium profile ID from profile.Data.uuid
-		hidemiumProfileID := s.getHidemiumProfileID(profile)
-		fmt.Printf("Using Hidemium profile ID: %s\n", hidemiumProfileID)
-
-		// Delete profile on Hidemium platform
-		if err := s.deleteProfileOnHidemium(profile, hidemiumProfileID); err != nil {
-			return fmt.Errorf("failed to delete profile on Hidemium: %w", err)
-		}
-
-		fmt.Printf("Profile successfully deleted on Hidemium platform\n")
-		fmt.Printf("Note: Local database will be updated when user syncs the box\n")
-		return nil
-
-	default:
-		return fmt.Errorf("unsupported platform: %s. Currently only supports Hidemium", profile.App.Name)
-	}
-}
-
-// deleteProfileOnHidemium deletes a profile on Hidemium platform
-func (s *ProfileService) deleteProfileOnHidemium(profile *models.Profile, hidemiumProfileID string) error {
-
-	// Get app to find box
-	app, err := s.appRepo.GetByID(profile.AppID)
-	if err != nil {
-		return fmt.Errorf("failed to get app: %w", err)
+	// Determine platform from app name
+	platformType := s.determinePlatformFromAppName(profile.App.Name)
+	if platformType == "" {
+		return fmt.Errorf("unsupported platform: %s", profile.App.Name)
 	}
 
-	// Get box to find machine ID
-	box, err := s.boxRepo.GetByID(app.BoxID)
-	if err != nil {
-		return fmt.Errorf("failed to get box: %w", err)
+	// You may need to adjust this based on your data model
+	machineID := s.getMachineIDFromProfile(profile)
+	if machineID == "" {
+		return fmt.Errorf("machine_id not found for profile")
 	}
 
-	fmt.Printf("Deleting profile '%s' on Hidemium for box '%s' (MachineID: %s)\n",
-		profile.Name, box.Name, box.MachineID)
+	fmt.Printf("Starting profile deletion on %s for profile ID: %s, Name: %s, MachineID: %s\n", platformType, profileID, profile.Name, machineID)
 
-	// Get Hidemium config
-	hidemiumConfig := config.GetHidemiumConfig()
-
-	// Construct tunnel URL using config
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", box.MachineID, 1)
-
-	// Get delete_profile route from config
-	deleteProfileRoute, exists := hidemiumConfig.Routes["delete_profile"]
-	if !exists {
-		return fmt.Errorf("delete_profile route not found in Hidemium config")
+	// Use platform wrapper to delete profile
+	if err := s.platformWrapper.DeleteProfileOnPlatform(context.Background(), platformType, profile, machineID); err != nil {
+		return fmt.Errorf("failed to delete profile on %s: %w", platformType, err)
 	}
 
-	// Construct full API URL
-	apiURL := baseURL + deleteProfileRoute
-
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
-
-	// Prepare request body for profile deletion
-	requestBody := map[string]interface{}{
-		"uuid_browser": []string{hidemiumProfileID},
-	}
-
-	// Convert to JSON
-	jsonBody, err := json.Marshal(requestBody)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request body: %w", err)
-	}
-
-	// Create DELETE request (according to Hidemium API docs)
-	req, err := http.NewRequest("DELETE", apiURL, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	// Make HTTP request to Hidemium API
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to connect to Hidemium API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	// Check HTTP status code
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("hidemium API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	// Parse response to check if deletion was successful
-	var hidemiumResponse map[string]interface{}
-	if err := json.Unmarshal(body, &hidemiumResponse); err != nil {
-		return fmt.Errorf("failed to parse Hidemium response: %w", err)
-	}
-
-	// Check if deletion was successful based on response
-	if responseType, exists := hidemiumResponse["type"]; !exists || responseType != "success" {
-		title := "Unknown error"
-		if responseTitle, exists := hidemiumResponse["title"]; exists {
-			title = fmt.Sprintf("%v", responseTitle)
-		}
-		return fmt.Errorf("hidemium API deletion failed: %s", title)
-	}
-
-	fmt.Printf("Profile successfully deleted on Hidemium platform\n")
+	fmt.Printf("Profile successfully deleted on %s platform\n", platformType)
+	fmt.Printf("Note: Local database will be updated when user syncs the box\n")
 	return nil
 }
 
-// getHidemiumProfileID extracts the Hidemium profile ID from profile.Data.id
-func (s *ProfileService) getHidemiumProfileID(profile *models.Profile) string {
-	profileData := profile.Data
+// determinePlatformFromAppName determines platform type from app name
+func (s *ProfileService) determinePlatformFromAppName(appName string) string {
+	switch appName {
+	case "Hidemium":
+		return "hidemium"
+	case "Genlogin":
+		return "genlogin"
+	default:
+		return ""
+	}
+}
 
-	// Look for "uuid" field in the data (this is the Hidemium profile ID)
-	if hidemiumID, exists := profileData["uuid"]; exists {
-		if hidemiumIDStr, ok := hidemiumID.(string); ok && hidemiumIDStr != "" {
-			return hidemiumIDStr
+// getMachineIDFromProfile extracts machine_id from profile data
+func (s *ProfileService) getMachineIDFromProfile(profile *models.Profile) string {
+	if profile.Data == nil {
+		return ""
+	}
+
+	// Try to get machine_id from profile data
+	if machineID, exists := profile.Data["machine_id"]; exists {
+		if machineIDStr, ok := machineID.(string); ok {
+			return machineIDStr
 		}
 	}
-	return profile.ID
+
+	// Try alternative field names
+	if machineID, exists := profile.Data["machineId"]; exists {
+		if machineIDStr, ok := machineID.(string); ok {
+			return machineIDStr
+		}
+	}
+
+	if machineID, exists := profile.Data["box_machine_id"]; exists {
+		if machineIDStr, ok := machineID.(string); ok {
+			return machineIDStr
+		}
+	}
+
+	// If profile has a box relationship, try to get machine_id from there
+	// This would require additional database query
+	// For now, return empty string and let caller handle it
+	return ""
 }
 
 // GetAllProfiles retrieves all profiles (admin only)

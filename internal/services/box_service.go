@@ -1,34 +1,31 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 )
 
 type BoxService struct {
-	boxRepo     *repository.BoxRepository
-	userRepo    *repository.UserRepository
-	appRepo     *repository.AppRepository
-	profileRepo *repository.ProfileRepository
+	boxRepo         *repository.BoxRepository
+	userRepo        *repository.UserRepository
+	appRepo         *repository.AppRepository
+	profileRepo     *repository.ProfileRepository
+	platformWrapper *PlatformWrapperService
 }
 
 func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserRepository, appRepo *repository.AppRepository, profileRepo *repository.ProfileRepository) *BoxService {
 	return &BoxService{
-		boxRepo:     boxRepo,
-		userRepo:    userRepo,
-		appRepo:     appRepo,
-		profileRepo: profileRepo,
+		boxRepo:         boxRepo,
+		userRepo:        userRepo,
+		appRepo:         appRepo,
+		profileRepo:     profileRepo,
+		platformWrapper: NewPlatformWrapperService(),
 	}
 }
 
@@ -178,8 +175,9 @@ func (s *BoxService) GetBoxByMachineID(machineID string) (*models.BoxResponse, e
 	return s.toResponse(box), nil
 }
 
-// SyncBoxProfilesFromHidemium syncs all profiles from a box's Hidemium instance
-func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
+// SyncBoxProfilesFromPlatform syncs all profiles from a box's platform instance
+// Supports multiple platforms through platform system
+func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
 	// Get box by ID and verify ownership
 	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -199,339 +197,224 @@ func (s *BoxService) SyncBoxProfilesFromHidemium(userID, boxID string) (*models.
 	// For now, we'll sync to the first app. In the future, you might want to sync to specific apps
 	app := apps[0]
 
-	// Get Hidemium config
-	hidemiumConfig := config.GetHidemiumConfig()
-
-	// Construct tunnel URL using config
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", box.MachineID, 1)
-
-	// Get list_profiles route from config
-	listProfilesRoute, exists := hidemiumConfig.Routes["list_profiles"]
-	if !exists {
-		return nil, fmt.Errorf("list_profiles route not found in Hidemium config")
+	// Determine platform from app name
+	platformType := s.determinePlatformFromAppName(app.Name)
+	if platformType == "" {
+		return nil, fmt.Errorf("unsupported platform: %s", app.Name)
 	}
 
-	// Construct full API URL
-	apiURL := baseURL + listProfilesRoute
+	fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s\n", boxID, box.MachineID, platformType)
 
-	// Create HTTP client with timeout
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	// Use platform wrapper to sync profiles from platform
+	platformProfiles, err := s.platformWrapper.SyncBoxProfilesFromPlatform(context.Background(), platformType, boxID, box.MachineID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sync profiles from %s: %w", platformType, err)
 	}
 
-	// Fetch all profiles
-	var allHidemiumProfiles []models.HidemiumProfile
-	page := 1
-	limit := 100
+	fmt.Printf("Successfully synced %d profiles from %s for box %s\n", len(platformProfiles), platformType, boxID)
 
-	fmt.Printf("Starting sync for box %s (MachineID: %s)\n", boxID, box.MachineID)
-	fmt.Printf("Using API URL: %s\n", apiURL)
-
-	for {
-		// Prepare request body
-		requestBody := map[string]interface{}{
-			"orderName":     0,
-			"orderLastOpen": 0,
-			"page":          page,
-			"limit":         limit,
-			"search":        "",
-			"status":        "",
-			"date_range":    []string{"", ""},
-			"folder_id":     []string{},
-		}
-
-		// Convert to JSON
-		jsonBody, err := json.Marshal(requestBody)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
-		}
-
-		// Create POST request
-		req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-		req.Header.Set("Content-Type", "application/json")
-
-		// Make HTTP request to Hidemium API
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to connect to Hidemium API on page %d: %w", page, err)
-		}
-		defer resp.Body.Close()
-
-		// Read response body
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body on page %d: %w", page, err)
-		}
-
-		// Check HTTP status code
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("hidemium API returned status %d on page %d: %s", resp.StatusCode, page, string(body))
-		}
-
-		// Parse response for this page
-		pageProfiles, hasMore, err := s.parseHidemiumResponse(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse response on page %d: %w", page, err)
-		}
-
-		// Add profiles from this page to the total
-		allHidemiumProfiles = append(allHidemiumProfiles, pageProfiles...)
-
-		// If no more pages or no profiles returned, break
-		if !hasMore || len(pageProfiles) == 0 {
-			break
-		}
-
-		page++
-
-		// Safety check to prevent infinite loop
-		if page > 100 {
-			fmt.Printf("Safety break: reached max pages (%d)\n", page)
-			break
-		}
+	// Process synced profiles and update local database
+	syncResult, err := s.processSyncedProfiles(app.ID, platformProfiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process synced profiles: %w", err)
 	}
-	fmt.Printf("Synced profiles successfully from Hidemium\n")
-	fmt.Printf("Total profiles fetched: %d\n", len(allHidemiumProfiles))
+
+	// Update response with sync results
+	syncResult.BoxID = boxID
+	syncResult.MachineID = box.MachineID
+	syncResult.Message = fmt.Sprintf("Profiles synced successfully from %s", platformType)
+
+	return syncResult, nil
+}
+
+// processSyncedProfiles processes profiles synced from platform and updates local database
+func (s *BoxService) processSyncedProfiles(appID string, platformProfiles []models.HidemiumProfile) (*models.SyncBoxProfilesResponse, error) {
+	result := &models.SyncBoxProfilesResponse{
+		ProfilesCreated: 0,
+		ProfilesUpdated: 0,
+		ProfilesDeleted: 0,
+		ProfilesSynced:  len(platformProfiles),
+	}
 
 	// Get existing profiles for this app
-	existingProfiles, err := s.profileRepo.GetByAppID(app.ID)
+	existingProfiles, err := s.profileRepo.GetByAppID(appID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing profiles: %w", err)
 	}
 
-	// Create maps for efficient lookup
+	// Create a map of existing profiles by UUID for quick lookup
 	existingProfilesMap := make(map[string]*models.Profile)
 	for _, profile := range existingProfiles {
-		existingProfilesMap[profile.Name] = profile
-	}
-
-	hidemiumProfilesMap := make(map[string]models.HidemiumProfile)
-	for _, profile := range allHidemiumProfiles {
-		hidemiumProfilesMap[profile.Name] = profile
-	}
-
-	// Counters for response
-	profilesCreated := 0
-	profilesUpdated := 0
-	profilesDeleted := 0
-
-	// Create or update profiles from Hidemium
-	for _, hidemiumProfile := range allHidemiumProfiles {
-		if existingProfile, exists := existingProfilesMap[hidemiumProfile.Name]; exists {
-			// Profile exists, update it
-			existingProfile.Data = models.JSON(hidemiumProfile.Data)
-			if err := s.profileRepo.Update(existingProfile); err != nil {
-				return nil, fmt.Errorf("failed to update profile '%s': %w", hidemiumProfile.Name, err)
-			}
-			profilesUpdated++
-		} else {
-			// Profile doesn't exist, create it
-			newProfile := &models.Profile{
-				AppID: app.ID,
-				Name:  hidemiumProfile.Name,
-				Data:  models.JSON(hidemiumProfile.Data),
-			}
-			if err := s.profileRepo.Create(newProfile); err != nil {
-				return nil, fmt.Errorf("failed to create profile '%s': %w", hidemiumProfile.Name, err)
-			}
-			profilesCreated++
+		if uuid := s.extractUUID(profile); uuid != "" {
+			existingProfilesMap[uuid] = profile
 		}
 	}
 
-	// Delete profiles that no longer exist in Hidemium
-	for name, existingProfile := range existingProfilesMap {
-		if _, exists := hidemiumProfilesMap[name]; !exists {
-			if err := s.profileRepo.Delete(existingProfile.ID); err != nil {
-				return nil, fmt.Errorf("failed to delete profile '%s': %w", name, err)
-			}
-			profilesDeleted++
+	// Process each platform profile
+	for _, platformProfile := range platformProfiles {
+		if err := s.processPlatformProfile(appID, platformProfile, existingProfilesMap, result); err != nil {
+			fmt.Printf("Warning: Failed to process profile %s: %v\n", platformProfile.ID, err)
+			continue
 		}
 	}
 
-	// Create response
-	response := &models.SyncBoxProfilesResponse{
-		BoxID:           box.ID,
-		MachineID:       box.MachineID,
-		TunnelURL:       apiURL,
-		ProfilesSynced:  len(allHidemiumProfiles),
-		ProfilesCreated: profilesCreated,
-		ProfilesUpdated: profilesUpdated,
-		ProfilesDeleted: profilesDeleted,
-		Message:         fmt.Sprintf("Sync completed: %d created, %d updated, %d deleted", profilesCreated, profilesUpdated, profilesDeleted),
-	}
+	// Mark profiles as deleted if they exist locally but not on platform
+	s.markDeletedProfiles(existingProfilesMap, result)
 
-	return response, nil
+	return result, nil
 }
 
-// parseHidemiumResponse parses the Hidemium API response and returns profiles and pagination info
-func (s *BoxService) parseHidemiumResponse(body []byte) ([]models.HidemiumProfile, bool, error) {
-	// First, try to parse as generic JSON to understand the structure
-	var rawResponse map[string]interface{}
-	if err := json.Unmarshal(body, &rawResponse); err != nil {
-		return nil, false, fmt.Errorf("failed to parse response as JSON: %w", err)
+// processPlatformProfile processes a single platform profile
+func (s *BoxService) processPlatformProfile(appID string, platformProfile models.HidemiumProfile, existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) error {
+	// Extract UUID from platform profile
+	uuid := platformProfile.ID
+	if uuid == "" {
+		return fmt.Errorf("platform profile has no UUID")
 	}
 
-	// Extract profiles from different possible response formats
-	var hidemiumProfiles []models.HidemiumProfile
-	hasMore := false
+	// Check if profile already exists
+	existingProfile, exists := existingProfilesMap[uuid]
 
-	// Try different possible field names for profiles
-	if data, exists := rawResponse["data"]; exists {
-		if dataMap, ok := data.(map[string]interface{}); ok {
-			// Check if data has a "content" field (Hidemium format)
-			if content, exists := dataMap["content"]; exists {
-				if profilesData, ok := content.([]interface{}); ok {
-					fmt.Printf("Found %d profiles in content\n", len(profilesData))
-					// Convert []interface{} to []HidemiumProfile
-					for i, item := range profilesData {
-						if profileMap, ok := item.(map[string]interface{}); ok {
-							profile := models.HidemiumProfile{
-								ID:        getStringFromMap(profileMap, "uuid"),
-								Name:      getStringFromMap(profileMap, "name"),
-								CreatedAt: getStringFromMap(profileMap, "created_at"),
-								UpdatedAt: getStringFromMap(profileMap, "created_at"),
-								IsActive:  getBoolFromMap(profileMap, "can_be_running"),
-								Data:      profileMap,
-							}
-							hidemiumProfiles = append(hidemiumProfiles, profile)
-							if i < 2 { // Log first 2 profiles for debugging
-								fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
-							}
-						}
-					}
-				}
-			} else if profilesData, ok := data.([]interface{}); ok {
-				fmt.Printf("Found %d profiles in data array\n", len(profilesData))
-				// Direct array in data field
-				for i, item := range profilesData {
-					if profileMap, ok := item.(map[string]interface{}); ok {
-						profile := models.HidemiumProfile{
-							ID:        getStringFromMap(profileMap, "id"),
-							Name:      getStringFromMap(profileMap, "name"),
-							CreatedAt: getStringFromMap(profileMap, "created_at"),
-							UpdatedAt: getStringFromMap(profileMap, "updated_at"),
-							IsActive:  getBoolFromMap(profileMap, "is_active"),
-							Data:      profileMap,
-						}
-						hidemiumProfiles = append(hidemiumProfiles, profile)
-						if i < 2 { // Log first 2 profiles for debugging
-							fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
-						}
-					}
-				}
-			}
+	if exists {
+		// Update existing profile
+		if err := s.updateExistingProfile(existingProfile, platformProfile); err != nil {
+			return fmt.Errorf("failed to update profile: %w", err)
 		}
-	} else if profilesData, exists := rawResponse["profiles"]; exists {
-		// Handle case where profiles are directly in "profiles" field
-		if profilesArray, ok := profilesData.([]interface{}); ok {
-			fmt.Printf("Found %d profiles in profiles field\n", len(profilesArray))
-			for i, item := range profilesArray {
-				if profileMap, ok := item.(map[string]interface{}); ok {
-					profile := models.HidemiumProfile{
-						ID:        getStringFromMap(profileMap, "id"),
-						Name:      getStringFromMap(profileMap, "name"),
-						CreatedAt: getStringFromMap(profileMap, "created_at"),
-						UpdatedAt: getStringFromMap(profileMap, "updated_at"),
-						IsActive:  getBoolFromMap(profileMap, "is_active"),
-						Data:      profileMap,
-					}
-					hidemiumProfiles = append(hidemiumProfiles, profile)
-					if i < 2 { // Log first 2 profiles for debugging
-						fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
-					}
-				}
-			}
+		result.ProfilesUpdated++
+		// Remove from map to avoid marking as deleted
+		delete(existingProfilesMap, uuid)
+	} else {
+		// Create new profile
+		if err := s.createNewProfile(appID, platformProfile); err != nil {
+			return fmt.Errorf("failed to create profile: %w", err)
 		}
-	} else if resultData, exists := rawResponse["result"]; exists {
-		// Handle case where profiles are in "result" field
-		if resultArray, ok := resultData.([]interface{}); ok {
-			fmt.Printf("Found %d profiles in result field\n", len(resultArray))
-			for i, item := range resultArray {
-				if profileMap, ok := item.(map[string]interface{}); ok {
-					profile := models.HidemiumProfile{
-						ID:        getStringFromMap(profileMap, "id"),
-						Name:      getStringFromMap(profileMap, "name"),
-						CreatedAt: getStringFromMap(profileMap, "created_at"),
-						UpdatedAt: getStringFromMap(profileMap, "updated_at"),
-						IsActive:  getBoolFromMap(profileMap, "is_active"),
-						Data:      profileMap,
-					}
-					hidemiumProfiles = append(hidemiumProfiles, profile)
-					if i < 2 { // Log first 2 profiles for debugging
-						fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
-					}
-				}
-			}
-		}
+		result.ProfilesCreated++
 	}
 
-	// Check if we found any profiles
-	if len(hidemiumProfiles) == 0 {
-		// If no profiles found, check if the response itself is an array
-		var directProfiles []map[string]interface{}
-		if err := json.Unmarshal(body, &directProfiles); err == nil {
-			fmt.Printf("Found %d profiles in direct array\n", len(directProfiles))
-			// Response is directly an array of profiles
-			for i, profileMap := range directProfiles {
-				profile := models.HidemiumProfile{
-					ID:        getStringFromMap(profileMap, "id"),
-					Name:      getStringFromMap(profileMap, "name"),
-					CreatedAt: getStringFromMap(profileMap, "created_at"),
-					UpdatedAt: getStringFromMap(profileMap, "updated_at"),
-					IsActive:  getBoolFromMap(profileMap, "is_active"),
-					Data:      profileMap,
-				}
-				hidemiumProfiles = append(hidemiumProfiles, profile)
-				if i < 2 { // Log first 2 profiles for debugging
-					fmt.Printf("Profile %d: %s (ID: %s)\n", i+1, profile.Name, profile.ID)
-				}
-			}
+	return nil
+}
+
+// createNewProfile creates a new profile from platform data
+func (s *BoxService) createNewProfile(appID string, platformProfile models.HidemiumProfile) error {
+	// Prepare profile data with platform information
+	profileData := map[string]interface{}{
+		"uuid":       platformProfile.ID,
+		"name":       platformProfile.Name,
+		"created_at": platformProfile.CreatedAt,
+		"updated_at": platformProfile.UpdatedAt,
+		"is_active":  platformProfile.IsActive,
+		// Add machine_id from box for future profile operations
+		"machine_id": s.getMachineIDFromApp(appID),
+	}
+
+	// Merge with platform profile data
+	for key, value := range platformProfile.Data {
+		profileData[key] = value
+	}
+
+	profile := &models.Profile{
+		AppID: appID,
+		Name:  platformProfile.Name,
+		Data:  profileData,
+	}
+
+	return s.profileRepo.Create(profile)
+}
+
+// updateExistingProfile updates an existing profile with platform data
+func (s *BoxService) updateExistingProfile(existingProfile *models.Profile, platformProfile models.HidemiumProfile) error {
+	// Update profile data with latest platform information
+	if existingProfile.Data == nil {
+		existingProfile.Data = make(map[string]interface{})
+	}
+
+	// Update platform-specific fields
+	existingProfile.Data["uuid"] = platformProfile.ID
+	existingProfile.Data["name"] = platformProfile.Name
+	existingProfile.Data["updated_at"] = platformProfile.UpdatedAt
+	existingProfile.Data["is_active"] = platformProfile.IsActive
+
+	// Merge with platform profile data
+	for key, value := range platformProfile.Data {
+		existingProfile.Data[key] = value
+	}
+
+	// Update name if changed
+	if existingProfile.Name != platformProfile.Name {
+		existingProfile.Name = platformProfile.Name
+	}
+
+	return s.profileRepo.Update(existingProfile)
+}
+
+// markDeletedProfiles marks profiles as deleted if they no longer exist on platform
+func (s *BoxService) markDeletedProfiles(existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) {
+	for uuid, profile := range existingProfilesMap {
+		// Profile exists in local DB but not on platform - delete it
+		fmt.Printf("Deleting profile %s (%s) as it no longer exists on platform\n", profile.Name, uuid)
+
+		if err := s.profileRepo.Delete(profile.ID); err != nil {
+			fmt.Printf("Warning: Failed to delete profile %s: %v\n", profile.Name, err)
+			continue
+		}
+
+		fmt.Printf("Successfully deleted profile %s from database\n", profile.Name)
+		result.ProfilesDeleted++
+	}
+}
+
+// extractUUID extracts UUID from profile data
+func (s *BoxService) extractUUID(profile *models.Profile) string {
+	if profile.Data == nil {
+		return ""
+	}
+
+	// Try to get UUID from profile data
+	if uuid, exists := profile.Data["uuid"]; exists {
+		if uuidStr, ok := uuid.(string); ok {
+			return uuidStr
 		}
 	}
 
-	// Check pagination info - Hidemium uses meta and links structure
-	if meta, exists := rawResponse["meta"]; exists {
-		if metaMap, ok := meta.(map[string]interface{}); ok {
-			// Check current_page vs last_page
-			if currentPage, exists := metaMap["current_page"]; exists {
-				if lastPage, exists := metaMap["last_page"]; exists {
-					if currentPageFloat, ok := currentPage.(float64); ok {
-						if lastPageFloat, ok := lastPage.(float64); ok {
-							hasMore = currentPageFloat < lastPageFloat
-							fmt.Printf("Pagination: page %.0f/%.0f, hasMore=%v\n", currentPageFloat, lastPageFloat, hasMore)
-						}
-					}
-				}
-			}
-
-			// Log total for reference
-			if total, exists := metaMap["total"]; exists {
-				fmt.Printf("Total profiles: %v\n", total)
-			}
+	// Try alternative field names
+	if uuid, exists := profile.Data["id"]; exists {
+		if uuidStr, ok := uuid.(string); ok {
+			return uuidStr
 		}
 	}
 
-	// Also check links.next for additional pagination info
-	if links, exists := rawResponse["links"]; exists {
-		if linksMap, ok := links.(map[string]interface{}); ok {
-			if next, exists := linksMap["next"]; exists {
-				if next != nil {
-					// If next is not null, there are more pages
-					if !hasMore {
-						hasMore = true
-						fmt.Printf("Setting hasMore=true based on links.next\n")
-					}
-				}
-			}
-		}
+	return ""
+}
+
+// getMachineIDFromApp gets machine_id from app's box
+func (s *BoxService) getMachineIDFromApp(appID string) string {
+	// Get app to find box
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		fmt.Printf("Warning: Failed to get app %s: %v\n", appID, err)
+		return ""
 	}
 
-	fmt.Printf("Final: %d profiles, hasMore=%v\n", len(hidemiumProfiles), hasMore)
-	return hidemiumProfiles, hasMore, nil
+	// Get box to find machine_id
+	box, err := s.boxRepo.GetByID(app.BoxID)
+	if err != nil {
+		fmt.Printf("Warning: Failed to get box %s: %v\n", app.BoxID, err)
+		return ""
+	}
+
+	return box.MachineID
+}
+
+// determinePlatformFromAppName determines platform type from app name
+func (s *BoxService) determinePlatformFromAppName(appName string) string {
+	switch appName {
+	case "Hidemium":
+		return "hidemium"
+	case "Genlogin":
+		return "genlogin"
+	default:
+		return ""
+	}
 }
 
 // SyncAllUserBoxes syncs all boxes for a specific user
@@ -590,16 +473,66 @@ func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesRe
 			continue
 		}
 
-		// Sync the first app (assuming one app per box for now)
-		syncResponse, err := s.SyncBoxProfilesFromHidemium(userID, box.ID)
+		// Sync all apps in this box
+		var syncResponse *models.SyncBoxProfilesResponse
+		var syncErr error
 
-		if err != nil {
+		for _, app := range apps {
+			platformType := s.determinePlatformFromAppName(app.Name)
+
+			if platformType == "" {
+				fmt.Printf("Warning: Unsupported platform %s for app %s in box %s\n", app.Name, app.ID, box.ID)
+				continue
+			}
+
+			// Fetch profiles from platform
+			platformProfiles, err := s.platformWrapper.SyncBoxProfilesFromPlatform(context.Background(), platformType, box.ID, box.MachineID)
+			if err != nil {
+				syncErr = err
+				break
+			}
+
+			// Process the fetched profiles into local database
+			appSyncResponse, err := s.processSyncedProfiles(app.ID, platformProfiles)
+			if err != nil {
+				syncErr = err
+				break
+			}
+
+			// Use the response from the first successful sync (or accumulate if needed)
+			if syncResponse == nil {
+				syncResponse = appSyncResponse
+				syncResponse.BoxID = box.ID
+				syncResponse.MachineID = box.MachineID
+			} else {
+				// Accumulate sync results from multiple apps
+				syncResponse.ProfilesSynced += appSyncResponse.ProfilesSynced
+				syncResponse.ProfilesCreated += appSyncResponse.ProfilesCreated
+				syncResponse.ProfilesUpdated += appSyncResponse.ProfilesUpdated
+				syncResponse.ProfilesDeleted += appSyncResponse.ProfilesDeleted
+			}
+		}
+
+		// Check if sync failed
+		if syncErr != nil {
 			boxResults = append(boxResults, models.BoxSyncResult{
 				BoxID:     box.ID,
 				MachineID: box.MachineID,
 				Name:      box.Name,
 				Success:   false,
-				Error:     err.Error(),
+				Error:     syncErr.Error(),
+			})
+			continue
+		}
+
+		// Check if no apps were successfully synced
+		if syncResponse == nil {
+			boxResults = append(boxResults, models.BoxSyncResult{
+				BoxID:     box.ID,
+				MachineID: box.MachineID,
+				Name:      box.Name,
+				Success:   false,
+				Error:     "No supported platforms found in apps",
 			})
 			continue
 		}
@@ -637,34 +570,6 @@ func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesRe
 	}
 
 	return response, nil
-}
-
-// Helper functions to safely extract values from map[string]interface{}
-func getStringFromMap(m map[string]interface{}, key string) string {
-	if val, exists := m[key]; exists {
-		if str, ok := val.(string); ok {
-			return str
-		}
-	}
-	return ""
-}
-
-func getBoolFromMap(m map[string]interface{}, key string) bool {
-	if val, exists := m[key]; exists {
-		if b, ok := val.(bool); ok {
-			return b
-		}
-	}
-	return false
-}
-
-// Helper function to get keys of a map
-func getKeys(m map[string]interface{}) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
 }
 
 // toResponse converts Box model to response DTO
