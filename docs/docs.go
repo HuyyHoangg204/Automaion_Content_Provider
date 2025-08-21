@@ -2929,7 +2929,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new browser profile for the authenticated user. Profile data is required and must contain 'name' field along with configuration from anti-detect browser. Fields not provided in data will use default values from Hidemium platform.",
+                "description": "Create a new browser profile for the authenticated user.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2942,7 +2942,7 @@ const docTemplate = `{
                 "summary": "Create a new profile",
                 "parameters": [
                     {
-                        "description": "Create profile request. The data field must include 'name' and can contain other configuration parameters. Fields not provided will use default values.",
+                        "description": "Create profile request.",
                         "name": "request",
                         "in": "body",
                         "required": true,
