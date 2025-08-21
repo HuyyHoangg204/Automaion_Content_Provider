@@ -48,8 +48,9 @@ func (s *AppService) CreateApp(userID string, req *models.CreateAppRequest) (*mo
 
 	// Create app
 	app := &models.App{
-		BoxID: req.BoxID,
-		Name:  req.Name,
+		BoxID:     req.BoxID,
+		Name:      req.Name,
+		TunnelURL: req.TunnelURL,
 	}
 
 	if err := s.appRepo.Create(app); err != nil {
@@ -125,6 +126,9 @@ func (s *AppService) UpdateApp(userID, appID string, req *models.UpdateAppReques
 
 	// Update fields
 	app.Name = req.Name
+	if req.TunnelURL != nil {
+		app.TunnelURL = req.TunnelURL
+	}
 
 	if err := s.appRepo.Update(app); err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)
@@ -203,6 +207,7 @@ func (s *AppService) toResponse(app *models.App) *models.AppResponse {
 		ID:        app.ID,
 		BoxID:     app.BoxID,
 		Name:      app.Name,
+		TunnelURL: app.TunnelURL,
 		CreatedAt: app.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: app.UpdatedAt.Format(time.RFC3339),
 	}
