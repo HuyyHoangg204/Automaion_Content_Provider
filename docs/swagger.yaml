@@ -18,6 +18,9 @@ definitions:
         items:
           $ref: '#/definitions/models.Profile'
         type: array
+      tunnel_url:
+        description: Optional tunnel URL
+        type: string
       updated_at:
         type: string
     type: object
@@ -34,6 +37,9 @@ definitions:
         type: string
       name:
         example: Hidemium
+        type: string
+      tunnel_url:
+        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
         type: string
       updated_at:
         example: "2025-01-09T10:30:00Z"
@@ -260,6 +266,9 @@ definitions:
         type: string
       name:
         example: Hidemium
+        type: string
+      tunnel_url:
+        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
         type: string
     required:
     - box_id
@@ -585,6 +594,11 @@ definitions:
           @Description FRP domain
           @Example "frp.onegreen.cloud"
         type: string
+      frpProtocol:
+        description: |-
+          @Description FRP protocol
+          @Example "tcp"
+        type: string
       frpServerPort:
         description: |-
           @Description FRP server port
@@ -593,21 +607,14 @@ definitions:
       frpToken:
         description: |-
           @Description FRP token
-          @Example "8080"
+          @Example "HelloWorld"
         type: string
       subDomain:
-        description: '@Description Subdomain configuration for different platforms'
-        properties:
-          genlogin:
-            description: |-
-              @Description Genlogin subdomain
-              @Example "machineid-genlogin-userid"
-            type: string
-          hidemium:
-            description: |-
-              @Description Hidemium subdomain
-              @Example "machineid-hidemium-userid"
-            type: string
+        additionalProperties:
+          type: string
+        description: |-
+          @Description Subdomain configuration for the requested platform
+          @Example {"hidemium": "machineid-hidemium-userid"}
         type: object
     type: object
   models.RegisterRequest:
@@ -689,6 +696,9 @@ definitions:
     properties:
       name:
         example: Updated App Name
+        type: string
+      tunnel_url:
+        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
         type: string
     required:
     - name
@@ -1452,15 +1462,15 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get subdomain configuration and FRP settings for different platforms
-        based on box_id and platform_name
+      description: Get subdomain configuration and FRP settings for multiple platforms
+        based on box_id and platform_name (comma-separated)
       parameters:
       - description: Box ID to get machine_id
         in: query
         name: box_id
         required: true
         type: string
-      - description: Platform name (hidemium, genlogin, etc.)
+      - description: Platform names separated by comma (e.g., hidemium,genlogin,adspower)
         in: query
         name: platform_name
         required: true

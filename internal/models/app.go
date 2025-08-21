@@ -49,16 +49,9 @@ type AppResponse struct {
 // RegisterAppResponse represents the response for register-app API
 // @Description Response containing subdomain and FRP configuration for app registration
 type RegisterAppResponse struct {
-	// @Description Subdomain configuration for different platforms
-	SubDomain struct {
-		// @Description Hidemium subdomain
-		// @Example "machineid-hidemium-userid"
-		Hidemium string `json:"hidemium"`
-
-		// @Description Genlogin subdomain
-		// @Example "machineid-genlogin-userid"
-		Genlogin string `json:"genlogin"`
-	} `json:"subDomain"`
+	// @Description Subdomain configuration for the requested platform
+	// @Example {"hidemium": "machineid-hidemium-userid"}
+	SubDomain map[string]string `json:"subDomain"`
 
 	// @Description FRP domain
 	// @Example "frp.onegreen.cloud"
@@ -69,6 +62,10 @@ type RegisterAppResponse struct {
 	FrpServerPort int `json:"frpServerPort"`
 
 	// @Description FRP token
-	// @Example "8080"
+	// @Example "HelloWorld"
 	FrpToken string `json:"frpToken"`
+
+	// @Description FRP protocol
+	// @Example "tcp"
+	FrpProtocol string `json:"frpProtocol"`
 }

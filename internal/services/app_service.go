@@ -3,8 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
@@ -168,7 +170,7 @@ func (s *AppService) GetAllApps() ([]*models.AppResponse, error) {
 }
 
 // GetRegisterAppDomains generates subdomain and FRP configuration for app registration
-func (s *AppService) GetRegisterAppDomains(userID, boxID, platformName string) (*models.RegisterAppResponse, error) {
+func (s *AppService) GetRegisterAppDomains(userID, boxID, platformNames string) (*models.RegisterAppResponse, error) {
 	// Get user to verify it exists
 	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
@@ -189,15 +191,24 @@ func (s *AppService) GetRegisterAppDomains(userID, boxID, platformName string) (
 	// Create response
 	response := &models.RegisterAppResponse{}
 
-	// Set subdomain based on platform name
-	response.SubDomain.Hidemium = fmt.Sprintf("%s-hidemium-%s", machineID, userID)
-	response.SubDomain.Genlogin = fmt.Sprintf("%s-genlogin-%s", machineID, userID)
+	// Create dynamic subdomain map for all requested platforms
+	response.SubDomain = make(map[string]string)
 
-	// Set FRP configuration
-	response.FrpDomain = "frp.onegreen.cloud"
-	response.FrpServerPort = 8080
-	response.FrpToken = "HelloWorld"
+	// Split platform names by comma and create subdomain for each
+	platformList := strings.Split(platformNames, ",")
+	for _, platform := range platformList {
+		platform = strings.TrimSpace(platform) // Remove whitespace
+		if platform != "" {
+			response.SubDomain[platform] = fmt.Sprintf("%s-%s-%s", machineID, platform, userID)
+		}
+	}
 
+	// Set FRP configuration from environment variables
+	frpConfig := config.GetFrpConfig()
+	response.FrpDomain = frpConfig.Domain
+	response.FrpServerPort = frpConfig.Port
+	response.FrpToken = frpConfig.Token
+	response.FrpProtocol = frpConfig.Protocol
 	return response, nil
 }
 

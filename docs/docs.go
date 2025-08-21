@@ -787,7 +787,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get subdomain configuration and FRP settings for different platforms based on box_id and platform_name",
+                "description": "Get subdomain configuration and FRP settings for multiple platforms based on box_id and platform_name (comma-separated)",
                 "consumes": [
                     "application/json"
                 ],
@@ -808,7 +808,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Platform name (hidemium, genlogin, etc.)",
+                        "description": "Platform names separated by comma (e.g., hidemium,genlogin,adspower)",
                         "name": "platform_name",
                         "in": "query",
                         "required": true
@@ -3370,6 +3370,10 @@ const docTemplate = `{
                         "$ref": "#/definitions/models.Profile"
                     }
                 },
+                "tunnel_url": {
+                    "description": "Optional tunnel URL",
+                    "type": "string"
+                },
                 "updated_at": {
                     "type": "string"
                 }
@@ -3393,6 +3397,10 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Hidemium"
+                },
+                "tunnel_url": {
+                    "type": "string",
+                    "example": "http://machineid-platform-userid.agent-controller.onegreen.cloud/"
                 },
                 "updated_at": {
                     "type": "string",
@@ -3730,6 +3738,10 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Hidemium"
+                },
+                "tunnel_url": {
+                    "type": "string",
+                    "example": "http://machineid-platform-userid.agent-controller.onegreen.cloud/"
                 }
             }
         },
@@ -4194,26 +4206,23 @@ const docTemplate = `{
                     "description": "@Description FRP domain\n@Example \"frp.onegreen.cloud\"",
                     "type": "string"
                 },
+                "frpProtocol": {
+                    "description": "@Description FRP protocol\n@Example \"tcp\"",
+                    "type": "string"
+                },
                 "frpServerPort": {
                     "description": "@Description FRP server port\n@Example 8080",
                     "type": "integer"
                 },
                 "frpToken": {
-                    "description": "@Description FRP token\n@Example \"8080\"",
+                    "description": "@Description FRP token\n@Example \"HelloWorld\"",
                     "type": "string"
                 },
                 "subDomain": {
-                    "description": "@Description Subdomain configuration for different platforms",
+                    "description": "@Description Subdomain configuration for the requested platform\n@Example {\"hidemium\": \"machineid-hidemium-userid\"}",
                     "type": "object",
-                    "properties": {
-                        "genlogin": {
-                            "description": "@Description Genlogin subdomain\n@Example \"machineid-genlogin-userid\"",
-                            "type": "string"
-                        },
-                        "hidemium": {
-                            "description": "@Description Hidemium subdomain\n@Example \"machineid-hidemium-userid\"",
-                            "type": "string"
-                        }
+                    "additionalProperties": {
+                        "type": "string"
                     }
                 }
             }
@@ -4331,6 +4340,10 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Updated App Name"
+                },
+                "tunnel_url": {
+                    "type": "string",
+                    "example": "http://machineid-platform-userid.agent-controller.onegreen.cloud/"
                 }
             }
         },
