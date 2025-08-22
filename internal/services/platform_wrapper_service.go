@@ -4,17 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/service_platform/genlogin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/service_platform/hidemium"
 )
 
 // PlatformWrapperService wraps platform-specific services (simplified)
-type PlatformWrapperService struct{}
+type PlatformWrapperService struct {
+	appRepo repository.AppRepository
+}
 
 // NewPlatformWrapperService creates a new platform wrapper service
-func NewPlatformWrapperService() *PlatformWrapperService {
-	return &PlatformWrapperService{}
+func NewPlatformWrapperService(appRepo repository.AppRepository) *PlatformWrapperService {
+	return &PlatformWrapperService{
+		appRepo: appRepo,
+	}
 }
 
 // Profile Platform Operations
@@ -50,13 +55,13 @@ func (pws *PlatformWrapperService) DeleteProfileOnPlatform(ctx context.Context, 
 }
 
 // SyncProfilesFromPlatform syncs profiles from a specific platform
-func (pws *PlatformWrapperService) SyncProfilesFromPlatform(ctx context.Context, platformType string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+func (pws *PlatformWrapperService) SyncProfilesFromPlatform(ctx context.Context, platformType string, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return nil, err
 	}
 
-	return platform.SyncProfilesFromPlatform(ctx, boxID, machineID)
+	return platform.SyncProfilesFromPlatform(ctx, appID, boxID, machineID)
 }
 
 // Box Platform Operations
@@ -93,11 +98,11 @@ func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (inte
 	CreateProfile(ctx context.Context, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error)
 	UpdateProfile(ctx context.Context, profileID string, profileData *models.UpdateProfileRequest) (*models.ProfileResponse, error)
 	DeleteProfile(ctx context.Context, profile *models.Profile, machineID string) error
-	SyncProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	SyncProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error)
 }, error) {
 	switch platformType {
 	case "hidemium":
-		return hidemium.NewProfileService(), nil
+		return hidemium.NewProfileService(pws.appRepo), nil
 	case "genlogin":
 		return genlogin.NewProfileService(), nil
 	default:

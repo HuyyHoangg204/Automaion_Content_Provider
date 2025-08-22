@@ -25,7 +25,7 @@ func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repos
 		appRepo:         appRepo,
 		userRepo:        userRepo,
 		boxRepo:         boxRepo,
-		platformWrapper: NewPlatformWrapperService(),
+		platformWrapper: NewPlatformWrapperService(*appRepo),
 	}
 }
 

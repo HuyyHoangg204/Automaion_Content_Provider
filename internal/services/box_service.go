@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -25,7 +26,7 @@ func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserR
 		userRepo:        userRepo,
 		appRepo:         appRepo,
 		profileRepo:     profileRepo,
-		platformWrapper: NewPlatformWrapperService(),
+		platformWrapper: NewPlatformWrapperService(*appRepo),
 	}
 }
 
@@ -194,35 +195,63 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.
 		return nil, errors.New("no apps found for this box")
 	}
 
-	// For now, we'll sync to the first app. In the future, you might want to sync to specific apps
-	app := apps[0]
+	// Sync all apps in this box
+	var allPlatformProfiles []models.HidemiumProfile
+	var totalProfilesCreated, totalProfilesUpdated, totalProfilesDeleted int
+	var unsupportedPlatforms []string
 
-	// Determine platform from app name
-	platformType := s.determinePlatformFromAppName(app.Name)
-	if platformType == "" {
-		return nil, fmt.Errorf("unsupported platform: %s", app.Name)
+	for _, app := range apps {
+		// Determine platform from app name
+		platformType := s.determinePlatformFromAppName(app.Name)
+		if platformType == "" {
+			fmt.Printf("Warning: Unsupported platform %s for app %s in box %s\n", app.Name, app.ID, boxID)
+			unsupportedPlatforms = append(unsupportedPlatforms, app.Name)
+			continue
+		}
+
+		fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s for app %s\n", boxID, box.MachineID, platformType, app.Name)
+
+		// Use platform wrapper to sync profiles from platform
+		platformProfiles, err := s.platformWrapper.SyncProfilesFromPlatform(context.Background(), platformType, app.ID, boxID, box.MachineID)
+		if err != nil {
+			fmt.Printf("Warning: Failed to sync profiles from %s for app %s: %v\n", platformType, app.Name, err)
+			continue
+		}
+
+		fmt.Printf("Successfully synced %d profiles from %s for app %s in box %s\n", len(platformProfiles), platformType, app.Name, boxID)
+
+		// Process synced profiles and update local database
+		appSyncResult, err := s.processSyncedProfiles(app.ID, platformProfiles)
+		if err != nil {
+			fmt.Printf("Warning: Failed to process synced profiles for app %s: %v\n", app.Name, err)
+			continue
+		}
+
+		// Accumulate results
+		allPlatformProfiles = append(allPlatformProfiles, platformProfiles...)
+		totalProfilesCreated += appSyncResult.ProfilesCreated
+		totalProfilesUpdated += appSyncResult.ProfilesUpdated
+		totalProfilesDeleted += appSyncResult.ProfilesDeleted
 	}
 
-	fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s\n", boxID, box.MachineID, platformType)
-
-	// Use platform wrapper to sync profiles from platform
-	platformProfiles, err := s.platformWrapper.SyncBoxProfilesFromPlatform(context.Background(), platformType, boxID, box.MachineID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sync profiles from %s: %w", platformType, err)
-	}
-
-	fmt.Printf("Successfully synced %d profiles from %s for box %s\n", len(platformProfiles), platformType, boxID)
-
-	// Process synced profiles and update local database
-	syncResult, err := s.processSyncedProfiles(app.ID, platformProfiles)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process synced profiles: %w", err)
+	// Create combined sync result
+	syncResult := &models.SyncBoxProfilesResponse{
+		ProfilesCreated: totalProfilesCreated,
+		ProfilesUpdated: totalProfilesUpdated,
+		ProfilesDeleted: totalProfilesDeleted,
+		ProfilesSynced:  len(allPlatformProfiles),
 	}
 
 	// Update response with sync results
 	syncResult.BoxID = boxID
 	syncResult.MachineID = box.MachineID
-	syncResult.Message = fmt.Sprintf("Profiles synced successfully from %s", platformType)
+
+	// Create detailed message including unsupported platforms
+	if len(unsupportedPlatforms) > 0 {
+		syncResult.Message = fmt.Sprintf("Profiles synced successfully from supported platforms. Unsupported platforms: %s", strings.Join(unsupportedPlatforms, ", "))
+	} else {
+		syncResult.Message = "Profiles synced successfully from all platforms"
+	}
 
 	return syncResult, nil
 }

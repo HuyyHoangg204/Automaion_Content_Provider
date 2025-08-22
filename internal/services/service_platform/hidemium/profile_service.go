@@ -11,15 +11,20 @@ import (
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
 // ProfileService implements profile operations for Hidemium platform
-type ProfileService struct{}
+type ProfileService struct {
+	appRepo repository.AppRepository
+}
 
 // NewProfileService creates a new Hidemium profile service
-func NewProfileService() *ProfileService {
-	return &ProfileService{}
+func NewProfileService(appRepo repository.AppRepository) *ProfileService {
+	return &ProfileService{
+		appRepo: appRepo,
+	}
 }
 
 // CreateProfile creates a new profile on Hidemium platform using customize method
@@ -212,15 +217,21 @@ func (s *ProfileService) ListProfiles(ctx context.Context, filters map[string]in
 }
 
 // SyncProfilesFromPlatform syncs profiles from Hidemium platform
-func (s *ProfileService) SyncProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error) {
-	// Get Hidemium config
-	hidemiumConfig := config.GetHidemiumConfig()
+func (s *ProfileService) SyncProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+	// Get app to access tunnel_url from apps table
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app: %w", err)
+	}
 
-	// Construct tunnel URL using machine ID
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
+	// Use tunnel_url from app instead of config
+	baseURL := *app.TunnelURL
+	if baseURL == "" {
+		return nil, fmt.Errorf("tunnel_url not found for app %s", appID)
+	}
 
 	// Get list_profiles route from config
+	hidemiumConfig := config.GetHidemiumConfig()
 	listProfilesRoute, exists := hidemiumConfig.Routes["list_profiles"]
 	if !exists {
 		return nil, fmt.Errorf("list_profiles route not found in Hidemium config")
