@@ -21,14 +21,28 @@ type ProfileService struct {
 }
 
 // NewProfileService creates a new Hidemium profile service
-func NewProfileService(appRepo repository.AppRepository) *ProfileService {
+func NewProfileService(ctx context.Context, appRepo repository.AppRepository) *ProfileService {
 	return &ProfileService{
 		appRepo: appRepo,
 	}
 }
 
+// getBaseURLFromAppID retrieves the base URL (TunnelURL) for a specific app
+func (s *ProfileService) getBaseURLFromAppID(appID string) (string, error) {
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get app: %w", err)
+	}
+
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return "", fmt.Errorf("tunnel URL not found for app %s", appID)
+	}
+
+	return *app.TunnelURL, nil
+}
+
 // CreateProfile creates a new profile on Hidemium platform using customize method
-func (s *ProfileService) CreateProfile(ctx context.Context, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
+func (s *ProfileService) CreateProfile(appID string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
 	// Validate profile data
 	if err := s.ValidateProfileData(profileData); err != nil {
 		return nil, err
@@ -52,12 +66,20 @@ func (s *ProfileService) CreateProfile(ctx context.Context, profileData *models.
 
 	fmt.Printf("Creating profile '%s' on Hidemium (MachineID: %s)\n", profileName, machineID)
 
+	// Get base URL from app
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app: %w", err)
+	}
+
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return nil, fmt.Errorf("tunnel URL not found for app %s", appID)
+	}
+
+	baseURL := *app.TunnelURL
+
 	// Get Hidemium config
 	hidemiumConfig := config.GetHidemiumConfig()
-
-	// Construct tunnel URL using machine ID
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
 
 	// Get create_profile_customize route from config
 	createProfileRoute, exists := hidemiumConfig.Routes["create_profile_customize"]
@@ -124,13 +146,13 @@ func (s *ProfileService) CreateProfile(ctx context.Context, profileData *models.
 }
 
 // UpdateProfile updates an existing profile on Hidemium platform
-func (s *ProfileService) UpdateProfile(ctx context.Context, profileID string, profileData *models.UpdateProfileRequest) (*models.ProfileResponse, error) {
+func (s *ProfileService) UpdateProfile(profileID string, profileData *models.UpdateProfileRequest) (*models.ProfileResponse, error) {
 	// TODO: Implement Hidemium-specific profile update logic
 	return nil, fmt.Errorf("profile update on Hidemium not implemented yet")
 }
 
 // DeleteProfile deletes a profile on Hidemium platform
-func (s *ProfileService) DeleteProfile(ctx context.Context, profile *models.Profile, machineID string) error {
+func (s *ProfileService) DeleteProfile(appID string, profile *models.Profile, machineID string) error {
 	// Get the actual Hidemium profile ID from profile.Data.uuid
 	hidemiumProfileID := s.getHidemiumProfileID(profile)
 	if hidemiumProfileID == "" {
@@ -143,12 +165,14 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, profile *models.Prof
 
 	fmt.Printf("Deleting profile '%s' on Hidemium (ProfileID: %s, MachineID: %s)\n", profile.Name, hidemiumProfileID, machineID)
 
+	// Get base URL from app
+	baseURL, err := s.getBaseURLFromAppID(appID)
+	if err != nil {
+		return fmt.Errorf("failed to get base URL: %w", err)
+	}
+
 	// Get Hidemium config
 	hidemiumConfig := config.GetHidemiumConfig()
-
-	// Construct tunnel URL using machine ID
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
 
 	// Get delete_profile route from config
 	deleteProfileRoute, exists := hidemiumConfig.Routes["delete_profile"]
@@ -205,27 +229,26 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, profile *models.Prof
 }
 
 // GetProfile retrieves profile information from Hidemium platform
-func (s *ProfileService) GetProfile(ctx context.Context, profileID string) (*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfile(profileID string) (*models.ProfileResponse, error) {
 	// TODO: Implement Hidemium-specific profile retrieval logic
 	return nil, fmt.Errorf("profile retrieval on Hidemium not implemented yet")
 }
 
 // ListProfiles lists all profiles from Hidemium platform
-func (s *ProfileService) ListProfiles(ctx context.Context, filters map[string]interface{}) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) ListProfiles(filters map[string]interface{}) ([]*models.ProfileResponse, error) {
 	// TODO: Implement Hidemium-specific profile listing logic
 	return nil, fmt.Errorf("profile listing on Hidemium not implemented yet")
 }
 
 // SyncProfilesFromPlatform syncs profiles from Hidemium platform
-func (s *ProfileService) SyncProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
-	// Get app to access tunnel_url from apps table
-	app, err := s.appRepo.GetByID(appID)
+func (s *ProfileService) SyncProfilesFromPlatform(appID string, machineID string) ([]models.HidemiumProfile, error) {
+	// Get base URL from app
+	baseURL, err := s.getBaseURLFromAppID(appID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get app: %w", err)
+		return nil, fmt.Errorf("failed to get base URL: %w", err)
 	}
 
 	// Use tunnel_url from app instead of config
-	baseURL := *app.TunnelURL
 	if baseURL == "" {
 		return nil, fmt.Errorf("tunnel_url not found for app %s", appID)
 	}
@@ -546,7 +569,7 @@ func (s *ProfileService) getBoolFromMap(m map[string]interface{}, key string) bo
 }
 
 // GetDefaultConfigs retrieves default configurations from Hidemium platform
-func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error) {
+func (s *ProfileService) GetDefaultConfigs(appID string, machineID string, page, limit int) (map[string]interface{}, error) {
 	// Get Hidemium config
 	hidemiumConfig := config.GetHidemiumConfig()
 
@@ -560,9 +583,16 @@ func (s *ProfileService) GetDefaultConfigs(ctx context.Context, machineID string
 		return nil, fmt.Errorf("machine_id is required for tunnel")
 	}
 
-	// Construct base URL using machine ID from config (tunnel URL)
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
+	// Get base URL from app
+	baseURL, err := s.getBaseURLFromAppID(appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base URL: %w", err)
+	}
+
+	// Use tunnel_url from app
+	if baseURL == "" {
+		return nil, fmt.Errorf("tunnel_url not found for app %s", appID)
+	}
 
 	// Replace pagination parameters with actual values
 	routeWithParams := strings.Replace(listConfigRoute, "{page}", fmt.Sprintf("%d", page), 1)

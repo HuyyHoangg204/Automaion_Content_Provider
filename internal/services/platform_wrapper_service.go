@@ -22,16 +22,14 @@ func NewPlatformWrapperService(appRepo repository.AppRepository) *PlatformWrappe
 	}
 }
 
-// Profile Platform Operations
-
 // CreateProfileOnPlatform creates a profile on a specific platform
-func (pws *PlatformWrapperService) CreateProfileOnPlatform(ctx context.Context, platformType string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
+func (pws *PlatformWrapperService) CreateProfileOnPlatform(ctx context.Context, platformType string, appID string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return nil, err
 	}
 
-	return platform.CreateProfile(ctx, profileData)
+	return platform.CreateProfile(ctx, appID, profileData)
 }
 
 // UpdateProfileOnPlatform updates a profile on a specific platform
@@ -45,13 +43,13 @@ func (pws *PlatformWrapperService) UpdateProfileOnPlatform(ctx context.Context, 
 }
 
 // DeleteProfileOnPlatform deletes a profile on a specific platform
-func (pws *PlatformWrapperService) DeleteProfileOnPlatform(ctx context.Context, platformType string, profile *models.Profile, machineID string) error {
+func (pws *PlatformWrapperService) DeleteProfileOnPlatform(ctx context.Context, platformType string, appID string, profile *models.Profile, machineID string) error {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return err
 	}
 
-	return platform.DeleteProfile(ctx, profile, machineID)
+	return platform.DeleteProfile(ctx, appID, profile, machineID)
 }
 
 // SyncProfilesFromPlatform syncs profiles from a specific platform
@@ -77,7 +75,7 @@ func (pws *PlatformWrapperService) SyncProfilesFromPlatformForBox(ctx context.Co
 }
 
 // GetDefaultConfigsFromPlatform retrieves default configurations from a specific platform
-func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Context, platformType string, machineID string, page, limit int) (map[string]interface{}, error) {
+func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Context, platformType string, appID string, machineID string, page, limit int) (map[string]interface{}, error) {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return nil, err
@@ -85,9 +83,9 @@ func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Con
 
 	// Type assertion to get the GetDefaultConfigs method
 	if profilePlatform, ok := platform.(interface {
-		GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error)
+		GetDefaultConfigs(ctx context.Context, appID string, machineID string, page, limit int) (map[string]interface{}, error)
 	}); ok {
-		return profilePlatform.GetDefaultConfigs(ctx, machineID, page, limit)
+		return profilePlatform.GetDefaultConfigs(ctx, appID, machineID, page, limit)
 	}
 
 	return nil, fmt.Errorf("platform %s does not support GetDefaultConfigs", platformType)
@@ -95,10 +93,11 @@ func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Con
 
 // getProfilePlatform gets a profile platform instance (simplified)
 func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (interface {
-	CreateProfile(ctx context.Context, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error)
+	CreateProfile(ctx context.Context, appID string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error)
 	UpdateProfile(ctx context.Context, profileID string, profileData *models.UpdateProfileRequest) (*models.ProfileResponse, error)
-	DeleteProfile(ctx context.Context, profile *models.Profile, machineID string) error
+	DeleteProfile(ctx context.Context, appID string, profile *models.Profile, machineID string) error
 	SyncProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	GetDefaultConfigs(ctx context.Context, appID string, machineID string, page, limit int) (map[string]interface{}, error)
 }, error) {
 	switch platformType {
 	case "hidemium":
