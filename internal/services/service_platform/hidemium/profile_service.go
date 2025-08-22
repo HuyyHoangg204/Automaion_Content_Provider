@@ -2,7 +2,6 @@ package hidemium
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +20,7 @@ type ProfileService struct {
 }
 
 // NewProfileService creates a new Hidemium profile service
-func NewProfileService(ctx context.Context, appRepo repository.AppRepository) *ProfileService {
+func NewProfileService(appRepo repository.AppRepository) *ProfileService {
 	return &ProfileService{
 		appRepo: appRepo,
 	}
@@ -241,7 +240,7 @@ func (s *ProfileService) ListProfiles(filters map[string]interface{}) ([]*models
 }
 
 // SyncProfilesFromPlatform syncs profiles from Hidemium platform
-func (s *ProfileService) SyncProfilesFromPlatform(appID string, machineID string) ([]models.HidemiumProfile, error) {
+func (s *ProfileService) SyncProfilesFromPlatform(appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	// Get base URL from app
 	baseURL, err := s.getBaseURLFromAppID(appID)
 	if err != nil {

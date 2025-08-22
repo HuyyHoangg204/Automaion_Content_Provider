@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -56,7 +57,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	// Create services
 	boxService := services.NewBoxService(boxRepo, userRepo, appRepo, profileRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
-	profileService := services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo)
+	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
 	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
 	flowGroupService := services.NewFlowGroupService(flowGroupRepo, campaignRepo, flowRepo)
 	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)

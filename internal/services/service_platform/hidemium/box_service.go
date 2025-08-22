@@ -60,7 +60,7 @@ func (s *BoxService) ListBoxes(ctx context.Context, filters map[string]interface
 }
 
 // SyncBoxProfilesFromPlatform syncs profiles from Hidemium platform for a specific box
-func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+func (s *BoxService) SyncBoxProfilesFromPlatform(appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	fmt.Printf("Starting profile sync from Hidemium for box ID: %s (MachineID: %s)\n", boxID, machineID)
 
 	// Get app to get tunnel_url from database
