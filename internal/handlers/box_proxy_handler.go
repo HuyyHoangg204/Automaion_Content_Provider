@@ -17,9 +17,7 @@ type BoxProxyHandler struct {
 	boxProxyService *services.BoxProxyService
 }
 
-func NewBoxProxyHandler(boxService *services.BoxService, appRepo *repository.AppRepository, userRepo *repository.UserRepository) *BoxProxyHandler {
-	// Get box repository from box service
-	boxRepo := boxService.GetBoxRepo()
+func NewBoxProxyHandler(boxRepo *repository.BoxRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository) *BoxProxyHandler {
 	return &BoxProxyHandler{
 		boxProxyService: services.NewBoxProxyService(appRepo, boxRepo, userRepo),
 	}
@@ -27,11 +25,10 @@ func NewBoxProxyHandler(boxService *services.BoxService, appRepo *repository.App
 
 // ProxyRequest handles all proxy requests to anti-detect browser platforms
 // @Summary Proxy request to anti-detect browser platform
-// @Description Forwards requests to the appropriate platform based on box and app. Supports Hidemium and GenLogin platforms.
+// @Description Forwards requests to the appropriate platform based on app. Supports Hidemium and GenLogin platforms.
 // @Tags Box Proxy
 // @Accept json
 // @Produce json
-// @Param box_id path string true "Box ID (UUID)" example:"550e8400-e29b-41d4-a716-446655440000"
 // @Param app_id path string true "App ID (UUID)" example:"550e8400-e29b-41d4-a716-446655440001"
 // @Param platform_path path string true "Platform-specific API path" example:"v1/browser/list"
 // @Param request body object false "Request body for POST/PUT requests (platform-specific format)"
@@ -40,22 +37,21 @@ func NewBoxProxyHandler(boxService *services.BoxService, appRepo *repository.App
 // @Success 204 "No content (for DELETE requests)"
 // @Failure 400 {object} map[string]string "Bad request (invalid path, missing tunnel URL, etc.)"
 // @Failure 401 {object} map[string]string "Unauthorized (invalid/missing JWT token)"
-// @Failure 403 {object} map[string]string "Forbidden (app doesn't belong to box)"
-// @Failure 404 {object} map[string]string "Not found (box or app not found)"
+// @Failure 403 {object} map[string]string "Forbidden (app doesn't belong to user)"
+// @Failure 404 {object} map[string]string "Not found (app not found)"
 // @Failure 500 {object} map[string]string "Internal server error (forwarding failed)"
 // @Security BearerAuth
-// @Router /api/v1/box-proxy/{box_id}/{app_id}/{platform_path:*} [get]
-// @Router /api/v1/box-proxy/{box_id}/{app_id}/{platform_path:*} [post]
-// @Router /api/v1/box-proxy/{box_id}/{app_id}/{platform_path:*} [put]
-// @Router /api/v1/box-proxy/{box_id}/{app_id}/{platform_path:*} [delete]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [get]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [post]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [put]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [delete]
 func (h *BoxProxyHandler) ProxyRequest(c *gin.Context) {
 	userID := c.GetString("user_id")
-	boxID := c.Param("box_id")
 	appID := c.Param("app_id")
 	platformPath := c.Param("platform_path")
 
-	// Validate request using service
-	_, app, err := h.boxProxyService.ValidateBoxProxyRequest(userID, boxID, appID)
+	// Validate request using service - check app ownership
+	app, err := h.boxProxyService.ValidateAppProxyRequest(userID, appID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

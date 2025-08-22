@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -47,6 +48,33 @@ func (s *BoxProxyService) ValidateBoxProxyRequest(userID, boxID, appID string) (
 	}
 
 	return box, app, nil
+}
+
+// ValidateAppProxyRequest validates if user can access the app directly
+func (s *BoxProxyService) ValidateAppProxyRequest(userID, appID string) (*models.App, error) {
+	// Get app by ID
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		return nil, errors.New("app not found")
+	}
+
+	// Get box that contains this app
+	box, err := s.boxRepo.GetByID(app.BoxID)
+	if err != nil {
+		return nil, errors.New("box not found")
+	}
+
+	// Check if user owns the box
+	if box.UserID != userID {
+		return nil, errors.New("access denied: app does not belong to user")
+	}
+
+	// Check if tunnel URL is available
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return nil, errors.New("tunnel URL not configured for app")
+	}
+
+	return app, nil
 }
 
 // GetPlatformType determines the platform type from app name

@@ -70,7 +70,8 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	campaignHandler := handlers.NewCampaignHandler(campaignService)
 	flowGroupHandler := handlers.NewFlowGroupHandler(flowGroupService)
 	flowHandler := handlers.NewFlowHandler(flowService)
-	boxProxyHandler := handlers.NewBoxProxyHandler(boxService, appRepo, userRepo)
+	// Initialize box proxy handler
+	boxProxyHandler := handlers.NewBoxProxyHandler(boxRepo, appRepo, userRepo)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -131,9 +132,9 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 			}
 
 			// Box Proxy routes - for direct platform operations
-			boxProxy := protected.Group("/box-proxy")
+			boxProxy := protected.Group("/app-proxy")
 			{
-				boxProxy.Any("/:box_id/:app_id/*platform_path", boxProxyHandler.ProxyRequest)
+				boxProxy.Any("/:app_id/*platform_path", boxProxyHandler.ProxyRequest)
 			}
 
 			// App routes
