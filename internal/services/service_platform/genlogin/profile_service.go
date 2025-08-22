@@ -41,7 +41,7 @@ func (s *ProfileService) ListProfiles(ctx context.Context, filters map[string]in
 }
 
 // SyncProfilesFromPlatform syncs profiles from Genlogin platform
-func (s *ProfileService) SyncProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+func (s *ProfileService) SyncProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	return nil, fmt.Errorf("profile sync from Genlogin not implemented yet")
 }
 

@@ -19,18 +19,18 @@ type ProfileService struct {
 	platformWrapper *PlatformWrapperService
 }
 
-func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
+func NewProfileService(ctx context.Context, profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
 	return &ProfileService{
 		profileRepo:     profileRepo,
 		appRepo:         appRepo,
 		userRepo:        userRepo,
 		boxRepo:         boxRepo,
-		platformWrapper: NewPlatformWrapperService(),
+		platformWrapper: NewPlatformWrapperService(*appRepo),
 	}
 }
 
 // CreateProfile creates a new profile for a user
-func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileRequest) (*models.ProfileResponse, error) {
+func (s *ProfileService) CreateProfile(ctx context.Context, userID string, req *models.CreateProfileRequest) (*models.ProfileResponse, error) {
 	// Verify user exists
 	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
@@ -88,7 +88,7 @@ func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileR
 	req.Data["machine_id"] = box.MachineID
 
 	// Create profile on platform first
-	platformProfile, err := s.platformWrapper.CreateProfileOnPlatform(context.Background(), platformType, req)
+	platformProfile, err := s.platformWrapper.CreateProfileOnPlatform(ctx, platformType, req.AppID, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create profile on %s platform: %w", platformType, err)
 	}
@@ -121,7 +121,7 @@ func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileR
 }
 
 // GetProfilesByUser retrieves all profiles for a specific user
-func (s *ProfileService) GetProfilesByUser(userID string) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfilesByUser(ctx context.Context, userID string) ([]*models.ProfileResponse, error) {
 	profiles, err := s.profileRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profiles: %w", err)
@@ -136,7 +136,7 @@ func (s *ProfileService) GetProfilesByUser(userID string) ([]*models.ProfileResp
 }
 
 // GetProfilesByBox retrieves all profiles for a specific box (user must own the box)
-func (s *ProfileService) GetProfilesByBox(userID, boxID string) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfilesByBox(ctx context.Context, userID, boxID string) ([]*models.ProfileResponse, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -157,7 +157,7 @@ func (s *ProfileService) GetProfilesByBox(userID, boxID string) ([]*models.Profi
 }
 
 // GetProfilesByBoxPaginated retrieves paginated profiles for a specific box
-func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
+func (s *ProfileService) GetProfilesByBoxPaginated(ctx context.Context, userID, boxID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -181,7 +181,7 @@ func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, p
 }
 
 // GetProfilesByAppPaginated retrieves paginated profiles for a specific app
-func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
+func (s *ProfileService) GetProfilesByAppPaginated(ctx context.Context, userID, appID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
 	// Verify app belongs to user
 	_, err := s.appRepo.GetByUserIDAndID(userID, appID)
 	if err != nil {
@@ -205,7 +205,7 @@ func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, p
 }
 
 // GetProfileByID retrieves a profile by ID (user must own it)
-func (s *ProfileService) GetProfileByID(userID, profileID string) (*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfileByID(ctx context.Context, userID, profileID string) (*models.ProfileResponse, error) {
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
 		return nil, errors.New("profile not found")
@@ -215,7 +215,7 @@ func (s *ProfileService) GetProfileByID(userID, profileID string) (*models.Profi
 }
 
 // UpdateProfile updates a profile (user must own it)
-func (s *ProfileService) UpdateProfile(userID, profileID string, req *models.UpdateProfileRequest) (*models.ProfileResponse, error) {
+func (s *ProfileService) UpdateProfile(ctx context.Context, userID, profileID string, req *models.UpdateProfileRequest) (*models.ProfileResponse, error) {
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
 		return nil, errors.New("profile not found")
@@ -244,7 +244,7 @@ func (s *ProfileService) UpdateProfile(userID, profileID string, req *models.Upd
 }
 
 // Now supports multiple platforms through platform system
-func (s *ProfileService) DeleteProfile(userID, profileID string) error {
+func (s *ProfileService) DeleteProfile(ctx context.Context, userID, profileID string) error {
 	// Check if profile exists and belongs to user
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
@@ -266,7 +266,7 @@ func (s *ProfileService) DeleteProfile(userID, profileID string) error {
 	fmt.Printf("Starting profile deletion on %s for profile ID: %s, Name: %s, MachineID: %s\n", platformType, profileID, profile.Name, machineID)
 
 	// Use platform wrapper to delete profile
-	if err := s.platformWrapper.DeleteProfileOnPlatform(context.Background(), platformType, profile, machineID); err != nil {
+	if err := s.platformWrapper.DeleteProfileOnPlatform(ctx, platformType, profile.AppID, profile, machineID); err != nil {
 		return fmt.Errorf("failed to delete profile on %s: %w", platformType, err)
 	}
 
@@ -276,7 +276,7 @@ func (s *ProfileService) DeleteProfile(userID, profileID string) error {
 }
 
 // GetDefaultConfigs retrieves default configurations from the platform
-func (s *ProfileService) GetDefaultConfigs(userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
+func (s *ProfileService) GetDefaultConfigs(ctx context.Context, userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
 	if platformType == "" {
 		return nil, errors.New("platform type is required")
 	}
@@ -294,8 +294,20 @@ func (s *ProfileService) GetDefaultConfigs(userID, platformType, boxID string, p
 		return nil, fmt.Errorf("machine_id not found for box")
 	}
 
+	// Get an app from this box to get appID
+	apps, err := s.appRepo.GetByBoxID(boxID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get apps for box: %w", err)
+	}
+	if len(apps) == 0 {
+		return nil, fmt.Errorf("no apps found for box")
+	}
+
+	// Use the first app's ID (assuming all apps in a box use the same platform)
+	appID := apps[0].ID
+
 	// Use platform wrapper to get default configs
-	configs, err := s.platformWrapper.GetDefaultConfigsFromPlatform(context.Background(), platformType, machineID, page, limit)
+	configs, err := s.platformWrapper.GetDefaultConfigsFromPlatform(ctx, platformType, appID, machineID, page, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get default configs from %s platform: %w", platformType, err)
 	}

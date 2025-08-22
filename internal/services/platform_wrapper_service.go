@@ -4,29 +4,32 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/service_platform/genlogin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/service_platform/hidemium"
 )
 
 // PlatformWrapperService wraps platform-specific services (simplified)
-type PlatformWrapperService struct{}
-
-// NewPlatformWrapperService creates a new platform wrapper service
-func NewPlatformWrapperService() *PlatformWrapperService {
-	return &PlatformWrapperService{}
+type PlatformWrapperService struct {
+	appRepo repository.AppRepository
 }
 
-// Profile Platform Operations
+// NewPlatformWrapperService creates a new platform wrapper service
+func NewPlatformWrapperService(appRepo repository.AppRepository) *PlatformWrapperService {
+	return &PlatformWrapperService{
+		appRepo: appRepo,
+	}
+}
 
 // CreateProfileOnPlatform creates a profile on a specific platform
-func (pws *PlatformWrapperService) CreateProfileOnPlatform(ctx context.Context, platformType string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
+func (pws *PlatformWrapperService) CreateProfileOnPlatform(ctx context.Context, platformType string, appID string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error) {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return nil, err
 	}
 
-	return platform.CreateProfile(ctx, profileData)
+	return platform.CreateProfile(ctx, appID, profileData)
 }
 
 // UpdateProfileOnPlatform updates a profile on a specific platform
@@ -40,39 +43,39 @@ func (pws *PlatformWrapperService) UpdateProfileOnPlatform(ctx context.Context, 
 }
 
 // DeleteProfileOnPlatform deletes a profile on a specific platform
-func (pws *PlatformWrapperService) DeleteProfileOnPlatform(ctx context.Context, platformType string, profile *models.Profile, machineID string) error {
+func (pws *PlatformWrapperService) DeleteProfileOnPlatform(ctx context.Context, platformType string, appID string, profile *models.Profile, machineID string) error {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return err
 	}
 
-	return platform.DeleteProfile(ctx, profile, machineID)
+	return platform.DeleteProfile(ctx, appID, profile, machineID)
 }
 
 // SyncProfilesFromPlatform syncs profiles from a specific platform
-func (pws *PlatformWrapperService) SyncProfilesFromPlatform(ctx context.Context, platformType string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+func (pws *PlatformWrapperService) SyncProfilesFromPlatform(ctx context.Context, platformType string, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return nil, err
 	}
 
-	return platform.SyncProfilesFromPlatform(ctx, boxID, machineID)
+	return platform.SyncProfilesFromPlatform(ctx, appID, boxID, machineID)
 }
 
 // Box Platform Operations
 
-// SyncBoxProfilesFromPlatform syncs profiles from a specific platform for a box
-func (pws *PlatformWrapperService) SyncBoxProfilesFromPlatform(ctx context.Context, platformType string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+// SyncProfilesFromPlatformForBox syncs profiles from a specific platform for a box
+func (pws *PlatformWrapperService) SyncProfilesFromPlatformForBox(ctx context.Context, platformType string, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	platform, err := pws.getBoxPlatform(platformType)
 	if err != nil {
 		return nil, err
 	}
 
-	return platform.SyncBoxProfilesFromPlatform(ctx, boxID, machineID)
+	return platform.SyncBoxProfilesFromPlatform(ctx, appID, boxID, machineID)
 }
 
 // GetDefaultConfigsFromPlatform retrieves default configurations from a specific platform
-func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Context, platformType string, machineID string, page, limit int) (map[string]interface{}, error) {
+func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Context, platformType string, appID string, machineID string, page, limit int) (map[string]interface{}, error) {
 	platform, err := pws.getProfilePlatform(platformType)
 	if err != nil {
 		return nil, err
@@ -80,9 +83,9 @@ func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Con
 
 	// Type assertion to get the GetDefaultConfigs method
 	if profilePlatform, ok := platform.(interface {
-		GetDefaultConfigs(ctx context.Context, machineID string, page, limit int) (map[string]interface{}, error)
+		GetDefaultConfigs(ctx context.Context, appID string, machineID string, page, limit int) (map[string]interface{}, error)
 	}); ok {
-		return profilePlatform.GetDefaultConfigs(ctx, machineID, page, limit)
+		return profilePlatform.GetDefaultConfigs(ctx, appID, machineID, page, limit)
 	}
 
 	return nil, fmt.Errorf("platform %s does not support GetDefaultConfigs", platformType)
@@ -90,14 +93,15 @@ func (pws *PlatformWrapperService) GetDefaultConfigsFromPlatform(ctx context.Con
 
 // getProfilePlatform gets a profile platform instance (simplified)
 func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (interface {
-	CreateProfile(ctx context.Context, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error)
+	CreateProfile(ctx context.Context, appID string, profileData *models.CreateProfileRequest) (*models.ProfileResponse, error)
 	UpdateProfile(ctx context.Context, profileID string, profileData *models.UpdateProfileRequest) (*models.ProfileResponse, error)
-	DeleteProfile(ctx context.Context, profile *models.Profile, machineID string) error
-	SyncProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	DeleteProfile(ctx context.Context, appID string, profile *models.Profile, machineID string) error
+	SyncProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	GetDefaultConfigs(ctx context.Context, appID string, machineID string, page, limit int) (map[string]interface{}, error)
 }, error) {
 	switch platformType {
 	case "hidemium":
-		return hidemium.NewProfileService(), nil
+		return hidemium.NewProfileService(pws.appRepo), nil
 	case "genlogin":
 		return genlogin.NewProfileService(), nil
 	default:
@@ -107,11 +111,11 @@ func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (inte
 
 // getBoxPlatform gets a box platform instance (simplified)
 func (pws *PlatformWrapperService) getBoxPlatform(platformType string) (interface {
-	SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	SyncBoxProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error)
 }, error) {
 	switch platformType {
 	case "hidemium":
-		return hidemium.NewBoxService(), nil
+		return hidemium.NewBoxService(pws.appRepo), nil
 	case "genlogin":
 		return genlogin.NewBoxService(), nil
 	default:

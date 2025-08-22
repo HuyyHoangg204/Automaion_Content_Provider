@@ -41,7 +41,7 @@ func (s *BoxService) ListBoxes(ctx context.Context, filters map[string]interface
 }
 
 // SyncBoxProfilesFromPlatform syncs profiles from Genlogin platform for a specific box
-func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	return nil, fmt.Errorf("profile sync from Genlogin not implemented yet")
 }
 
