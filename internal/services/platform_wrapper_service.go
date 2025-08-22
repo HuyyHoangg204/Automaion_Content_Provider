@@ -66,14 +66,14 @@ func (pws *PlatformWrapperService) SyncProfilesFromPlatform(ctx context.Context,
 
 // Box Platform Operations
 
-// SyncBoxProfilesFromPlatform syncs profiles from a specific platform for a box
-func (pws *PlatformWrapperService) SyncBoxProfilesFromPlatform(ctx context.Context, platformType string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+// SyncProfilesFromPlatformForBox syncs profiles from a specific platform for a box
+func (pws *PlatformWrapperService) SyncProfilesFromPlatformForBox(ctx context.Context, platformType string, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	platform, err := pws.getBoxPlatform(platformType)
 	if err != nil {
 		return nil, err
 	}
 
-	return platform.SyncBoxProfilesFromPlatform(ctx, boxID, machineID)
+	return platform.SyncBoxProfilesFromPlatform(ctx, appID, boxID, machineID)
 }
 
 // GetDefaultConfigsFromPlatform retrieves default configurations from a specific platform
@@ -112,11 +112,11 @@ func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (inte
 
 // getBoxPlatform gets a box platform instance (simplified)
 func (pws *PlatformWrapperService) getBoxPlatform(platformType string) (interface {
-	SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	SyncBoxProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error)
 }, error) {
 	switch platformType {
 	case "hidemium":
-		return hidemium.NewBoxService(), nil
+		return hidemium.NewBoxService(pws.appRepo), nil
 	case "genlogin":
 		return genlogin.NewBoxService(), nil
 	default:

@@ -176,17 +176,11 @@ func (s *BoxService) GetBoxByMachineID(machineID string) (*models.BoxResponse, e
 	return s.toResponse(box), nil
 }
 
-// SyncBoxProfilesFromPlatform syncs all profiles from a box's platform instance
-// Supports multiple platforms through platform system
-func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
-	// Get box by ID and verify ownership
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
-	if err != nil {
-		return nil, errors.New("box not found")
-	}
-
+// syncBoxProfilesInternal is a common method to sync profiles for a single box
+// This method is used by both SyncSingleBoxProfiles and SyncAllUserBoxes
+func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxProfilesResponse, error) {
 	// Get all apps for this box
-	apps, err := s.appRepo.GetByBoxID(boxID)
+	apps, err := s.appRepo.GetByBoxID(box.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apps for box: %w", err)
 	}
@@ -204,21 +198,21 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.
 		// Determine platform from app name
 		platformType := s.determinePlatformFromAppName(app.Name)
 		if platformType == "" {
-			fmt.Printf("Warning: Unsupported platform %s for app %s in box %s\n", app.Name, app.ID, boxID)
+			fmt.Printf("Warning: Unsupported platform %s for app %s in box %s\n", app.Name, app.ID, box.ID)
 			unsupportedPlatforms = append(unsupportedPlatforms, app.Name)
 			continue
 		}
 
-		fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s for app %s\n", boxID, box.MachineID, platformType, app.Name)
+		fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s for app %s\n", box.ID, box.MachineID, platformType, app.Name)
 
 		// Use platform wrapper to sync profiles from platform
-		platformProfiles, err := s.platformWrapper.SyncProfilesFromPlatform(context.Background(), platformType, app.ID, boxID, box.MachineID)
+		platformProfiles, err := s.platformWrapper.SyncProfilesFromPlatform(context.Background(), platformType, app.ID, box.ID, box.MachineID)
 		if err != nil {
 			fmt.Printf("Warning: Failed to sync profiles from %s for app %s: %v\n", platformType, app.Name, err)
 			continue
 		}
 
-		fmt.Printf("Successfully synced %d profiles from %s for app %s in box %s\n", len(platformProfiles), platformType, app.Name, boxID)
+		fmt.Printf("Successfully synced %d profiles from %s for app %s in box %s\n", len(platformProfiles), platformType, app.Name, box.ID)
 
 		// Process synced profiles and update local database
 		appSyncResult, err := s.processSyncedProfiles(app.ID, platformProfiles)
@@ -243,7 +237,7 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.
 	}
 
 	// Update response with sync results
-	syncResult.BoxID = boxID
+	syncResult.BoxID = box.ID
 	syncResult.MachineID = box.MachineID
 
 	// Create detailed message including unsupported platforms
@@ -254,6 +248,19 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(userID, boxID string) (*models.
 	}
 
 	return syncResult, nil
+}
+
+// SyncSingleBoxProfiles syncs all profiles from a single box's platform instance
+// Supports multiple platforms through platform system
+func (s *BoxService) SyncSingleBoxProfiles(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
+	// Get box by ID and verify ownership
+	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+	if err != nil {
+		return nil, errors.New("box not found")
+	}
+
+	// Use the common internal method
+	return s.syncBoxProfilesInternal(box)
 }
 
 // processSyncedProfiles processes profiles synced from platform and updates local database
@@ -477,91 +484,15 @@ func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesRe
 
 	// Sync each box
 	for _, box := range boxes {
-		// Get apps for this box
-		apps, err := s.appRepo.GetByBoxID(box.ID)
+		// Use the common internal method
+		syncResponse, err := s.syncBoxProfilesInternal(box)
 		if err != nil {
-			// Log error but continue with other boxes
 			boxResults = append(boxResults, models.BoxSyncResult{
 				BoxID:     box.ID,
 				MachineID: box.MachineID,
 				Name:      box.Name,
 				Success:   false,
-				Error:     fmt.Sprintf("Failed to get apps: %v", err),
-			})
-			continue
-		}
-
-		if len(apps) == 0 {
-			boxResults = append(boxResults, models.BoxSyncResult{
-				BoxID:     box.ID,
-				MachineID: box.MachineID,
-				Name:      box.Name,
-				Success:   false,
-				Error:     "No apps found for this box",
-			})
-			continue
-		}
-
-		// Sync all apps in this box
-		var syncResponse *models.SyncBoxProfilesResponse
-		var syncErr error
-
-		for _, app := range apps {
-			platformType := s.determinePlatformFromAppName(app.Name)
-
-			if platformType == "" {
-				fmt.Printf("Warning: Unsupported platform %s for app %s in box %s\n", app.Name, app.ID, box.ID)
-				continue
-			}
-
-			// Fetch profiles from platform
-			platformProfiles, err := s.platformWrapper.SyncBoxProfilesFromPlatform(context.Background(), platformType, box.ID, box.MachineID)
-			if err != nil {
-				syncErr = err
-				break
-			}
-
-			// Process the fetched profiles into local database
-			appSyncResponse, err := s.processSyncedProfiles(app.ID, platformProfiles)
-			if err != nil {
-				syncErr = err
-				break
-			}
-
-			// Use the response from the first successful sync (or accumulate if needed)
-			if syncResponse == nil {
-				syncResponse = appSyncResponse
-				syncResponse.BoxID = box.ID
-				syncResponse.MachineID = box.MachineID
-			} else {
-				// Accumulate sync results from multiple apps
-				syncResponse.ProfilesSynced += appSyncResponse.ProfilesSynced
-				syncResponse.ProfilesCreated += appSyncResponse.ProfilesCreated
-				syncResponse.ProfilesUpdated += appSyncResponse.ProfilesUpdated
-				syncResponse.ProfilesDeleted += appSyncResponse.ProfilesDeleted
-			}
-		}
-
-		// Check if sync failed
-		if syncErr != nil {
-			boxResults = append(boxResults, models.BoxSyncResult{
-				BoxID:     box.ID,
-				MachineID: box.MachineID,
-				Name:      box.Name,
-				Success:   false,
-				Error:     syncErr.Error(),
-			})
-			continue
-		}
-
-		// Check if no apps were successfully synced
-		if syncResponse == nil {
-			boxResults = append(boxResults, models.BoxSyncResult{
-				BoxID:     box.ID,
-				MachineID: box.MachineID,
-				Name:      box.Name,
-				Success:   false,
-				Error:     "No supported platforms found in apps",
+				Error:     err.Error(),
 			})
 			continue
 		}

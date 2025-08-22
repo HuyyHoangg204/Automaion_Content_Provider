@@ -6,19 +6,23 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
 // BoxService implements box operations for Hidemium platform
-type BoxService struct{}
+type BoxService struct {
+	appRepo repository.AppRepository
+}
 
 // NewBoxService creates a new Hidemium box service
-func NewBoxService() *BoxService {
-	return &BoxService{}
+func NewBoxService(appRepo repository.AppRepository) *BoxService {
+	return &BoxService{
+		appRepo: appRepo,
+	}
 }
 
 // CreateBox creates a new box on Hidemium platform
@@ -56,15 +60,22 @@ func (s *BoxService) ListBoxes(ctx context.Context, filters map[string]interface
 }
 
 // SyncBoxProfilesFromPlatform syncs profiles from Hidemium platform for a specific box
-func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, boxID string, machineID string) ([]models.HidemiumProfile, error) {
+func (s *BoxService) SyncBoxProfilesFromPlatform(ctx context.Context, appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
 	fmt.Printf("Starting profile sync from Hidemium for box ID: %s (MachineID: %s)\n", boxID, machineID)
 
-	// Get Hidemium config
-	hidemiumConfig := config.GetHidemiumConfig()
+	// Get app to get tunnel_url from database
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app: %w", err)
+	}
 
-	// Construct tunnel URL using machine ID
-	baseURL := hidemiumConfig.BaseURL
-	baseURL = strings.Replace(baseURL, "{machine_id}", machineID, 1)
+	baseURL := *app.TunnelURL
+	if baseURL == "" {
+		return nil, fmt.Errorf("tunnel_url not found for app %s", appID)
+	}
+
+	// Get Hidemium config for routes
+	hidemiumConfig := config.GetHidemiumConfig()
 
 	// Get list_profiles route from config
 	listProfilesRoute, exists := hidemiumConfig.Routes["list_profiles"]
