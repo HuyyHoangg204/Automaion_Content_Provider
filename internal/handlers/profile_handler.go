@@ -6,11 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
-
-	"github.com/gin-gonic/gin"
 )
 
 type ProfileHandler struct {
@@ -359,17 +358,12 @@ func (h *ProfileHandler) GetDefaultConfigs(c *gin.Context) {
 		limit = 10
 	}
 
-	configs, err := h.profileService.GetDefaultConfigs(context.Background(), userID, platformType, boxID, page, limit)
+	// Get default configs from platform
+	configs, err := h.profileService.GetDefaultConfigsFromPlatform(context.Background(), userID, platformType, boxID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get default configs", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"platform": platformType,
-		"box_id":   boxID,
-		"page":     page,
-		"limit":    limit,
-		"configs":  configs,
-	})
+	c.JSON(http.StatusOK, configs)
 }

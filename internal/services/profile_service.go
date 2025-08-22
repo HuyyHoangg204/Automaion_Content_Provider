@@ -1,9 +1,15 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -12,20 +18,18 @@ import (
 )
 
 type ProfileService struct {
-	profileRepo     *repository.ProfileRepository
-	appRepo         *repository.AppRepository
-	userRepo        *repository.UserRepository
-	boxRepo         *repository.BoxRepository
-	platformWrapper *PlatformWrapperService
+	profileRepo *repository.ProfileRepository
+	appRepo     *repository.AppRepository
+	userRepo    *repository.UserRepository
+	boxRepo     *repository.BoxRepository
 }
 
 func NewProfileService(ctx context.Context, profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
 	return &ProfileService{
-		profileRepo:     profileRepo,
-		appRepo:         appRepo,
-		userRepo:        userRepo,
-		boxRepo:         boxRepo,
-		platformWrapper: NewPlatformWrapperService(*appRepo),
+		profileRepo: profileRepo,
+		appRepo:     appRepo,
+		userRepo:    userRepo,
+		boxRepo:     boxRepo,
 	}
 }
 
@@ -87,8 +91,8 @@ func (s *ProfileService) CreateProfile(ctx context.Context, userID string, req *
 	}
 	req.Data["machine_id"] = box.MachineID
 
-	// Create profile on platform first
-	platformProfile, err := s.platformWrapper.CreateProfileOnPlatform(ctx, platformType, req.AppID, req)
+	// Create profile on platform using box-proxy approach
+	platformProfile, err := s.createProfileOnPlatform(app, platformType, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create profile on %s platform: %w", platformType, err)
 	}
@@ -105,11 +109,11 @@ func (s *ProfileService) CreateProfile(ctx context.Context, userID string, req *
 	}
 
 	// Update profile with platform UUID if available
-	if platformProfile.ID != "" {
+	if platformProfile != nil && platformProfile["uuid"] != "" {
 		if profile.Data == nil {
 			profile.Data = make(map[string]interface{})
 		}
-		profile.Data["uuid"] = platformProfile.ID
+		profile.Data["uuid"] = platformProfile["uuid"]
 
 		// Update the profile with UUID
 		if err := s.profileRepo.Update(profile); err != nil {
@@ -251,13 +255,19 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, userID, profileID st
 		return errors.New("profile not found")
 	}
 
-	// Determine platform from app name
-	platformType := s.determinePlatformFromAppName(profile.App.Name)
-	if platformType == "" {
-		return fmt.Errorf("unsupported platform: %s", profile.App.Name)
+	// Get app to determine platform type
+	app, err := s.appRepo.GetByID(profile.AppID)
+	if err != nil {
+		return fmt.Errorf("failed to get app: %w", err)
 	}
 
-	// You may need to adjust this based on your data model
+	// Determine platform from app name
+	platformType := s.determinePlatformFromAppName(app.Name)
+	if platformType == "" {
+		return fmt.Errorf("unsupported platform: %s", app.Name)
+	}
+
+	// Extract machine_id from profile data
 	machineID := s.getMachineIDFromProfile(profile)
 	if machineID == "" {
 		return fmt.Errorf("machine_id not found for profile")
@@ -265,36 +275,32 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, userID, profileID st
 
 	fmt.Printf("Starting profile deletion on %s for profile ID: %s, Name: %s, MachineID: %s\n", platformType, profileID, profile.Name, machineID)
 
-	// Use platform wrapper to delete profile
-	if err := s.platformWrapper.DeleteProfileOnPlatform(ctx, platformType, profile.AppID, profile, machineID); err != nil {
+	// Delete profile on platform using box-proxy approach
+	if err := s.deleteProfileOnPlatform(app, platformType, profile, machineID); err != nil {
 		return fmt.Errorf("failed to delete profile on %s: %w", platformType, err)
 	}
 
 	fmt.Printf("Profile successfully deleted on %s platform\n", platformType)
-	fmt.Printf("Note: Local database will be updated when user syncs the box\n")
+
+	// Delete profile from local database
+	if err := s.profileRepo.Delete(profile.ID); err != nil {
+		return fmt.Errorf("failed to delete profile from local database: %w", err)
+	}
+
+	fmt.Printf("Profile successfully deleted from local database\n")
 	return nil
 }
 
-// GetDefaultConfigs retrieves default configurations from the platform
-func (s *ProfileService) GetDefaultConfigs(ctx context.Context, userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
-	if platformType == "" {
-		return nil, errors.New("platform type is required")
-	}
-	if boxID == "" {
-		return nil, errors.New("box_id is required")
-	}
-
-	// Verify box belongs to user and get machine_id
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+// GetDefaultConfigsFromPlatform gets default configuration options from a specific platform
+// Now uses HTTP requests to get actual configs from platform
+func (s *ProfileService) GetDefaultConfigsFromPlatform(ctx context.Context, userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
+	// Verify box belongs to user
+	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
 		return nil, fmt.Errorf("box not found or access denied")
 	}
-	machineID := box.MachineID
-	if machineID == "" {
-		return nil, fmt.Errorf("machine_id not found for box")
-	}
 
-	// Get an app from this box to get appID
+	// Get an app from this box to get appID and tunnel URL
 	apps, err := s.appRepo.GetByBoxID(boxID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apps for box: %w", err)
@@ -303,16 +309,73 @@ func (s *ProfileService) GetDefaultConfigs(ctx context.Context, userID, platform
 		return nil, fmt.Errorf("no apps found for box")
 	}
 
-	// Use the first app's ID (assuming all apps in a box use the same platform)
-	appID := apps[0].ID
-
-	// Use platform wrapper to get default configs
-	configs, err := s.platformWrapper.GetDefaultConfigsFromPlatform(ctx, platformType, appID, machineID, page, limit)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get default configs from %s platform: %w", platformType, err)
+	// Use the first app's ID and tunnel URL
+	app := apps[0]
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return nil, fmt.Errorf("tunnel URL not configured for app %s", app.ID)
 	}
 
-	return configs, nil
+	// Build the URL to get default configs from platform
+	var configURL string
+	switch platformType {
+	case "hidemium":
+		configURL = fmt.Sprintf("%s/v2/default-config?page=%d&limit=%d", *app.TunnelURL, page, limit)
+	case "genlogin":
+		configURL = fmt.Sprintf("%s/configs?page=%d&limit=%d", *app.TunnelURL, page, limit)
+	default:
+		return nil, fmt.Errorf("unsupported platform type: %s", platformType)
+	}
+
+	// Make HTTP request to get configs
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	var req *http.Request
+	var err2 error
+
+	// Both platforms use GET method
+	req, err2 = http.NewRequest("GET", configURL, nil)
+	if err2 != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err2)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Green-Controller/1.0")
+
+	// Make the request
+	resp, err2 := client.Do(req)
+	if err2 != nil {
+		return nil, fmt.Errorf("failed to make request to platform: %w", err2)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("platform returned status %d", resp.StatusCode)
+	}
+
+	// Read response body
+	body, err2 := io.ReadAll(resp.Body)
+	if err2 != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err2)
+	}
+
+	// Parse response
+	var platformResponse map[string]interface{}
+	if err2 := json.Unmarshal(body, &platformResponse); err2 != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err2)
+	}
+
+	// Return the platform response with additional metadata
+	result := map[string]interface{}{
+		"platform": platformType,
+		"box_id":   boxID,
+		"page":     page,
+		"limit":    limit,
+		"data":     platformResponse,
+	}
+
+	return result, nil
 }
 
 // determinePlatformFromAppName determines platform type from app name
@@ -325,6 +388,220 @@ func (s *ProfileService) determinePlatformFromAppName(appName string) string {
 	default:
 		return ""
 	}
+}
+
+// createProfileOnPlatform creates a profile on the platform using HTTP requests
+func (s *ProfileService) createProfileOnPlatform(app *models.App, platformType string, req *models.CreateProfileRequest) (map[string]interface{}, error) {
+	// Check if tunnel URL is available
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return nil, fmt.Errorf("tunnel URL not configured for app %s", app.ID)
+	}
+
+	// Build the URL to create profile on platform
+	var profileURL string
+	switch platformType {
+	case "hidemium":
+		profileURL = fmt.Sprintf("%s/create-profile-customize", *app.TunnelURL)
+	case "genlogin":
+		profileURL = fmt.Sprintf("%s/profiles/create", *app.TunnelURL)
+	default:
+		return nil, fmt.Errorf("unsupported platform type: %s", platformType)
+	}
+
+	// Prepare request body for profile creation
+	requestBody := s.buildCreateProfileRequestBody(req)
+
+	// Convert to JSON
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Create POST request to platform API
+	httpReq, err := http.NewRequest("POST", profileURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("User-Agent", "Green-Controller/1.0")
+
+	// Make HTTP request to platform API
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to platform API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("platform API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var platformResponse map[string]interface{}
+	if err := json.Unmarshal(body, &platformResponse); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Extract profile information from response
+	profileData, err := s.extractCreatedProfileFromResponse(platformResponse, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract created profile: %w", err)
+	}
+
+	fmt.Printf("Profile successfully created on %s platform\n", platformType)
+	return profileData, nil
+}
+
+// buildCreateProfileRequestBody builds the request body for platform profile creation
+func (s *ProfileService) buildCreateProfileRequestBody(req *models.CreateProfileRequest) map[string]interface{} {
+	// Start with the original data
+	requestBody := make(map[string]interface{})
+	for key, value := range req.Data {
+		requestBody[key] = value
+	}
+
+	// Add platform-specific fields if needed
+	// This can be customized based on platform requirements
+	return requestBody
+}
+
+// extractCreatedProfileFromResponse extracts profile information from platform response
+func (s *ProfileService) extractCreatedProfileFromResponse(platformResponse map[string]interface{}, req *models.CreateProfileRequest) (map[string]interface{}, error) {
+	// Extract profile information based on platform response structure
+	// This is a simplified version - can be enhanced based on actual platform responses
+
+	profileData := make(map[string]interface{})
+
+	// Try to extract common fields
+	if data, exists := platformResponse["data"]; exists {
+		if profileDataMap, ok := data.(map[string]interface{}); ok {
+			profileData = profileDataMap
+		}
+	}
+
+	// If no data field, use the entire response
+	if len(profileData) == 0 {
+		profileData = platformResponse
+	}
+
+	// Ensure we have at least the name field
+	if profileData["name"] == nil {
+		profileData["name"] = req.Data["name"]
+	}
+
+	return profileData, nil
+}
+
+// deleteProfileOnPlatform deletes a profile on the platform using HTTP requests
+func (s *ProfileService) deleteProfileOnPlatform(app *models.App, platformType string, profile *models.Profile, machineID string) error {
+	// Check if tunnel URL is available
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return fmt.Errorf("tunnel URL not configured for app %s", app.ID)
+	}
+
+	// Extract platform profile ID from profile data
+	platformProfileID := s.getPlatformProfileID(profile)
+	if platformProfileID == "" {
+		return fmt.Errorf("platform profile ID not found")
+	}
+
+	// Build the URL to delete profile on platform
+	var profileURL string
+	switch platformType {
+	case "hidemium":
+		// Hidemium uses POST with form data
+		profileURL = fmt.Sprintf("%s/v1/browser/destroy", *app.TunnelURL)
+	case "genlogin":
+		// GenLogin uses DELETE method
+		profileURL = fmt.Sprintf("%s/profiles/%s", *app.TunnelURL, platformProfileID)
+	default:
+		return fmt.Errorf("unsupported platform type: %s", platformType)
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	var httpReq *http.Request
+	var err error
+
+	if platformType == "hidemium" {
+		// Hidemium uses POST with form data
+		formData := url.Values{}
+		formData.Set("uuid_browser", platformProfileID)
+		formData.Set("machine_id", machineID)
+
+		httpReq, err = http.NewRequest("POST", profileURL, strings.NewReader(formData.Encode()))
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		httpReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else {
+		// GenLogin uses DELETE method
+		httpReq, err = http.NewRequest("DELETE", profileURL, nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+	}
+
+	httpReq.Header.Set("User-Agent", "Green-Controller/1.0")
+
+	// Make HTTP request to platform API
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("failed to connect to platform API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("platform API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	fmt.Printf("Profile successfully deleted on %s platform\n", platformType)
+	return nil
+}
+
+// getPlatformProfileID extracts platform profile ID from profile data
+func (s *ProfileService) getPlatformProfileID(profile *models.Profile) string {
+	if profile.Data == nil {
+		return ""
+	}
+
+	// Try to get UUID from profile data
+	if uuid, exists := profile.Data["uuid"]; exists {
+		if uuidStr, ok := uuid.(string); ok {
+			return uuidStr
+		}
+	}
+
+	// Try alternative field names
+	if uuid, exists := profile.Data["id"]; exists {
+		if uuidStr, ok := uuid.(string); ok {
+			return uuidStr
+		}
+	}
+
+	return ""
 }
 
 // getMachineIDFromProfile extracts machine_id from profile data

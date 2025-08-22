@@ -1,32 +1,32 @@
 package services
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
-	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 )
 
 type BoxService struct {
-	boxRepo         *repository.BoxRepository
-	userRepo        *repository.UserRepository
-	appRepo         *repository.AppRepository
-	profileRepo     *repository.ProfileRepository
-	platformWrapper *PlatformWrapperService
+	boxRepo     *repository.BoxRepository
+	appRepo     *repository.AppRepository
+	profileRepo *repository.ProfileRepository
+	userRepo    *repository.UserRepository
 }
 
-func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserRepository, appRepo *repository.AppRepository, profileRepo *repository.ProfileRepository) *BoxService {
+// NewBoxService creates a new box service
+func NewBoxService(boxRepo *repository.BoxRepository, appRepo *repository.AppRepository, profileRepo *repository.ProfileRepository, userRepo *repository.UserRepository) *BoxService {
 	return &BoxService{
-		boxRepo:         boxRepo,
-		userRepo:        userRepo,
-		appRepo:         appRepo,
-		profileRepo:     profileRepo,
-		platformWrapper: NewPlatformWrapperService(*appRepo),
+		boxRepo:     boxRepo,
+		appRepo:     appRepo,
+		profileRepo: profileRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -65,9 +65,6 @@ func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*mo
 
 // GetBoxesByUserPaginated retrieves paginated boxes for a specific user
 func (s *BoxService) GetBoxesByUserPaginated(userID string, page, pageSize int) ([]*models.BoxResponse, int, error) {
-	// Validate and normalize pagination parameters
-	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
-
 	boxes, total, err := s.boxRepo.GetByUserID(userID, page, pageSize)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get boxes: %w", err)
@@ -99,9 +96,6 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 		return nil, errors.New("box not found")
 	}
 
-	fmt.Printf("Before update - Box ID: %s, Current UserID: %s, Request UserID: %s, Request Name: %s\n",
-		box.ID, box.UserID, req.UserID, req.Name)
-
 	// If updating user_id (transferring ownership)
 	if req.UserID != "" {
 		// Verify that the new user exists
@@ -112,15 +106,12 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 
 		// Update user_id
 		box.UserID = req.UserID
-		fmt.Printf("Updated UserID to: %s\n", box.UserID)
 	}
 
 	// Update name
 	box.Name = req.Name
-	fmt.Printf("Updated Name to: %s\n", box.Name)
 
 	if err := s.boxRepo.Update(box); err != nil {
-		fmt.Printf("Database update error: %v\n", err)
 		return nil, fmt.Errorf("failed to update box: %w", err)
 	}
 
@@ -129,9 +120,6 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 	if err != nil {
 		return nil, fmt.Errorf("failed to get updated box: %w", err)
 	}
-
-	fmt.Printf("After update - Box ID: %s, UserID: %s, Name: %s\n",
-		updatedBox.ID, updatedBox.UserID, updatedBox.Name)
 
 	return s.toResponse(updatedBox), nil
 }
@@ -176,11 +164,17 @@ func (s *BoxService) GetBoxByMachineID(machineID string) (*models.BoxResponse, e
 	return s.toResponse(box), nil
 }
 
-// syncBoxProfilesInternal is a common method to sync profiles for a single box
-// This method is used by both SyncSingleBoxProfiles and SyncAllUserBoxes
-func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxProfilesResponse, error) {
+// SyncSingleBoxProfiles syncs all profiles from a single box's platform instance
+// Now uses box-proxy endpoint for platform operations
+func (s *BoxService) SyncSingleBoxProfiles(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
+	// Get box by ID and verify ownership
+	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+	if err != nil {
+		return nil, errors.New("box not found")
+	}
+
 	// Get all apps for this box
-	apps, err := s.appRepo.GetByBoxID(box.ID)
+	apps, err := s.appRepo.GetByBoxID(boxID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apps for box: %w", err)
 	}
@@ -190,8 +184,8 @@ func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxPr
 	}
 
 	// Sync all apps in this box
-	var allPlatformProfiles []models.HidemiumProfile
 	var totalProfilesCreated, totalProfilesUpdated, totalProfilesDeleted int
+	var totalProfilesSynced int
 	var unsupportedPlatforms []string
 
 	for _, app := range apps {
@@ -205,14 +199,14 @@ func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxPr
 
 		fmt.Printf("Starting sync for box %s (MachineID: %s) on platform %s for app %s\n", box.ID, box.MachineID, platformType, app.Name)
 
-		// Use platform wrapper to sync profiles from platform
-		platformProfiles, err := s.platformWrapper.SyncProfilesFromPlatform(context.Background(), platformType, app.ID, box.ID, box.MachineID)
+		// Use box-proxy approach to get profiles from platform
+		platformProfiles, err := s.getProfilesFromPlatformViaProxy(app, platformType)
 		if err != nil {
-			fmt.Printf("Warning: Failed to sync profiles from %s for app %s: %v\n", platformType, app.Name, err)
+			fmt.Printf("Warning: Failed to get profiles from %s for app %s: %v\n", platformType, app.Name, err)
 			continue
 		}
 
-		fmt.Printf("Successfully synced %d profiles from %s for app %s in box %s\n", len(platformProfiles), platformType, app.Name, box.ID)
+		fmt.Printf("Successfully got %d profiles from %s for app %s in box %s\n", len(platformProfiles), platformType, app.Name, box.ID)
 
 		// Process synced profiles and update local database
 		appSyncResult, err := s.processSyncedProfiles(app.ID, platformProfiles)
@@ -222,10 +216,10 @@ func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxPr
 		}
 
 		// Accumulate results
-		allPlatformProfiles = append(allPlatformProfiles, platformProfiles...)
 		totalProfilesCreated += appSyncResult.ProfilesCreated
 		totalProfilesUpdated += appSyncResult.ProfilesUpdated
 		totalProfilesDeleted += appSyncResult.ProfilesDeleted
+		totalProfilesSynced += len(platformProfiles)
 	}
 
 	// Create combined sync result
@@ -233,7 +227,7 @@ func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxPr
 		ProfilesCreated: totalProfilesCreated,
 		ProfilesUpdated: totalProfilesUpdated,
 		ProfilesDeleted: totalProfilesDeleted,
-		ProfilesSynced:  len(allPlatformProfiles),
+		ProfilesSynced:  totalProfilesSynced,
 	}
 
 	// Update response with sync results
@@ -250,21 +244,253 @@ func (s *BoxService) syncBoxProfilesInternal(box *models.Box) (*models.SyncBoxPr
 	return syncResult, nil
 }
 
-// SyncSingleBoxProfiles syncs all profiles from a single box's platform instance
-// Supports multiple platforms through platform system
-func (s *BoxService) SyncSingleBoxProfiles(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
-	// Get box by ID and verify ownership
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
+// SyncAllUserBoxes syncs profiles from all boxes owned by a user
+// Now uses box-proxy endpoint for platform operations
+func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncBoxProfilesResponse, error) {
+	// Get all boxes for user (with pagination, using large limit to get all)
+	boxes, _, err := s.boxRepo.GetByUserID(userID, 1, 1000)
 	if err != nil {
-		return nil, errors.New("box not found")
+		return nil, fmt.Errorf("failed to get user boxes: %w", err)
 	}
 
-	// Use the common internal method
-	return s.syncBoxProfilesInternal(box)
+	if len(boxes) == 0 {
+		return nil, errors.New("no boxes found for user")
+	}
+
+	// Counters for overall response
+	totalProfiles := 0
+	totalProfilesCreated := 0
+	totalProfilesUpdated := 0
+	totalProfilesDeleted := 0
+	boxesSynced := 0
+
+	// Sync each box
+	for _, box := range boxes {
+		// Use the single box sync method
+		syncResponse, err := s.SyncSingleBoxProfiles(userID, box.ID)
+		if err != nil {
+			fmt.Printf("Warning: Failed to sync box %s: %v\n", box.ID, err)
+			continue
+		}
+
+		// Box synced successfully
+		boxesSynced++
+		totalProfiles += syncResponse.ProfilesSynced
+		totalProfilesCreated += syncResponse.ProfilesCreated
+		totalProfilesUpdated += syncResponse.ProfilesUpdated
+		totalProfilesDeleted += syncResponse.ProfilesDeleted
+	}
+
+	// Note: Profile syncing is now handled through box-proxy endpoint
+	// This method aggregates results from individual box syncs
+	return &models.SyncBoxProfilesResponse{
+		ProfilesCreated: totalProfilesCreated,
+		ProfilesUpdated: totalProfilesUpdated,
+		ProfilesDeleted: totalProfilesDeleted,
+		ProfilesSynced:  totalProfiles,
+		Message:         fmt.Sprintf("Sync completed: %d/%d boxes synced, %d profiles processed", boxesSynced, len(boxes), totalProfiles),
+	}, nil
+}
+
+// toResponse converts Box model to response DTO
+func (s *BoxService) toResponse(box *models.Box) *models.BoxResponse {
+	return &models.BoxResponse{
+		ID:        box.ID,
+		UserID:    box.UserID,
+		MachineID: box.MachineID,
+		Name:      box.Name,
+		CreatedAt: box.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: box.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+// GetBoxRepo returns the box repository
+func (s *BoxService) GetBoxRepo() *repository.BoxRepository {
+	return s.boxRepo
+}
+
+// determinePlatformFromAppName determines platform type from app name
+func (s *BoxService) determinePlatformFromAppName(appName string) string {
+	appNameLower := strings.ToLower(appName)
+
+	switch {
+	case strings.Contains(appNameLower, "hidemium"):
+		return "hidemium"
+	case strings.Contains(appNameLower, "genlogin"):
+		return "genlogin"
+	default:
+		return ""
+	}
+}
+
+// getProfilesFromPlatformViaProxy gets profiles from platform using HTTP request to the platform
+func (s *BoxService) getProfilesFromPlatformViaProxy(app *models.App, platformType string) ([]map[string]interface{}, error) {
+	// Check if tunnel URL is available
+	if app.TunnelURL == nil || *app.TunnelURL == "" {
+		return nil, fmt.Errorf("tunnel URL not configured for app %s", app.ID)
+	}
+
+	// Build the URL to get profiles from platform
+	var profileURL string
+	switch platformType {
+	case "hidemium":
+		profileURL = fmt.Sprintf("%s/v1/browser/list", *app.TunnelURL)
+	case "genlogin":
+		profileURL = fmt.Sprintf("%s/profiles/list", *app.TunnelURL)
+	default:
+		return nil, fmt.Errorf("unsupported platform type: %s", platformType)
+	}
+
+	// Make HTTP request to get profiles
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	var req *http.Request
+	var err error
+
+	// Hidemium uses POST, GenLogin uses GET
+	if platformType == "hidemium" {
+		req, err = http.NewRequest("POST", profileURL, nil)
+	} else {
+		req, err = http.NewRequest("GET", profileURL, nil)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Green-Controller/1.0")
+
+	// Make the request
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request to platform: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("platform returned status %d", resp.StatusCode)
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse response based on platform
+	var profiles []map[string]interface{}
+
+	switch platformType {
+	case "hidemium":
+		profiles, err = s.parseHidemiumProfilesResponse(body)
+	case "genlogin":
+		profiles, err = s.parseGenLoginProfilesResponse(body)
+	default:
+		return nil, fmt.Errorf("unsupported platform type for parsing: %s", platformType)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse profiles response: %w", err)
+	}
+
+	return profiles, nil
+}
+
+// parseHidemiumProfilesResponse parses Hidemium profiles response
+func (s *BoxService) parseHidemiumProfilesResponse(body []byte) ([]map[string]interface{}, error) {
+	var response map[string]interface{}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal Hidemium response: %w", err)
+	}
+
+	// Extract profiles from response
+	var profiles []map[string]interface{}
+
+	// Try different possible field names for profiles
+	possibleFields := []string{"data", "profiles", "result", "browsers", "list"}
+
+	for _, field := range possibleFields {
+		if data, exists := response[field]; exists {
+			// Handle nested structure: data.content for Hidemium
+			if field == "data" {
+				if dataMap, ok := data.(map[string]interface{}); ok {
+					// Try to find profiles in data.content
+					if content, exists := dataMap["content"]; exists {
+						if profilesData, ok := content.([]interface{}); ok {
+							for _, profileData := range profilesData {
+								if profile, ok := profileData.(map[string]interface{}); ok {
+									profiles = append(profiles, profile)
+								}
+							}
+							if len(profiles) > 0 {
+								break
+							}
+						}
+					}
+				}
+			}
+
+			// Handle direct array of profiles
+			if profilesData, ok := data.([]interface{}); ok {
+				for _, profileData := range profilesData {
+					if profile, ok := profileData.(map[string]interface{}); ok {
+						profiles = append(profiles, profile)
+					}
+				}
+				if len(profiles) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if len(profiles) == 0 {
+		fmt.Printf("No profiles found in response\n")
+	}
+
+	return profiles, nil
+}
+
+// parseGenLoginProfilesResponse parses GenLogin profiles response
+func (s *BoxService) parseGenLoginProfilesResponse(body []byte) ([]map[string]interface{}, error) {
+	var response map[string]interface{}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal GenLogin response: %w", err)
+	}
+
+	// Extract profiles from response
+	var profiles []map[string]interface{}
+
+	// Try different possible field names
+	possibleFields := []string{"data", "profiles", "result", "list"}
+
+	for _, field := range possibleFields {
+		if data, exists := response[field]; exists {
+			if profilesData, ok := data.([]interface{}); ok {
+				for _, profileData := range profilesData {
+					if profile, ok := profileData.(map[string]interface{}); ok {
+						profiles = append(profiles, profile)
+					}
+				}
+				if len(profiles) > 0 {
+					break
+				}
+			}
+		}
+	}
+
+	if len(profiles) == 0 {
+		fmt.Printf("No profiles found in response\n")
+	}
+
+	return profiles, nil
 }
 
 // processSyncedProfiles processes profiles synced from platform and updates local database
-func (s *BoxService) processSyncedProfiles(appID string, platformProfiles []models.HidemiumProfile) (*models.SyncBoxProfilesResponse, error) {
+func (s *BoxService) processSyncedProfiles(appID string, platformProfiles []map[string]interface{}) (*models.SyncBoxProfilesResponse, error) {
 	result := &models.SyncBoxProfilesResponse{
 		ProfilesCreated: 0,
 		ProfilesUpdated: 0,
@@ -289,7 +515,7 @@ func (s *BoxService) processSyncedProfiles(appID string, platformProfiles []mode
 	// Process each platform profile
 	for _, platformProfile := range platformProfiles {
 		if err := s.processPlatformProfile(appID, platformProfile, existingProfilesMap, result); err != nil {
-			fmt.Printf("Warning: Failed to process profile %s: %v\n", platformProfile.ID, err)
+			fmt.Printf("Warning: Failed to process profile: %v\n", err)
 			continue
 		}
 	}
@@ -301,9 +527,9 @@ func (s *BoxService) processSyncedProfiles(appID string, platformProfiles []mode
 }
 
 // processPlatformProfile processes a single platform profile
-func (s *BoxService) processPlatformProfile(appID string, platformProfile models.HidemiumProfile, existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) error {
+func (s *BoxService) processPlatformProfile(appID string, platformProfile map[string]interface{}, existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) error {
 	// Extract UUID from platform profile
-	uuid := platformProfile.ID
+	uuid := s.extractUUIDFromPlatformProfile(platformProfile)
 	if uuid == "" {
 		return fmt.Errorf("platform profile has no UUID")
 	}
@@ -331,53 +557,40 @@ func (s *BoxService) processPlatformProfile(appID string, platformProfile models
 }
 
 // createNewProfile creates a new profile from platform data
-func (s *BoxService) createNewProfile(appID string, platformProfile models.HidemiumProfile) error {
-	// Prepare profile data with platform information
-	profileData := map[string]interface{}{
-		"uuid":       platformProfile.ID,
-		"name":       platformProfile.Name,
-		"created_at": platformProfile.CreatedAt,
-		"updated_at": platformProfile.UpdatedAt,
-		"is_active":  platformProfile.IsActive,
-		// Add machine_id from box for future profile operations
-		"machine_id": s.getMachineIDFromApp(appID),
+func (s *BoxService) createNewProfile(appID string, platformProfile map[string]interface{}) error {
+	// Extract profile name
+	profileName, ok := platformProfile["name"].(string)
+	if !ok {
+		profileName = "Unknown Profile"
 	}
 
-	// Merge with platform profile data
-	for key, value := range platformProfile.Data {
-		profileData[key] = value
-	}
-
+	// Create profile in database
 	profile := &models.Profile{
 		AppID: appID,
-		Name:  platformProfile.Name,
-		Data:  profileData,
+		Name:  profileName,
+		Data:  platformProfile,
 	}
 
 	return s.profileRepo.Create(profile)
 }
 
 // updateExistingProfile updates an existing profile with platform data
-func (s *BoxService) updateExistingProfile(existingProfile *models.Profile, platformProfile models.HidemiumProfile) error {
+func (s *BoxService) updateExistingProfile(existingProfile *models.Profile, platformProfile map[string]interface{}) error {
 	// Update profile data with latest platform information
 	if existingProfile.Data == nil {
 		existingProfile.Data = make(map[string]interface{})
 	}
 
-	// Update platform-specific fields
-	existingProfile.Data["uuid"] = platformProfile.ID
-	existingProfile.Data["name"] = platformProfile.Name
-	existingProfile.Data["updated_at"] = platformProfile.UpdatedAt
-	existingProfile.Data["is_active"] = platformProfile.IsActive
-
-	// Merge with platform profile data
-	for key, value := range platformProfile.Data {
+	// Merge platform data
+	for key, value := range platformProfile {
 		existingProfile.Data[key] = value
 	}
 
 	// Update name if changed
-	if existingProfile.Name != platformProfile.Name {
-		existingProfile.Name = platformProfile.Name
+	if name, exists := platformProfile["name"]; exists {
+		if nameStr, ok := name.(string); ok && nameStr != existingProfile.Name {
+			existingProfile.Name = nameStr
+		}
 	}
 
 	return s.profileRepo.Update(existingProfile)
@@ -385,16 +598,12 @@ func (s *BoxService) updateExistingProfile(existingProfile *models.Profile, plat
 
 // markDeletedProfiles marks profiles as deleted if they no longer exist on platform
 func (s *BoxService) markDeletedProfiles(existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) {
-	for uuid, profile := range existingProfilesMap {
+	for _, profile := range existingProfilesMap {
 		// Profile exists in local DB but not on platform - delete it
-		fmt.Printf("Deleting profile %s (%s) as it no longer exists on platform\n", profile.Name, uuid)
-
 		if err := s.profileRepo.Delete(profile.ID); err != nil {
 			fmt.Printf("Warning: Failed to delete profile %s: %v\n", profile.Name, err)
 			continue
 		}
-
-		fmt.Printf("Successfully deleted profile %s from database\n", profile.Name)
 		result.ProfilesDeleted++
 	}
 }
@@ -422,124 +631,18 @@ func (s *BoxService) extractUUID(profile *models.Profile) string {
 	return ""
 }
 
-// getMachineIDFromApp gets machine_id from app's box
-func (s *BoxService) getMachineIDFromApp(appID string) string {
-	// Get app to find box
-	app, err := s.appRepo.GetByID(appID)
-	if err != nil {
-		fmt.Printf("Warning: Failed to get app %s: %v\n", appID, err)
-		return ""
-	}
+// extractUUIDFromPlatformProfile extracts UUID from platform profile data
+func (s *BoxService) extractUUIDFromPlatformProfile(platformProfile map[string]interface{}) string {
+	// Try different possible field names for UUID
+	possibleUUIDFields := []string{"uuid", "id", "browser_id", "profile_id", "browser_uuid", "profile_uuid"}
 
-	// Get box to find machine_id
-	box, err := s.boxRepo.GetByID(app.BoxID)
-	if err != nil {
-		fmt.Printf("Warning: Failed to get box %s: %v\n", app.BoxID, err)
-		return ""
-	}
-
-	return box.MachineID
-}
-
-// determinePlatformFromAppName determines platform type from app name
-func (s *BoxService) determinePlatformFromAppName(appName string) string {
-	switch appName {
-	case "Hidemium":
-		return "hidemium"
-	case "Genlogin":
-		return "genlogin"
-	default:
-		return ""
-	}
-}
-
-// SyncAllUserBoxes syncs all boxes for a specific user
-func (s *BoxService) SyncAllUserBoxes(userID string) (*models.SyncAllUserBoxesResponse, error) {
-	// Get all boxes for the user (for sync operation, we need all boxes)
-	boxes, err := s.boxRepo.GetAllByUserID(userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user boxes: %w", err)
-	}
-
-	if len(boxes) == 0 {
-		return &models.SyncAllUserBoxesResponse{
-			UserID:          userID,
-			TotalBoxes:      0,
-			BoxesSynced:     0,
-			TotalProfiles:   0,
-			ProfilesCreated: 0,
-			ProfilesUpdated: 0,
-			ProfilesDeleted: 0,
-			Message:         "No boxes found for user",
-		}, nil
-	}
-
-	// Counters for overall response
-	totalProfiles := 0
-	totalProfilesCreated := 0
-	totalProfilesUpdated := 0
-	totalProfilesDeleted := 0
-	boxesSynced := 0
-	boxResults := make([]models.BoxSyncResult, 0)
-
-	// Sync each box
-	for _, box := range boxes {
-		// Use the common internal method
-		syncResponse, err := s.syncBoxProfilesInternal(box)
-		if err != nil {
-			boxResults = append(boxResults, models.BoxSyncResult{
-				BoxID:     box.ID,
-				MachineID: box.MachineID,
-				Name:      box.Name,
-				Success:   false,
-				Error:     err.Error(),
-			})
-			continue
+	for _, field := range possibleUUIDFields {
+		if uuid, exists := platformProfile[field]; exists {
+			if uuidStr, ok := uuid.(string); ok && uuidStr != "" {
+				return uuidStr
+			}
 		}
-
-		// Box synced successfully
-		boxesSynced++
-		totalProfiles += syncResponse.ProfilesSynced
-		totalProfilesCreated += syncResponse.ProfilesCreated
-		totalProfilesUpdated += syncResponse.ProfilesUpdated
-		totalProfilesDeleted += syncResponse.ProfilesDeleted
-
-		boxResults = append(boxResults, models.BoxSyncResult{
-			BoxID:           box.ID,
-			MachineID:       box.MachineID,
-			Name:            box.Name,
-			Success:         true,
-			ProfilesSynced:  syncResponse.ProfilesSynced,
-			ProfilesCreated: syncResponse.ProfilesCreated,
-			ProfilesUpdated: syncResponse.ProfilesUpdated,
-			ProfilesDeleted: syncResponse.ProfilesDeleted,
-		})
 	}
 
-	// Create overall response
-	response := &models.SyncAllUserBoxesResponse{
-		UserID:          userID,
-		TotalBoxes:      len(boxes),
-		BoxesSynced:     boxesSynced,
-		TotalProfiles:   totalProfiles,
-		ProfilesCreated: totalProfilesCreated,
-		ProfilesUpdated: totalProfilesUpdated,
-		ProfilesDeleted: totalProfilesDeleted,
-		BoxResults:      boxResults,
-		Message:         fmt.Sprintf("Sync completed: %d/%d boxes synced, %d profiles processed", boxesSynced, len(boxes), totalProfiles),
-	}
-
-	return response, nil
-}
-
-// toResponse converts Box model to response DTO
-func (s *BoxService) toResponse(box *models.Box) *models.BoxResponse {
-	return &models.BoxResponse{
-		ID:        box.ID,
-		UserID:    box.UserID,
-		MachineID: box.MachineID,
-		Name:      box.Name,
-		CreatedAt: box.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: box.UpdatedAt.Format(time.RFC3339),
-	}
+	return ""
 }
