@@ -71,7 +71,7 @@ func (pws *PlatformWrapperService) SyncProfilesFromPlatformForBox(ctx context.Co
 		return nil, err
 	}
 
-	return platform.SyncBoxProfilesFromPlatform(appID, boxID, machineID)
+	return platform.SyncBoxProfilesFromPlatform(appID)
 }
 
 // GetDefaultConfigsFromPlatform retrieves default configurations from a specific platform
@@ -111,7 +111,7 @@ func (pws *PlatformWrapperService) getProfilePlatform(platformType string) (inte
 
 // getBoxPlatform gets a box platform instance (simplified)
 func (pws *PlatformWrapperService) getBoxPlatform(platformType string) (interface {
-	SyncBoxProfilesFromPlatform(appID string, boxID string, machineID string) ([]models.HidemiumProfile, error)
+	SyncBoxProfilesFromPlatform(appID string) ([]models.HidemiumProfile, error)
 }, error) {
 	switch platformType {
 	case "hidemium":

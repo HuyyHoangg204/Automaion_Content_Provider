@@ -45,8 +45,12 @@ func (h *AppHandler) CreateApp(c *gin.Context) {
 
 	response, err := h.appService.CreateApp(userID, &req)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		// Check if it's an AppAlreadyExistsError
+		if appExistsErr, ok := err.(*services.AppAlreadyExistsError); ok {
+			c.JSON(http.StatusConflict, gin.H{
+				"error":           appExistsErr.Message,
+				"existing_app_id": appExistsErr.ExistingAppID,
+			})
 			return
 		}
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {

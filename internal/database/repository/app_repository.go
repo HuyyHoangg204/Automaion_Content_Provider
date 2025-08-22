@@ -85,6 +85,16 @@ func (r *AppRepository) CheckNameExistsInBox(boxID, name string) (bool, error) {
 	return count > 0, err
 }
 
+// GetByNameAndBoxID retrieves an app by name and box ID
+func (r *AppRepository) GetByNameAndBoxID(boxID, name string) (*models.App, error) {
+	var app models.App
+	err := r.db.Where("box_id = ? AND name = ?", boxID, name).First(&app).Error
+	if err != nil {
+		return nil, err
+	}
+	return &app, nil
+}
+
 // GetAll retrieves all apps (admin only)
 func (r *AppRepository) GetAll() ([]*models.App, error) {
 	var apps []*models.App
