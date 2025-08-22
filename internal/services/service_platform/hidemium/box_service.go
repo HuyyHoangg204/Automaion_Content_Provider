@@ -60,9 +60,7 @@ func (s *BoxService) ListBoxes(ctx context.Context, filters map[string]interface
 }
 
 // SyncBoxProfilesFromPlatform syncs profiles from Hidemium platform for a specific box
-func (s *BoxService) SyncBoxProfilesFromPlatform(appID string, boxID string, machineID string) ([]models.HidemiumProfile, error) {
-	fmt.Printf("Starting profile sync from Hidemium for box ID: %s (MachineID: %s)\n", boxID, machineID)
-
+func (s *BoxService) SyncBoxProfilesFromPlatform(appID string) ([]models.HidemiumProfile, error) {
 	// Get app to get tunnel_url from database
 	app, err := s.appRepo.GetByID(appID)
 	if err != nil {
@@ -124,8 +122,6 @@ func (s *BoxService) SyncBoxProfilesFromPlatform(appID string, boxID string, mac
 
 	// Extract profiles from response
 	hidemiumProfiles := s.extractProfilesFromResponse(rawResponse, body)
-
-	fmt.Printf("Successfully fetched %d profiles from Hidemium for box %s\n", len(hidemiumProfiles), boxID)
 
 	// Return the fetched profiles - the main service will handle database operations
 	return hidemiumProfiles, nil
