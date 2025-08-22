@@ -11,7 +11,18 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"gorm.io/gorm"
 )
+
+// AppAlreadyExistsError represents an error when trying to create an app that already exists
+type AppAlreadyExistsError struct {
+	Message       string `json:"message"`
+	ExistingAppID string `json:"existing_app_id"`
+}
+
+func (e *AppAlreadyExistsError) Error() string {
+	return e.Message
+}
 
 type AppService struct {
 	appRepo  *repository.AppRepository
@@ -42,12 +53,15 @@ func (s *AppService) CreateApp(userID string, req *models.CreateAppRequest) (*mo
 	}
 
 	// Check if app name already exists in this box
-	exists, err := s.appRepo.CheckNameExistsInBox(req.BoxID, req.Name)
-	if err != nil {
+	existingApp, err := s.appRepo.GetByNameAndBoxID(req.BoxID, req.Name)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("failed to check app name: %w", err)
 	}
-	if exists {
-		return nil, fmt.Errorf("app with name '%s' already exists in this box", req.Name)
+	if existingApp != nil {
+		return nil, &AppAlreadyExistsError{
+			Message:       fmt.Sprintf("app with name '%s' already exists in this box", req.Name),
+			ExistingAppID: existingApp.ID,
+		}
 	}
 
 	// Create app
@@ -119,12 +133,15 @@ func (s *AppService) UpdateApp(userID, appID string, req *models.UpdateAppReques
 
 	// Check if new name already exists in this box (if name is being changed)
 	if req.Name != app.Name {
-		exists, err := s.appRepo.CheckNameExistsInBox(app.BoxID, req.Name)
-		if err != nil {
+		existingApp, err := s.appRepo.GetByNameAndBoxID(app.BoxID, req.Name)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("failed to check app name: %w", err)
 		}
-		if exists {
-			return nil, fmt.Errorf("app with name '%s' already exists in this box", req.Name)
+		if existingApp != nil {
+			return nil, &AppAlreadyExistsError{
+				Message:       fmt.Sprintf("app with name '%s' already exists in this box", req.Name),
+				ExistingAppID: existingApp.ID,
+			}
 		}
 	}
 
