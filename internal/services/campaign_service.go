@@ -188,6 +188,12 @@ func (s *CampaignService) DeleteCampaign(userID, campaignID string) error {
 		return errors.New("campaign not found")
 	}
 
+	// Clear profile associations first (doesn't delete profiles)
+	if err := s.campaignRepo.ClearProfileAssociations(campaignID); err != nil {
+		return fmt.Errorf("failed to clear profile associations: %w", err)
+	}
+
+	// Now delete the campaign
 	if err := s.campaignRepo.DeleteByUserIDAndID(userID, campaignID); err != nil {
 		return fmt.Errorf("failed to delete campaign: %w", err)
 	}

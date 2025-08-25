@@ -78,3 +78,15 @@ func (r *CampaignRepository) GetAll() ([]*models.Campaign, error) {
 func (r *CampaignRepository) UpdateAssociations(campaign *models.Campaign, profiles []*models.Profile) error {
 	return r.db.Model(campaign).Association("Profiles").Replace(profiles)
 }
+
+// ClearProfileAssociations removes profile associations for a campaign (doesn't delete profiles)
+func (r *CampaignRepository) ClearProfileAssociations(campaignID string) error {
+	// First get the campaign to have the full model
+	var campaign models.Campaign
+	if err := r.db.First(&campaign, "id = ?", campaignID).Error; err != nil {
+		return err
+	}
+
+	// Clear the associations using the loaded model
+	return r.db.Model(&campaign).Association("Profiles").Clear()
+}
