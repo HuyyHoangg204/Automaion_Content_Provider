@@ -13,13 +13,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type BoxProxyHandler struct {
-	boxProxyService *services.BoxProxyService
+type AppProxyHandler struct {
+	appProxyService *services.AppProxyService
 }
 
-func NewBoxProxyHandler(boxRepo *repository.BoxRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository) *BoxProxyHandler {
-	return &BoxProxyHandler{
-		boxProxyService: services.NewBoxProxyService(appRepo, boxRepo, userRepo),
+func NewAppProxyHandler(boxRepo *repository.BoxRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository) *AppProxyHandler {
+	return &AppProxyHandler{
+		appProxyService: services.NewAppProxyService(appRepo, boxRepo, userRepo),
 	}
 }
 
@@ -45,33 +45,33 @@ func NewBoxProxyHandler(boxRepo *repository.BoxRepository, appRepo *repository.A
 // @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [post]
 // @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [put]
 // @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [delete]
-func (h *BoxProxyHandler) ProxyRequest(c *gin.Context) {
+func (h *AppProxyHandler) ProxyRequest(c *gin.Context) {
 	userID := c.GetString("user_id")
 	appID := c.Param("app_id")
 	platformPath := c.Param("platform_path")
 
 	// Validate request using service - check app ownership
-	app, err := h.boxProxyService.ValidateAppProxyRequest(userID, appID)
+	app, err := h.appProxyService.ValidateAppProxyRequest(userID, appID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Determine platform type from app name
-	platformType := h.boxProxyService.GetPlatformType(app.Name)
+	platformType := h.appProxyService.GetPlatformType(app.Name)
 	if platformType == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported platform type"})
 		return
 	}
 
 	// Validate platform path
-	if !h.boxProxyService.ValidatePlatformPath(platformType, platformPath) {
+	if !h.appProxyService.ValidatePlatformPath(platformType, platformPath) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid platform path"})
 		return
 	}
 
 	// Build target URL
-	targetURL := h.boxProxyService.BuildTargetURL(*app.TunnelURL, platformType, platformPath)
+	targetURL := h.appProxyService.BuildTargetURL(*app.TunnelURL, platformType, platformPath)
 
 	// Forward the request
 	response, err := h.forwardRequest(c, targetURL, platformType)
@@ -86,7 +86,7 @@ func (h *BoxProxyHandler) ProxyRequest(c *gin.Context) {
 }
 
 // forwardRequest forwards the HTTP request to the target platform
-func (h *BoxProxyHandler) forwardRequest(c *gin.Context, targetURL, platformType string) ([]byte, error) {
+func (h *AppProxyHandler) forwardRequest(c *gin.Context, targetURL, platformType string) ([]byte, error) {
 	// Get request method and headers
 	method := c.Request.Method
 	headers := c.Request.Header
@@ -153,7 +153,7 @@ func (h *BoxProxyHandler) forwardRequest(c *gin.Context, targetURL, platformType
 }
 
 // shouldSkipHeader determines if a header should be skipped when forwarding
-func (h *BoxProxyHandler) shouldSkipHeader(key string) bool {
+func (h *AppProxyHandler) shouldSkipHeader(key string) bool {
 	skipHeaders := []string{
 		"Host",
 		"Content-Length",
@@ -174,7 +174,7 @@ func (h *BoxProxyHandler) shouldSkipHeader(key string) bool {
 }
 
 // setPlatformHeaders sets platform-specific headers
-func (h *BoxProxyHandler) setPlatformHeaders(req *http.Request, platformType string) {
+func (h *AppProxyHandler) setPlatformHeaders(req *http.Request, platformType string) {
 	switch platformType {
 	case "hidemium":
 		// Hidemium specific headers if needed

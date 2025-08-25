@@ -9,14 +9,14 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
-type BoxProxyService struct {
+type AppProxyService struct {
 	appRepo  *repository.AppRepository
 	boxRepo  *repository.BoxRepository
 	userRepo *repository.UserRepository
 }
 
-func NewBoxProxyService(appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *BoxProxyService {
-	return &BoxProxyService{
+func NewAppProxyService(appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *AppProxyService {
+	return &AppProxyService{
 		appRepo:  appRepo,
 		boxRepo:  boxRepo,
 		userRepo: userRepo,
@@ -24,7 +24,7 @@ func NewBoxProxyService(appRepo *repository.AppRepository, boxRepo *repository.B
 }
 
 // ValidateAppProxyRequest validates if user can access the app directly
-func (s *BoxProxyService) ValidateAppProxyRequest(userID, appID string) (*models.App, error) {
+func (s *AppProxyService) ValidateAppProxyRequest(userID, appID string) (*models.App, error) {
 	// Get app by ID
 	app, err := s.appRepo.GetByID(appID)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *BoxProxyService) ValidateAppProxyRequest(userID, appID string) (*models
 }
 
 // GetPlatformType determines the platform type from app name
-func (s *BoxProxyService) GetPlatformType(appName string) string {
+func (s *AppProxyService) GetPlatformType(appName string) string {
 	appNameLower := strings.ToLower(appName)
 
 	switch {
@@ -65,7 +65,7 @@ func (s *BoxProxyService) GetPlatformType(appName string) string {
 }
 
 // BuildTargetURL builds the target URL for the platform
-func (s *BoxProxyService) BuildTargetURL(baseURL, platformType, platformPath string) string {
+func (s *AppProxyService) BuildTargetURL(baseURL, platformType, platformPath string) string {
 	// Remove trailing slash from base URL if present
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
@@ -83,7 +83,7 @@ func (s *BoxProxyService) BuildTargetURL(baseURL, platformType, platformPath str
 }
 
 // GetPlatformConfig returns platform-specific configuration
-func (s *BoxProxyService) GetPlatformConfig(platformType string) map[string]interface{} {
+func (s *AppProxyService) GetPlatformConfig(platformType string) map[string]interface{} {
 	switch platformType {
 	case "hidemium":
 		return map[string]interface{}{
@@ -107,7 +107,7 @@ func (s *BoxProxyService) GetPlatformConfig(platformType string) map[string]inte
 }
 
 // ValidatePlatformPath validates if the platform path is allowed
-func (s *BoxProxyService) ValidatePlatformPath(platformType, platformPath string) bool {
+func (s *AppProxyService) ValidatePlatformPath(platformType, platformPath string) bool {
 	// Trim leading slash from platformPath for consistent comparison
 	platformPath = strings.TrimPrefix(platformPath, "/")
 
