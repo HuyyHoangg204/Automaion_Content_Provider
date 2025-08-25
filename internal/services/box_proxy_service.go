@@ -23,33 +23,6 @@ func NewBoxProxyService(appRepo *repository.AppRepository, boxRepo *repository.B
 	}
 }
 
-// ValidateBoxProxyRequest validates the box proxy request
-func (s *BoxProxyService) ValidateBoxProxyRequest(userID, boxID, appID string) (*models.Box, *models.App, error) {
-	// Check if user owns the box
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("box not found or access denied")
-	}
-
-	// Get app details
-	app, err := s.appRepo.GetByID(appID)
-	if err != nil {
-		return nil, nil, fmt.Errorf("app not found")
-	}
-
-	// Verify app belongs to the box
-	if app.BoxID != boxID {
-		return nil, nil, fmt.Errorf("app does not belong to the specified box")
-	}
-
-	// Check if tunnel URL is available
-	if app.TunnelURL == nil || *app.TunnelURL == "" {
-		return nil, nil, fmt.Errorf("tunnel URL not configured for this app")
-	}
-
-	return box, app, nil
-}
-
 // ValidateAppProxyRequest validates if user can access the app directly
 func (s *BoxProxyService) ValidateAppProxyRequest(userID, appID string) (*models.App, error) {
 	// Get app by ID
