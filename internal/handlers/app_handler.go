@@ -20,14 +20,12 @@ func NewAppHandler(db *gorm.DB) *AppHandler {
 	userRepo := repository.NewUserRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
-	
+
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	return &AppHandler{
 		appService: appService,
 	}
 }
-
-
 
 // CreateApp godoc
 // @Summary Create a new app

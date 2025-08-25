@@ -87,13 +87,6 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				authProtected.POST("/change-password", authHandler.ChangePassword)
 			}
 
-			// User routes
-			users := protected.Group("/users")
-			{
-				// Get current user info
-				users.GET("/me", authHandler.GetProfile)
-			}
-
 			// Box routes
 			boxes := protected.Group("/boxes")
 			{

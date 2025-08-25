@@ -23,14 +23,12 @@ func NewProfileHandler(db *gorm.DB) *ProfileHandler {
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
-	
+
 	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
 	return &ProfileHandler{
 		profileService: profileService,
 	}
 }
-
-
 
 // CreateProfile godoc
 // @Summary Create a new profile
