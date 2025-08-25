@@ -7,20 +7,30 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
+	"gorm.io/gorm"
 )
 
 type ProfileHandler struct {
 	profileService *services.ProfileService
 }
 
-func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler {
+func NewProfileHandler(db *gorm.DB) *ProfileHandler {
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+	
+	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
 	return &ProfileHandler{
 		profileService: profileService,
 	}
 }
+
+
 
 // CreateProfile godoc
 // @Summary Create a new profile

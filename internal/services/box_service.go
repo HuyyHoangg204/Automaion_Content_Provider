@@ -599,6 +599,12 @@ func (s *BoxService) updateExistingProfile(existingProfile *models.Profile, plat
 // markDeletedProfiles marks profiles as deleted if they no longer exist on platform
 func (s *BoxService) markDeletedProfiles(existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) {
 	for _, profile := range existingProfilesMap {
+		// Clear campaign associations before deleting profile
+		if err := s.profileRepo.ClearCampaignAssociations(profile.ID); err != nil {
+			fmt.Printf("Warning: Failed to clear campaign associations for profile %s: %v\n", profile.Name, err)
+			continue
+		}
+
 		// Profile exists in local DB but not on platform - delete it
 		if err := s.profileRepo.Delete(profile.ID); err != nil {
 			fmt.Printf("Warning: Failed to delete profile %s: %v\n", profile.Name, err)

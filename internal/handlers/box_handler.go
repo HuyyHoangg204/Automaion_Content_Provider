@@ -4,18 +4,26 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type BoxHandler struct {
 	boxService *services.BoxService
 }
 
-func NewBoxHandler(boxService *services.BoxService) *BoxHandler {
+func NewBoxHandler(db *gorm.DB) *BoxHandler {
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+
+	boxService := services.NewBoxService(boxRepo, appRepo, profileRepo, userRepo)
 	return &BoxHandler{
 		boxService: boxService,
 	}

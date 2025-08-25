@@ -4,17 +4,24 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type FlowGroupHandler struct {
 	flowGroupService *services.FlowGroupService
 }
 
-func NewFlowGroupHandler(flowGroupService *services.FlowGroupService) *FlowGroupHandler {
+func NewFlowGroupHandler(db *gorm.DB) *FlowGroupHandler {
+	campaignRepo := repository.NewCampaignRepository(db)
+	flowGroupRepo := repository.NewFlowGroupRepository(db)
+	flowRepo := repository.NewFlowRepository(db)
+
+	flowGroupService := services.NewFlowGroupService(flowGroupRepo, campaignRepo, flowRepo)
 	return &FlowGroupHandler{
 		flowGroupService: flowGroupService,
 	}

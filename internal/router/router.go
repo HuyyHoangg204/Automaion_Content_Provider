@@ -1,13 +1,11 @@
 package router
 
 import (
-	"context"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
-	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -40,38 +38,21 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Initialize repositories
+	// Create auth service and middleware
 	userRepo := repository.NewUserRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	boxRepo := repository.NewBoxRepository(db)
-	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
-	campaignRepo := repository.NewCampaignRepository(db)
-	flowGroupRepo := repository.NewFlowGroupRepository(db)
-	flowRepo := repository.NewFlowRepository(db)
-
-	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
 
-	// Create services
-	boxService := services.NewBoxService(boxRepo, appRepo, profileRepo, userRepo)
-	appService := services.NewAppService(appRepo, boxRepo, userRepo)
-	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
-	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
-	flowGroupService := services.NewFlowGroupService(flowGroupRepo, campaignRepo, flowRepo)
-	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
-
-	// Create handlers
+	// Create handlers with db directly
 	authHandler := handlers.NewAuthHandler(authService)
-	boxHandler := handlers.NewBoxHandler(boxService)
-	appHandler := handlers.NewAppHandler(appService)
-	profileHandler := handlers.NewProfileHandler(profileService)
-	campaignHandler := handlers.NewCampaignHandler(campaignService)
-	flowGroupHandler := handlers.NewFlowGroupHandler(flowGroupService)
-	flowHandler := handlers.NewFlowHandler(flowService)
-	// Initialize box proxy handler
-	appProxyHandler := handlers.NewAppProxyHandler(boxRepo, appRepo, userRepo)
+	boxHandler := handlers.NewBoxHandler(db)
+	appHandler := handlers.NewAppHandler(db)
+	profileHandler := handlers.NewProfileHandler(db)
+	campaignHandler := handlers.NewCampaignHandler(db)
+	flowGroupHandler := handlers.NewFlowGroupHandler(db)
+	flowHandler := handlers.NewFlowHandler(db)
+	appProxyHandler := handlers.NewAppProxyHandler(db)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")

@@ -4,21 +4,30 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AppHandler struct {
 	appService *services.AppService
 }
 
-func NewAppHandler(appService *services.AppService) *AppHandler {
+func NewAppHandler(db *gorm.DB) *AppHandler {
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	
+	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	return &AppHandler{
 		appService: appService,
 	}
 }
+
+
 
 // CreateApp godoc
 // @Summary Create a new app

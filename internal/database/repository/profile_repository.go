@@ -119,6 +119,15 @@ func (r *ProfileRepository) Update(profile *models.Profile) error {
 	return r.db.Save(profile).Error
 }
 
+// ClearCampaignAssociations removes campaign associations for a profile (doesn't delete campaigns)
+func (r *ProfileRepository) ClearCampaignAssociations(profileID string) error {
+	var profile models.Profile
+	if err := r.db.First(&profile, "id = ?", profileID).Error; err != nil {
+		return err
+	}
+	return r.db.Model(&profile).Association("Campaigns").Clear()
+}
+
 // Delete deletes a profile
 func (r *ProfileRepository) Delete(id string) error {
 	return r.db.Delete(&models.Profile{}, "id = ?", id).Error

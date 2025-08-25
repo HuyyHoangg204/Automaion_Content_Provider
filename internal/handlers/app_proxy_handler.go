@@ -11,13 +11,18 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type AppProxyHandler struct {
 	appProxyService *services.AppProxyService
 }
 
-func NewAppProxyHandler(boxRepo *repository.BoxRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository) *AppProxyHandler {
+func NewAppProxyHandler(db *gorm.DB) *AppProxyHandler {
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+
 	return &AppProxyHandler{
 		appProxyService: services.NewAppProxyService(appRepo, boxRepo, userRepo),
 	}
