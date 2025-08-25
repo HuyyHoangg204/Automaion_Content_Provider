@@ -218,6 +218,24 @@ func (s *CampaignService) GetAllCampaigns() ([]*models.CampaignResponse, error) 
 
 // toResponse converts Campaign model to response DTO
 func (s *CampaignService) toResponse(campaign *models.Campaign) *models.CampaignResponse {
+	// Convert profiles to ProfileWithBoxResponse
+	profileResponses := make([]models.ProfileWithBoxResponse, len(campaign.Profiles))
+	for i, profile := range campaign.Profiles {
+		boxName := ""
+		if profile.App.Box.Name != "" {
+			boxName = profile.App.Box.Name
+		}
+
+		profileResponses[i] = models.ProfileWithBoxResponse{
+			ID:        profile.ID,
+			AppID:     profile.AppID,
+			Name:      profile.Name,
+			BoxName:   boxName,
+			CreatedAt: profile.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: profile.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
 	return &models.CampaignResponse{
 		ID:               campaign.ID,
 		UserID:           campaign.UserID,
@@ -229,7 +247,7 @@ func (s *CampaignService) toResponse(campaign *models.Campaign) *models.Campaign
 		Schedule:         campaign.Schedule,
 		IsActive:         campaign.IsActive,
 		Status:           campaign.Status,
-		Profiles:         campaign.Profiles,
+		Profiles:         profileResponses,
 		CreatedAt:        campaign.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:        campaign.UpdatedAt.Format(time.RFC3339),
 	}

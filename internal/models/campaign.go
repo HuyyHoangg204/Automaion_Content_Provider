@@ -63,18 +63,18 @@ type UpdateCampaignRequest struct {
 
 // CampaignResponse represents the response for campaign operations
 type CampaignResponse struct {
-	ID               string        `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserID           string        `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
-	Name             string        `json:"name" example:"Tăng view campaign"`
-	Description      string        `json:"description" example:"This is a campaign to increase views"`
-	ScriptName       string        `json:"script_name" example:"increase_views.js"`
-	ScriptVariables  JSON          `json:"script_variables"`
-	ConcurrentPhones int           `json:"concurrent_phones" example:"10"`
-	Schedule         JSON          `json:"schedule"`
-	IsActive         bool          `json:"is_active" example:"true"`
-	Status           string        `json:"status" example:"idle"`
-	Profiles         []Profile     `json:"profiles,omitempty"`
-	Logs             []CampaignLog `json:"logs,omitempty"`
-	CreatedAt        string        `json:"created_at" example:"2025-01-09T10:30:00Z"`
-	UpdatedAt        string        `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+	ID               string                   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID           string                   `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Name             string                   `json:"name" example:"Tăng view campaign"`
+	Description      string                   `json:"description" example:"This is a campaign to increase views"`
+	ScriptName       string                   `json:"script_name" example:"increase_views.js"`
+	ScriptVariables  JSON                     `json:"script_variables"`
+	ConcurrentPhones int                      `json:"concurrent_phones" example:"10"`
+	Schedule         JSON                     `json:"schedule"`
+	IsActive         bool                     `json:"is_active" example:"true"`
+	Status           string                   `json:"status" example:"idle"`
+	Profiles         []ProfileWithBoxResponse `json:"profiles,omitempty"`
+	Logs             []CampaignLog            `json:"logs,omitempty"`
+	CreatedAt        string                   `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt        string                   `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }

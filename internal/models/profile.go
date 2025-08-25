@@ -61,3 +61,13 @@ type PaginatedProfileResponse struct {
 	HasNext     bool               `json:"has_next" example:"true"`
 	HasPrevious bool               `json:"has_previous" example:"false"`
 }
+
+// ProfileWithBoxResponse represents the response for profile operations in campaigns
+type ProfileWithBoxResponse struct {
+	ID        string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	AppID     string `json:"app_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Name      string `json:"name" example:"My Profile"`
+	BoxName   string `json:"box_name" example:"My Computer"`
+	CreatedAt string `json:"created_at" example:"2025-01-09T10:00:00Z"`
+	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:00:00Z"`
+}
