@@ -259,6 +259,7 @@ func (s *AppService) GetRegisterAppDomains(userID, boxID, platformNames string) 
 	response.FrpServerPort = frpConfig.Port
 	response.FrpToken = frpConfig.Token
 	response.FrpProtocol = frpConfig.Protocol
+	response.FrpCustomDomainHost = frpConfig.CustomDomainHost
 	return response, nil
 }
 

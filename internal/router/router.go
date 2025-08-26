@@ -18,7 +18,7 @@ import (
 )
 
 // SetupRouter configures the Gin router with user authentication routes
-func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
+func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 
