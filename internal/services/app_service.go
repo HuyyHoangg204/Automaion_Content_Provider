@@ -462,6 +462,14 @@ func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[
 	}
 
 	s.MarkDeletedProfiles(existingProfilesMap, result)
+
+	// Set message based on results
+	if result.ProfilesCreated > 0 || result.ProfilesUpdated > 0 || result.ProfilesDeleted > 0 {
+		result.Message = fmt.Sprintf("Sync completed: %d created, %d updated, %d deleted",
+			result.ProfilesCreated, result.ProfilesUpdated, result.ProfilesDeleted)
+	} else {
+		result.Message = "No changes detected during sync"
+	}
 	return result, nil
 }
 
