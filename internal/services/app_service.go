@@ -374,7 +374,7 @@ func (s *AppService) SyncAppProfiles(app *models.App) (*models.SyncBoxProfilesRe
 func (s *AppService) fetchAllProfilesWithPagination(app *models.App, platformType string, appHelper *utils.AppHelper) ([]map[string]interface{}, error) {
 	var allProfiles []map[string]interface{}
 	page := 1
-	pageSize := 100 // Default page size, adjust based on platform
+	pageSize := 100
 
 	for {
 		// Fetch profiles for current page
