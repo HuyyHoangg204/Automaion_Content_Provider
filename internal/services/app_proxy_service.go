@@ -7,6 +7,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 )
 
 type AppProxyService struct {
@@ -111,48 +112,8 @@ func (s *AppProxyService) ValidatePlatformPath(platformType, platformPath string
 	// Trim leading slash from platformPath for consistent comparison
 	platformPath = strings.TrimPrefix(platformPath, "/")
 
-	// Define allowed paths for each platform
-	allowedPaths := map[string][]string{
-		"hidemium": {
-			"v1/browser/list",
-			"v2/default-config",
-			"v2/status-profile",
-			"v2/tag",
-			"v2/browser/get-list-version",
-			"v2/browser/get-profile-by-uuid",
-			"v1/folder/list",
-			"create-profile-by-default",
-			"create-profile-custom",
-			"v2/browser/change-fingerprint",
-			"v2/browser/update-note",
-			"v2/browser/update-once",
-			"v2/tag",
-			"v2/status-profile/change-status",
-			"v1/browser/destroy",
-			"v1/folder/add-browser",
-			"v2/proxy/quick-edit",
-			"v2/browser/proxy/update",
-			"automation/campaign",
-			"automation/schedule",
-			"automation/campaign/save-campaign-profile",
-			"automation/campaign/save-auto-campaign",
-			"automation/delete-campaign",
-			"automation/campaign/delete-all-campaign-profile",
-			"user-settings/token",
-		},
-		"genlogin": {
-			"profiles",
-			"profiles/create",
-			"profiles/update",
-			"profiles/delete",
-			"profiles/list",
-			"configs",
-			"campaigns",
-			"automation",
-		},
-	}
-
-	allowedPathsForPlatform, exists := allowedPaths[platformType]
+	// Get allowed paths from utils constants
+	allowedPathsForPlatform, exists := utils.AllowedPaths[platformType]
 	if !exists {
 		return false
 	}
