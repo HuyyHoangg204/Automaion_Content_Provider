@@ -102,15 +102,15 @@ func (h *AppHandler) GetMyApps(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param box_id path string true "Box ID"
+// @Param id path string true "Box ID"
 // @Success 200 {array} models.AppResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/box-apps/{box_id}/apps [get]
+// @Router /api/v1/boxes/{id}/apps [get]
 func (h *AppHandler) GetAppsByBox(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	boxID := c.Param("box_id")
+	boxID := c.Param("id")
 
 	apps, err := h.appService.GetAppsByBox(userID, boxID)
 	if err != nil {
@@ -372,26 +372,26 @@ func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
 	c.JSON(http.StatusOK, syncResult)
 }
 
-// SyncBoxApps syncs all apps in a specific box
-// @Summary Sync all apps in a box
+// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
+// @Summary Sync all profiles from all apps in a box
 // @Description Sync all profiles from all apps in a specific box
 // @Tags apps
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param box_id path string true "Box ID to sync apps from"
+// @Param box_id path string true "Box ID to sync profiles from"
 // @Success 200 {object} models.SyncBoxProfilesResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/apps/sync-box/{box_id} [post]
-func (h *AppHandler) SyncBoxApps(c *gin.Context) {
+func (h *AppHandler) SyncAllProfilesInBox(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	boxID := c.Param("box_id")
 
-	// Sync all apps in the box
-	syncResult, err := h.appService.SyncBoxApps(userID, boxID)
+	// Sync all profiles from all apps in the box
+	syncResult, err := h.appService.SyncAllProfilesInBox(userID, boxID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

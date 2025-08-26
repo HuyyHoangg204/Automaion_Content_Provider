@@ -780,8 +780,8 @@ func (s *AppService) SyncAllAppsByUser(userID string) (*models.SyncBoxProfilesRe
 	}, nil
 }
 
-// SyncBoxApps syncs all apps in a specific box
-func (s *AppService) SyncBoxApps(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
+// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
+func (s *AppService) SyncAllProfilesInBox(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
 	// Get box by ID and verify ownership
 	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {

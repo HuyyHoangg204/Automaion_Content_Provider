@@ -133,17 +133,17 @@ func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param app_id path string true "App ID"
+// @Param id path string true "App ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/app-profiles/{app_id}/profiles [get]
+// @Router /api/v1/apps/{id}/profiles [get]
 func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	appID := c.Param("app_id")
+	appID := c.Param("id")
 
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))

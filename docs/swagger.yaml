@@ -1187,57 +1187,6 @@ paths:
       summary: Set user active status (Admin only)
       tags:
       - admin
-  /api/v1/app-profiles/{app_id}/profiles:
-    get:
-      consumes:
-      - application/json
-      description: Get all profiles for a specific app (user must own the app) with
-        pagination
-      parameters:
-      - description: App ID
-        in: path
-        name: app_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get profiles by app
-      tags:
-      - profiles
   /api/v1/app-proxy/{app_id}/{platform_path}:
     delete:
       consumes:
@@ -1731,6 +1680,57 @@ paths:
       summary: Update app
       tags:
       - apps
+  /api/v1/apps/{id}/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get all profiles for a specific app (user must own the app) with
+        pagination
+      parameters:
+      - description: App ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get profiles by app
+      tags:
+      - profiles
   /api/v1/apps/{id}/sync-profiles:
     post:
       consumes:
@@ -1900,7 +1900,7 @@ paths:
       - application/json
       description: Sync all profiles from all apps in a specific box
       parameters:
-      - description: Box ID to sync apps from
+      - description: Box ID to sync profiles from
         in: path
         name: box_id
         required: true
@@ -1934,7 +1934,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Sync all apps in a box
+      summary: Sync all profiles from all apps in a box
       tags:
       - apps
   /api/v1/auth/change-password:
@@ -2118,46 +2118,6 @@ paths:
       summary: Refresh access token
       tags:
       - auth
-  /api/v1/box-apps/{box_id}/apps:
-    get:
-      consumes:
-      - application/json
-      description: Get all apps for a specific box (user must own the box)
-      parameters:
-      - description: Box ID
-        in: path
-        name: box_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.AppResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get apps by box
-      tags:
-      - apps
   /api/v1/boxes:
     get:
       consumes:
@@ -2374,37 +2334,26 @@ paths:
       summary: Update box
       tags:
       - boxes
-  /api/v1/campaign-flows/{campaign_id}/flows:
+  /api/v1/boxes/{id}/apps:
     get:
       consumes:
       - application/json
-      description: Get all flows for a specific campaign (user must own the campaign)
-        with pagination
+      description: Get all apps for a specific box (user must own the box)
       parameters:
-      - description: Campaign ID
+      - description: Box ID
         in: path
-        name: campaign_id
+        name: id
         required: true
         type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            items:
+              $ref: '#/definitions/models.AppResponse'
+            type: array
         "400":
           description: Bad Request
           schema:
@@ -2422,9 +2371,9 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get flows by campaign
+      summary: Get apps by box
       tags:
-      - flows
+      - apps
   /api/v1/campaigns:
     get:
       consumes:
@@ -2668,7 +2617,96 @@ paths:
       summary: Get all group campaigns for a campaign
       tags:
       - flow-groups
-  /api/v1/flow-group-flows/{flow_group_id}/flows:
+  /api/v1/campaigns/{id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific campaign (user must own the campaign)
+        with pagination
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by campaign
+      tags:
+      - flows
+  /api/v1/flow-groups/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific group campaign by its ID
+      parameters:
+      - description: Group campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FlowGroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a group campaign by ID
+      tags:
+      - flow-groups
+  /api/v1/flow-groups/{id}/flows:
     get:
       consumes:
       - application/json
@@ -2677,7 +2715,7 @@ paths:
       parameters:
       - description: Group Campaign ID
         in: path
-        name: flow_group_id
+        name: id
         required: true
         type: string
       - description: 'Page number (default: 1)'
@@ -2719,44 +2757,6 @@ paths:
       summary: Get flows by group campaign
       tags:
       - flows
-  /api/v1/flow-groups/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific group campaign by its ID
-      parameters:
-      - description: Group campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.FlowGroupResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get a group campaign by ID
-      tags:
-      - flow-groups
   /api/v1/flow-groups/{id}/stats:
     get:
       consumes:
@@ -3060,57 +3060,6 @@ paths:
       summary: Get flows by status
       tags:
       - flows
-  /api/v1/profile-flows/{profile_id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific profile (user must own the profile)
-        with pagination
-      parameters:
-      - description: Profile ID
-        in: path
-        name: profile_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by profile
-      tags:
-      - flows
   /api/v1/profiles:
     get:
       consumes:
@@ -3344,6 +3293,57 @@ paths:
       summary: Update profile
       tags:
       - profiles
+  /api/v1/profiles/{id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific profile (user must own the profile)
+        with pagination
+      parameters:
+      - description: Profile ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by profile
+      tags:
+      - flows
   /api/v1/profiles/default-configs:
     get:
       consumes:

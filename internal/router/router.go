@@ -103,12 +103,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				boxes.GET("/:id", boxHandler.GetBoxByID)
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
-			}
-
-			// Box Apps routes (separate to avoid conflict)
-			boxApps := protected.Group("/box-apps")
-			{
-				boxApps.GET("/:box_id/apps", appHandler.GetAppsByBox)
+				boxes.GET("/:id/apps", appHandler.GetAppsByBox)
 			}
 
 			// Box Proxy routes - for direct platform operations
@@ -128,14 +123,9 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)
 				apps.POST("/:id/sync-profiles", appHandler.SyncAppProfiles)
-				apps.POST("/sync-box/:box_id", appHandler.SyncBoxApps)
+				apps.POST("/sync-box/:box_id", appHandler.SyncAllProfilesInBox)
 				apps.POST("/sync-all", appHandler.SyncAllUserApps)
-			}
-
-			// App Profiles routes (separate to avoid conflict)
-			appProfiles := protected.Group("/app-profiles")
-			{
-				appProfiles.GET("/:app_id/profiles", profileHandler.GetProfilesByApp)
+				apps.GET("/:id/profiles", profileHandler.GetProfilesByApp)
 			}
 
 			// Campaign routes
@@ -147,25 +137,15 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
 				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
 				campaigns.GET("/:id/flow-groups", flowGroupHandler.GetFlowGroupsByCampaign)
+				campaigns.GET("/:id/flows", flowHandler.GetFlowsByCampaign)
 			}
 
-			// Group Campaign routes
+			// Flow Group routes
 			flowGroups := protected.Group("/flow-groups")
 			{
 				flowGroups.GET("/:id", flowGroupHandler.GetFlowGroupByID)
 				flowGroups.GET("/:id/stats", flowGroupHandler.GetFlowGroupStats)
-			}
-
-			// Group Campaign Flows routes
-			flowGroupFlows := protected.Group("/flow-group-flows")
-			{
-				flowGroupFlows.GET("/:flow_group_id/flows", flowHandler.GetFlowsByFlowGroup)
-			}
-
-			// Campaign Flows routes (separate to avoid conflict)
-			campaignFlows := protected.Group("/campaign-flows")
-			{
-				campaignFlows.GET("/:campaign_id/flows", flowHandler.GetFlowsByCampaign)
+				flowGroups.GET("/:id/flows", flowHandler.GetFlowsByFlowGroup)
 			}
 
 			// Profile routes
@@ -177,12 +157,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				profiles.GET("/:id", profileHandler.GetProfileByID)
 				profiles.PUT("/:id", profileHandler.UpdateProfile)
 				profiles.DELETE("/:id", profileHandler.DeleteProfile)
-			}
-
-			// Profile Flows routes (separate to avoid conflict)
-			profileFlows := protected.Group("/profile-flows")
-			{
-				profileFlows.GET("/:profile_id/flows", flowHandler.GetFlowsByProfile)
+				profiles.GET("/:id/flows", flowHandler.GetFlowsByProfile)
 			}
 
 			// Flow routes
