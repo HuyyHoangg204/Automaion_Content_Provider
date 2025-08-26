@@ -27,6 +27,9 @@ func NewAppHelper() *AppHelper {
 	return &AppHelper{}
 }
 
+// AppResponseConverter converts App models to response DTOs
+type AppResponseConverter struct{}
+
 // GetPlatformType determines the platform type from app name
 func GetPlatformType(appName string) PlatformType {
 	appNameLower := strings.ToLower(appName)
@@ -38,30 +41,6 @@ func GetPlatformType(appName string) PlatformType {
 		return PlatformGenLogin
 	default:
 		return ""
-	}
-}
-
-// BuildProfilesURL builds the profiles endpoint URL for the platform
-func BuildProfilesURL(baseURL string, platformType PlatformType) string {
-	baseURL = strings.TrimSuffix(baseURL, "/")
-
-	switch platformType {
-	case PlatformHidemium:
-		if paths, exists := AllowedPaths["hidemium"]; exists && len(paths) > 0 {
-			return fmt.Sprintf("%s/%s", baseURL, paths[0])
-		}
-		return fmt.Sprintf("%s/v1/browser/list", baseURL)
-	case PlatformGenLogin:
-		if paths, exists := AllowedPaths["genlogin"]; exists && len(paths) > 0 {
-			for _, path := range paths {
-				if path == "profiles/list" {
-					return fmt.Sprintf("%s/%s", baseURL, path)
-				}
-			}
-		}
-		return fmt.Sprintf("%s/profiles/list", baseURL)
-	default:
-		return fmt.Sprintf("%s/profiles", baseURL)
 	}
 }
 
@@ -313,9 +292,6 @@ func (h *AppHelper) MarkDeletedProfiles(existingProfilesMap map[string]*models.P
 		result.ProfilesDeleted++
 	}
 }
-
-// AppResponseConverter converts App models to response DTOs
-type AppResponseConverter struct{}
 
 // NewAppResponseConverter creates a new AppResponseConverter instance
 func NewAppResponseConverter() *AppResponseConverter {
