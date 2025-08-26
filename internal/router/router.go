@@ -6,6 +6,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -44,9 +45,16 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
 
-	// Create handlers with db directly
+	// Create repositories
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+
+	// Create services
+	boxService := services.NewBoxService(boxRepo, appRepo, userRepo)
+
+	// Create handlers with proper service dependencies
 	authHandler := handlers.NewAuthHandler(authService)
-	boxHandler := handlers.NewBoxHandler(db)
+	boxHandler := handlers.NewBoxHandler(boxService)
 	appHandler := handlers.NewAppHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)
 	campaignHandler := handlers.NewCampaignHandler(db)
@@ -95,8 +103,6 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				boxes.GET("/:id", boxHandler.GetBoxByID)
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
-				boxes.POST("/:id/sync-profiles", boxHandler.SyncSingleBoxProfiles)
-				boxes.POST("/sync-all", boxHandler.SyncAllUserBoxes)
 			}
 
 			// Box Apps routes (separate to avoid conflict)
@@ -121,6 +127,9 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				apps.GET("/:id", appHandler.GetAppByID)
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)
+				apps.POST("/:id/sync-profiles", appHandler.SyncAppProfiles)
+				apps.POST("/sync-box/:box_id", appHandler.SyncBoxApps)
+				apps.POST("/sync-all", appHandler.SyncAllUserApps)
 			}
 
 			// App Profiles routes (separate to avoid conflict)

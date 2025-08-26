@@ -46,10 +46,10 @@ func NewAppProxyHandler(db *gorm.DB) *AppProxyHandler {
 // @Failure 404 {object} map[string]string "Not found (app not found)"
 // @Failure 500 {object} map[string]string "Internal server error (forwarding failed)"
 // @Security BearerAuth
-// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [get]
-// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [post]
-// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [put]
-// @Router /api/v1/app-proxy/{app_id}/{platform_path:*} [delete]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path} [get]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path} [post]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path} [put]
+// @Router /api/v1/app-proxy/{app_id}/{platform_path} [delete]
 func (h *AppProxyHandler) ProxyRequest(c *gin.Context) {
 	userID := c.GetString("user_id")
 	appID := c.Param("app_id")

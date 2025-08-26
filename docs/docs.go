@@ -48,7 +48,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse"
+                                "$ref": "#/definitions/models.AppResponse"
                             }
                         }
                     },
@@ -100,7 +100,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse"
+                                "$ref": "#/definitions/models.BoxResponse"
                             }
                         }
                     },
@@ -152,7 +152,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse"
+                                "$ref": "#/definitions/models.CampaignResponse"
                             }
                         }
                     },
@@ -204,7 +204,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse"
+                                "$ref": "#/definitions/models.FlowResponse"
                             }
                         }
                     },
@@ -256,7 +256,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse"
+                                "$ref": "#/definitions/models.ProfileResponse"
                             }
                         }
                     },
@@ -309,7 +309,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterRequest"
+                            "$ref": "#/definitions/models.RegisterRequest"
                         }
                     }
                 ],
@@ -317,7 +317,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse"
+                            "$ref": "#/definitions/models.AuthResponse"
                         }
                     },
                     "400": {
@@ -581,6 +581,80 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/app-profiles/{app_id}/profiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all profiles for a specific app (user must own the app) with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "Get profiles by app",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1046,7 +1120,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse"
+                                "$ref": "#/definitions/models.AppResponse"
                             }
                         }
                     },
@@ -1090,7 +1164,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateAppRequest"
+                            "$ref": "#/definitions/models.CreateAppRequest"
                         }
                     }
                 ],
@@ -1098,7 +1172,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse"
+                            "$ref": "#/definitions/models.AppResponse"
                         }
                     },
                     "400": {
@@ -1163,7 +1237,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CheckTunnelResponse"
+                            "$ref": "#/definitions/models.CheckTunnelResponse"
                         }
                     },
                     "400": {
@@ -1228,7 +1302,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterAppResponse"
+                            "$ref": "#/definitions/models.RegisterAppResponse"
                         }
                     },
                     "400": {
@@ -1240,6 +1314,127 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apps/sync-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from all apps owned by the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Sync all user apps",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apps/sync-box/{box_id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from all apps in a specific box",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Sync all apps in a box",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID to sync apps from",
+                        "name": "box_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1286,7 +1481,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse"
+                            "$ref": "#/definitions/models.AppResponse"
                         }
                     },
                     "400": {
@@ -1350,7 +1545,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateAppRequest"
+                            "$ref": "#/definitions/models.UpdateAppRequest"
                         }
                     }
                 ],
@@ -1358,7 +1553,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse"
+                            "$ref": "#/definitions/models.AppResponse"
                         }
                     },
                     "400": {
@@ -1459,14 +1654,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/apps/{id}/profiles": {
-            "get": {
+        "/api/v1/apps/{id}/sync-profiles": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific app (user must own the app) with pagination",
+                "description": "Sync all profiles from a specific app",
                 "consumes": [
                     "application/json"
                 ],
@@ -1474,39 +1669,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "profiles"
+                    "apps"
                 ],
-                "summary": "Get profiles by app",
+                "summary": "Sync profiles from a specific app",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "App ID",
-                        "name": "app_id",
+                        "description": "App ID to sync profiles from",
+                        "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
                         }
                     },
                     "400": {
@@ -1518,6 +1697,13 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1558,7 +1744,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ChangePasswordRequest"
+                            "$ref": "#/definitions/models.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -1614,7 +1800,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.LoginRequest"
+                            "$ref": "#/definitions/models.LoginRequest"
                         }
                     }
                 ],
@@ -1622,7 +1808,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse"
+                            "$ref": "#/definitions/models.AuthResponse"
                         }
                     },
                     "400": {
@@ -1674,7 +1860,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.LogoutRequest"
+                            "$ref": "#/definitions/models.LogoutRequest"
                         }
                     }
                 ],
@@ -1732,7 +1918,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     },
                     "401": {
@@ -1772,7 +1958,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshTokenRequest"
+                            "$ref": "#/definitions/models.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -1780,7 +1966,68 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse"
+                            "$ref": "#/definitions/models.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/box-apps/{box_id}/apps": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all apps for a specific box (user must own the box)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Get apps by box",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID",
+                        "name": "box_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AppResponse"
+                            }
                         }
                     },
                     "400": {
@@ -1890,7 +2137,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateBoxRequest"
+                            "$ref": "#/definitions/models.CreateBoxRequest"
                         }
                     }
                 ],
@@ -1898,7 +2145,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse"
+                            "$ref": "#/definitions/models.BoxResponse"
                         }
                     },
                     "400": {
@@ -1917,48 +2164,6 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/boxes/sync-all": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all boxes and their profiles for the authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boxes"
-                ],
-                "summary": "Sync all boxes for the authenticated user",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.SyncBoxProfilesResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2005,7 +2210,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse"
+                            "$ref": "#/definitions/models.BoxResponse"
                         }
                     },
                     "400": {
@@ -2069,7 +2274,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateBoxRequest"
+                            "$ref": "#/definitions/models.UpdateBoxRequest"
                         }
                     }
                 ],
@@ -2077,7 +2282,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse"
+                            "$ref": "#/definitions/models.BoxResponse"
                         }
                     },
                     "400": {
@@ -2171,14 +2376,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/boxes/{id}/apps": {
+        "/api/v1/campaign-flows/{campaign_id}/flows": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all apps for a specific box (user must own the box)",
+                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2186,26 +2391,39 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "apps"
+                    "flows"
                 ],
-                "summary": "Get apps by box",
+                "summary": "Get flows by campaign",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Box ID",
-                        "name": "id",
+                        "description": "Campaign ID",
+                        "name": "campaign_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse"
-                            }
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -2217,71 +2435,6 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/boxes/{id}/sync-profiles": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from a specific box's platform instance via tunnel",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boxes"
-                ],
-                "summary": "Sync profiles from box's platform instance",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Box ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.SyncBoxProfilesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2321,7 +2474,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse"
+                                "$ref": "#/definitions/models.CampaignResponse"
                             }
                         }
                     },
@@ -2365,7 +2518,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateCampaignRequest"
+                            "$ref": "#/definitions/models.CreateCampaignRequest"
                         }
                     }
                 ],
@@ -2373,7 +2526,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse"
+                            "$ref": "#/definitions/models.CampaignResponse"
                         }
                     },
                     "400": {
@@ -2438,7 +2591,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse"
+                            "$ref": "#/definitions/models.CampaignResponse"
                         }
                     },
                     "400": {
@@ -2502,7 +2655,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateCampaignRequest"
+                            "$ref": "#/definitions/models.UpdateCampaignRequest"
                         }
                     }
                 ],
@@ -2510,7 +2663,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse"
+                            "$ref": "#/definitions/models.CampaignResponse"
                         }
                     },
                     "400": {
@@ -2644,7 +2797,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupResponse"
+                                "$ref": "#/definitions/models.FlowGroupResponse"
                             }
                         }
                     },
@@ -2665,14 +2818,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/campaigns/{id}/flows": {
+        "/api/v1/flow-group-flows/{flow_group_id}/flows": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
+                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2682,12 +2835,12 @@ const docTemplate = `{
                 "tags": [
                     "flows"
                 ],
-                "summary": "Get flows by campaign",
+                "summary": "Get flows by group campaign",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Campaign ID",
-                        "name": "campaign_id",
+                        "description": "Group Campaign ID",
+                        "name": "flow_group_id",
                         "in": "path",
                         "required": true
                     },
@@ -2770,7 +2923,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupResponse"
+                            "$ref": "#/definitions/models.FlowGroupResponse"
                         }
                     },
                     "400": {
@@ -2789,80 +2942,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flow-groups/{id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by group campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group Campaign ID",
-                        "name": "flow_group_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2902,7 +2981,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupStats"
+                            "$ref": "#/definitions/models.FlowGroupStats"
                         }
                     },
                     "400": {
@@ -3012,7 +3091,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateFlowRequest"
+                            "$ref": "#/definitions/models.CreateFlowRequest"
                         }
                     }
                 ],
@@ -3020,7 +3099,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse"
+                            "$ref": "#/definitions/models.FlowResponse"
                         }
                     },
                     "400": {
@@ -3159,7 +3238,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse"
+                            "$ref": "#/definitions/models.FlowResponse"
                         }
                     },
                     "400": {
@@ -3223,7 +3302,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateFlowRequest"
+                            "$ref": "#/definitions/models.UpdateFlowRequest"
                         }
                     }
                 ],
@@ -3231,7 +3310,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse"
+                            "$ref": "#/definitions/models.FlowResponse"
                         }
                     },
                     "400": {
@@ -3310,6 +3389,80 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/profile-flows/{profile_id}/flows": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all flows for a specific profile (user must own the profile) with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flows"
+                ],
+                "summary": "Get flows by profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "profile_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3422,7 +3575,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateProfileRequest"
+                            "$ref": "#/definitions/models.CreateProfileRequest"
                         }
                     }
                 ],
@@ -3430,7 +3583,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse"
+                            "$ref": "#/definitions/models.ProfileResponse"
                         }
                     },
                     "400": {
@@ -3576,7 +3729,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse"
+                            "$ref": "#/definitions/models.ProfileResponse"
                         }
                     },
                     "400": {
@@ -3640,7 +3793,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateProfileRequest"
+                            "$ref": "#/definitions/models.UpdateProfileRequest"
                         }
                     }
                 ],
@@ -3648,7 +3801,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse"
+                            "$ref": "#/definitions/models.ProfileResponse"
                         }
                     },
                     "400": {
@@ -3748,91 +3901,17 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/api/v1/profiles/{id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific profile (user must own the profile) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "profile_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.App": {
+        "models.App": {
             "type": "object",
             "properties": {
                 "box": {
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Box"
+                            "$ref": "#/definitions/models.Box"
                         }
                     ]
                 },
@@ -3851,7 +3930,7 @@ const docTemplate = `{
                 "profiles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Profile"
+                        "$ref": "#/definitions/models.Profile"
                     }
                 },
                 "tunnel_url": {
@@ -3863,7 +3942,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse": {
+        "models.AppResponse": {
             "type": "object",
             "properties": {
                 "box_id": {
@@ -3892,7 +3971,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse": {
+        "models.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -3908,17 +3987,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User"
+                    "$ref": "#/definitions/models.User"
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.Box": {
+        "models.Box": {
             "type": "object",
             "properties": {
                 "apps": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.App"
+                        "$ref": "#/definitions/models.App"
                     }
                 },
                 "created_at": {
@@ -3940,7 +4019,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     ]
                 },
@@ -3949,7 +4028,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse": {
+        "models.BoxResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -3978,7 +4057,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.Campaign": {
+        "models.Campaign": {
             "type": "object",
             "properties": {
                 "concurrent_phones": {
@@ -3994,7 +4073,7 @@ const docTemplate = `{
                 "flow_groups": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroup"
+                        "$ref": "#/definitions/models.FlowGroup"
                     }
                 },
                 "id": {
@@ -4006,7 +4085,7 @@ const docTemplate = `{
                 "logs": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignLog"
+                        "$ref": "#/definitions/models.CampaignLog"
                     }
                 },
                 "name": {
@@ -4015,14 +4094,14 @@ const docTemplate = `{
                 "profiles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Profile"
+                        "$ref": "#/definitions/models.Profile"
                     }
                 },
                 "schedule": {
                     "description": "Scheduling",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                            "$ref": "#/definitions/models.JSON"
                         }
                     ]
                 },
@@ -4030,7 +4109,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "script_variables": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "status": {
                     "description": "idle, running, failed, completed",
@@ -4043,7 +4122,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     ]
                 },
@@ -4052,7 +4131,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignLog": {
+        "models.CampaignLog": {
             "type": "object",
             "properties": {
                 "campaign_id": {
@@ -4062,7 +4141,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "details": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "executed_at": {
                     "type": "string"
@@ -4081,14 +4160,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User"
+                    "$ref": "#/definitions/models.User"
                 },
                 "user_id": {
                     "type": "string"
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse": {
+        "models.CampaignResponse": {
             "type": "object",
             "properties": {
                 "concurrent_phones": {
@@ -4114,7 +4193,7 @@ const docTemplate = `{
                 "logs": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignLog"
+                        "$ref": "#/definitions/models.CampaignLog"
                     }
                 },
                 "name": {
@@ -4124,18 +4203,18 @@ const docTemplate = `{
                 "profiles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileWithBoxResponse"
+                        "$ref": "#/definitions/models.ProfileWithBoxResponse"
                     }
                 },
                 "schedule": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "script_name": {
                     "type": "string",
                     "example": "increase_views.js"
                 },
                 "script_variables": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "status": {
                     "type": "string",
@@ -4151,7 +4230,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.ChangePasswordRequest": {
+        "models.ChangePasswordRequest": {
             "type": "object",
             "required": [
                 "current_password",
@@ -4167,7 +4246,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CheckTunnelResponse": {
+        "models.CheckTunnelResponse": {
             "type": "object",
             "properties": {
                 "error": {
@@ -4192,7 +4271,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CreateAppRequest": {
+        "models.CreateAppRequest": {
             "type": "object",
             "required": [
                 "box_id",
@@ -4213,7 +4292,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CreateBoxRequest": {
+        "models.CreateBoxRequest": {
             "type": "object",
             "required": [
                 "machine_id",
@@ -4230,7 +4309,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CreateCampaignRequest": {
+        "models.CreateCampaignRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -4262,18 +4341,18 @@ const docTemplate = `{
                     }
                 },
                 "schedule": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "script_name": {
                     "type": "string",
                     "example": "increase_views.js"
                 },
                 "script_variables": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CreateFlowRequest": {
+        "models.CreateFlowRequest": {
             "type": "object",
             "required": [
                 "flow_group_id",
@@ -4302,7 +4381,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.CreateProfileRequest": {
+        "models.CreateProfileRequest": {
             "description": "Create profile request with platform-specific configuration",
             "type": "object",
             "required": [
@@ -4318,13 +4397,13 @@ const docTemplate = `{
                     "description": "@Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.\n@Example {\"name\":\"My Hidemium Profile\",\"os\":\"win\",\"osVersion\":\"10\",\"browser\":\"chrome\",\"version\":\"136\",\"canvas\":\"noise\",\"language\":\"en-US\",\"resolution\":\"1280x800\",\"StartURL\":\"https://google.com\"}",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                            "$ref": "#/definitions/models.JSON"
                         }
                     ]
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.Flow": {
+        "models.Flow": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -4346,7 +4425,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "result": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "script_name": {
                     "type": "string"
@@ -4362,7 +4441,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroup": {
+        "models.FlowGroup": {
             "type": "object",
             "properties": {
                 "campaign_id": {
@@ -4378,14 +4457,14 @@ const docTemplate = `{
                     "description": "Store execution metadata",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                            "$ref": "#/definitions/models.JSON"
                         }
                     ]
                 },
                 "flows": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Flow"
+                        "$ref": "#/definitions/models.Flow"
                     }
                 },
                 "id": {
@@ -4409,7 +4488,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupResponse": {
+        "models.FlowGroupResponse": {
             "type": "object",
             "properties": {
                 "campaign_id": {
@@ -4446,7 +4525,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupStats": {
+        "models.FlowGroupStats": {
             "type": "object",
             "properties": {
                 "duration": {
@@ -4479,7 +4558,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse": {
+        "models.FlowResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -4512,11 +4591,11 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.JSON": {
+        "models.JSON": {
             "type": "object",
             "additionalProperties": true
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.LoginRequest": {
+        "models.LoginRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -4531,7 +4610,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.LogoutRequest": {
+        "models.LogoutRequest": {
             "type": "object",
             "properties": {
                 "refresh_token": {
@@ -4539,14 +4618,14 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.Profile": {
+        "models.Profile": {
             "type": "object",
             "properties": {
                 "app": {
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.App"
+                            "$ref": "#/definitions/models.App"
                         }
                     ]
                 },
@@ -4556,7 +4635,7 @@ const docTemplate = `{
                 "campaigns": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Campaign"
+                        "$ref": "#/definitions/models.Campaign"
                     }
                 },
                 "created_at": {
@@ -4566,14 +4645,14 @@ const docTemplate = `{
                     "description": "Store complex profile data from anti-detect browsers",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                            "$ref": "#/definitions/models.JSON"
                         }
                     ]
                 },
                 "flows": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Flow"
+                        "$ref": "#/definitions/models.Flow"
                     }
                 },
                 "id": {
@@ -4587,7 +4666,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse": {
+        "models.ProfileResponse": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -4599,7 +4678,7 @@ const docTemplate = `{
                     "example": "2025-01-09T10:00:00Z"
                 },
                 "data": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "id": {
                     "type": "string",
@@ -4615,7 +4694,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileWithBoxResponse": {
+        "models.ProfileWithBoxResponse": {
             "type": "object",
             "properties": {
                 "app_id": {
@@ -4644,7 +4723,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshToken": {
+        "models.RefreshToken": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -4672,7 +4751,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User"
+                            "$ref": "#/definitions/models.User"
                         }
                     ]
                 },
@@ -4684,7 +4763,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshTokenRequest": {
+        "models.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -4695,7 +4774,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterAppResponse": {
+        "models.RegisterAppResponse": {
             "description": "Response containing subdomain and FRP configuration for app registration",
             "type": "object",
             "properties": {
@@ -4724,7 +4803,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterRequest": {
+        "models.RegisterRequest": {
             "type": "object",
             "required": [
                 "password",
@@ -4748,7 +4827,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.SyncBoxProfilesResponse": {
+        "models.SyncBoxProfilesResponse": {
             "type": "object",
             "properties": {
                 "box_id": {
@@ -4785,7 +4864,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateAppRequest": {
+        "models.UpdateAppRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -4801,7 +4880,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateBoxRequest": {
+        "models.UpdateBoxRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -4817,7 +4896,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateCampaignRequest": {
+        "models.UpdateCampaignRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -4849,18 +4928,18 @@ const docTemplate = `{
                     }
                 },
                 "schedule": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "script_name": {
                     "type": "string",
                     "example": "updated_script.js"
                 },
                 "script_variables": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateFlowRequest": {
+        "models.UpdateFlowRequest": {
             "type": "object",
             "required": [
                 "status"
@@ -4879,14 +4958,14 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateProfileRequest": {
+        "models.UpdateProfileRequest": {
             "type": "object",
             "required": [
                 "name"
             ],
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON"
+                    "$ref": "#/definitions/models.JSON"
                 },
                 "name": {
                     "type": "string",
@@ -4894,19 +4973,19 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_onegreenvn_green-provider-services-backend_internal_models.User": {
+        "models.User": {
             "type": "object",
             "properties": {
                 "boxes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Box"
+                        "$ref": "#/definitions/models.Box"
                     }
                 },
                 "campaigns": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Campaign"
+                        "$ref": "#/definitions/models.Campaign"
                     }
                 },
                 "created_at": {
@@ -4934,7 +5013,7 @@ const docTemplate = `{
                     "description": "Relationships",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshToken"
+                        "$ref": "#/definitions/models.RefreshToken"
                     }
                 },
                 "token_version": {

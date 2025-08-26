@@ -1,10 +1,10 @@
 basePath: /
 definitions:
-  github_com_onegreenvn_green-provider-services-backend_internal_models.App:
+  models.App:
     properties:
       box:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Box'
+        - $ref: '#/definitions/models.Box'
         description: Relationships
       box_id:
         type: string
@@ -16,7 +16,7 @@ definitions:
         type: string
       profiles:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Profile'
+          $ref: '#/definitions/models.Profile'
         type: array
       tunnel_url:
         description: Optional tunnel URL
@@ -24,7 +24,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse:
+  models.AppResponse:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -45,7 +45,7 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse:
+  models.AuthResponse:
     properties:
       access_token:
         type: string
@@ -56,13 +56,13 @@ definitions:
       token_type:
         type: string
       user:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User'
+        $ref: '#/definitions/models.User'
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.Box:
+  models.Box:
     properties:
       apps:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.App'
+          $ref: '#/definitions/models.App'
         type: array
       created_at:
         type: string
@@ -76,12 +76,12 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User'
+        - $ref: '#/definitions/models.User'
         description: Relationships
       user_id:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse:
+  models.BoxResponse:
     properties:
       created_at:
         example: "2025-01-09T10:30:00Z"
@@ -102,7 +102,7 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.Campaign:
+  models.Campaign:
     properties:
       concurrent_phones:
         description: Campaign details
@@ -113,7 +113,7 @@ definitions:
         type: string
       flow_groups:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroup'
+          $ref: '#/definitions/models.FlowGroup'
         type: array
       id:
         type: string
@@ -121,22 +121,22 @@ definitions:
         type: boolean
       logs:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignLog'
+          $ref: '#/definitions/models.CampaignLog'
         type: array
       name:
         type: string
       profiles:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Profile'
+          $ref: '#/definitions/models.Profile'
         type: array
       schedule:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        - $ref: '#/definitions/models.JSON'
         description: Scheduling
       script_name:
         type: string
       script_variables:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       status:
         description: idle, running, failed, completed
         type: string
@@ -144,19 +144,19 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User'
+        - $ref: '#/definitions/models.User'
         description: Relationships
       user_id:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignLog:
+  models.CampaignLog:
     properties:
       campaign_id:
         type: string
       created_at:
         type: string
       details:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       executed_at:
         type: string
       id:
@@ -169,11 +169,11 @@ definitions:
       updated_at:
         type: string
       user:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User'
+        $ref: '#/definitions/models.User'
       user_id:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse:
+  models.CampaignResponse:
     properties:
       concurrent_phones:
         example: 10
@@ -192,22 +192,22 @@ definitions:
         type: boolean
       logs:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignLog'
+          $ref: '#/definitions/models.CampaignLog'
         type: array
       name:
         example: Tăng view campaign
         type: string
       profiles:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileWithBoxResponse'
+          $ref: '#/definitions/models.ProfileWithBoxResponse'
         type: array
       schedule:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       script_name:
         example: increase_views.js
         type: string
       script_variables:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       status:
         example: idle
         type: string
@@ -218,7 +218,7 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.ChangePasswordRequest:
+  models.ChangePasswordRequest:
     properties:
       current_password:
         type: string
@@ -229,7 +229,7 @@ definitions:
     - current_password
     - new_password
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CheckTunnelResponse:
+  models.CheckTunnelResponse:
     properties:
       error:
         description: |-
@@ -257,7 +257,7 @@ definitions:
           @Example 200
         type: integer
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CreateAppRequest:
+  models.CreateAppRequest:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -272,7 +272,7 @@ definitions:
     - box_id
     - name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CreateBoxRequest:
+  models.CreateBoxRequest:
     properties:
       machine_id:
         example: PC-001
@@ -284,7 +284,7 @@ definitions:
     - machine_id
     - name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CreateCampaignRequest:
+  models.CreateCampaignRequest:
     properties:
       concurrent_phones:
         example: 10
@@ -303,19 +303,19 @@ definitions:
           type: string
         type: array
       schedule:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       script_name:
         example: increase_views.js
         type: string
       script_variables:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
     required:
     - name
     - profile_ids
     - schedule
     - script_name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CreateFlowRequest:
+  models.CreateFlowRequest:
     properties:
       flow_group_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -337,7 +337,7 @@ definitions:
     - profile_id
     - status
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.CreateProfileRequest:
+  models.CreateProfileRequest:
     description: Create profile request with platform-specific configuration
     properties:
       app_id:
@@ -347,7 +347,7 @@ definitions:
         type: string
       data:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        - $ref: '#/definitions/models.JSON'
         description: |-
           @Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.
           @Example {"name":"My Hidemium Profile","os":"win","osVersion":"10","browser":"chrome","version":"136","canvas":"noise","language":"en-US","resolution":"1280x800","StartURL":"https://google.com"}
@@ -355,7 +355,7 @@ definitions:
     - app_id
     - data
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.Flow:
+  models.Flow:
     properties:
       created_at:
         type: string
@@ -370,7 +370,7 @@ definitions:
       profile_id:
         type: string
       result:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       script_name:
         type: string
       status:
@@ -380,7 +380,7 @@ definitions:
       user_id:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroup:
+  models.FlowGroup:
     properties:
       campaign_id:
         type: string
@@ -390,11 +390,11 @@ definitions:
         type: string
       execution_data:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        - $ref: '#/definitions/models.JSON'
         description: Store execution metadata
       flows:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Flow'
+          $ref: '#/definitions/models.Flow'
         type: array
       id:
         type: string
@@ -410,7 +410,7 @@ definitions:
       user_id:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupResponse:
+  models.FlowGroupResponse:
     properties:
       campaign_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -437,7 +437,7 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupStats:
+  models.FlowGroupStats:
     properties:
       duration:
         example: 30m
@@ -461,7 +461,7 @@ definitions:
         example: 80
         type: number
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse:
+  models.FlowResponse:
     properties:
       created_at:
         example: "2025-01-09T10:30:00Z"
@@ -485,10 +485,10 @@ definitions:
         example: "2025-01-09T10:30:00Z"
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.JSON:
+  models.JSON:
     additionalProperties: true
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.LoginRequest:
+  models.LoginRequest:
     properties:
       password:
         type: string
@@ -498,32 +498,32 @@ definitions:
     - password
     - username
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.LogoutRequest:
+  models.LogoutRequest:
     properties:
       refresh_token:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.Profile:
+  models.Profile:
     properties:
       app:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.App'
+        - $ref: '#/definitions/models.App'
         description: Relationships
       app_id:
         type: string
       campaigns:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Campaign'
+          $ref: '#/definitions/models.Campaign'
         type: array
       created_at:
         type: string
       data:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        - $ref: '#/definitions/models.JSON'
         description: Store complex profile data from anti-detect browsers
       flows:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Flow'
+          $ref: '#/definitions/models.Flow'
         type: array
       id:
         type: string
@@ -532,7 +532,7 @@ definitions:
       updated_at:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse:
+  models.ProfileResponse:
     properties:
       app_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -541,7 +541,7 @@ definitions:
         example: "2025-01-09T10:00:00Z"
         type: string
       data:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       id:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
@@ -552,7 +552,7 @@ definitions:
         example: "2025-01-09T10:00:00Z"
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileWithBoxResponse:
+  models.ProfileWithBoxResponse:
     properties:
       app_id:
         example: 550e8400-e29b-41d4-a716-446655440001
@@ -573,7 +573,7 @@ definitions:
         example: "2025-01-09T10:00:00Z"
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshToken:
+  models.RefreshToken:
     properties:
       created_at:
         type: string
@@ -591,21 +591,21 @@ definitions:
         type: string
       user:
         allOf:
-        - $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User'
+        - $ref: '#/definitions/models.User'
         description: Relationships
       user_agent:
         type: string
       user_id:
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshTokenRequest:
+  models.RefreshTokenRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterAppResponse:
+  models.RegisterAppResponse:
     description: Response containing subdomain and FRP configuration for app registration
     properties:
       frpDomain:
@@ -636,7 +636,7 @@ definitions:
           @Example {"hidemium": "machineid-hidemium-userid"}
         type: object
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterRequest:
+  models.RegisterRequest:
     properties:
       first_name:
         type: string
@@ -653,7 +653,7 @@ definitions:
     - password
     - username
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.SyncBoxProfilesResponse:
+  models.SyncBoxProfilesResponse:
     properties:
       box_id:
         example: 550e8400-e29b-41d4-a716-446655440000
@@ -680,7 +680,7 @@ definitions:
         example: http://pc-91542.agent-controller.onegreen.cloud/frps
         type: string
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateAppRequest:
+  models.UpdateAppRequest:
     properties:
       name:
         example: Updated App Name
@@ -691,7 +691,7 @@ definitions:
     required:
     - name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateBoxRequest:
+  models.UpdateBoxRequest:
     properties:
       name:
         example: Updated Computer Name
@@ -702,7 +702,7 @@ definitions:
     required:
     - name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateCampaignRequest:
+  models.UpdateCampaignRequest:
     properties:
       concurrent_phones:
         example: 20
@@ -721,19 +721,19 @@ definitions:
           type: string
         type: array
       schedule:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       script_name:
         example: updated_script.js
         type: string
       script_variables:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
     required:
     - name
     - profile_ids
     - schedule
     - script_name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateFlowRequest:
+  models.UpdateFlowRequest:
     properties:
       status:
         enum:
@@ -747,25 +747,25 @@ definitions:
     required:
     - status
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateProfileRequest:
+  models.UpdateProfileRequest:
     properties:
       data:
-        $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.JSON'
+        $ref: '#/definitions/models.JSON'
       name:
         example: Updated Profile Name
         type: string
     required:
     - name
     type: object
-  github_com_onegreenvn_green-provider-services-backend_internal_models.User:
+  models.User:
     properties:
       boxes:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Box'
+          $ref: '#/definitions/models.Box'
         type: array
       campaigns:
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.Campaign'
+          $ref: '#/definitions/models.Campaign'
         type: array
       created_at:
         type: string
@@ -784,7 +784,7 @@ definitions:
       refresh_tokens:
         description: Relationships
         items:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshToken'
+          $ref: '#/definitions/models.RefreshToken'
         type: array
       token_version:
         type: integer
@@ -818,7 +818,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse'
+              $ref: '#/definitions/models.AppResponse'
             type: array
         "401":
           description: Unauthorized
@@ -852,7 +852,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse'
+              $ref: '#/definitions/models.BoxResponse'
             type: array
         "401":
           description: Unauthorized
@@ -886,7 +886,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse'
+              $ref: '#/definitions/models.CampaignResponse'
             type: array
         "401":
           description: Unauthorized
@@ -920,7 +920,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse'
+              $ref: '#/definitions/models.FlowResponse'
             type: array
         "401":
           description: Unauthorized
@@ -954,7 +954,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse'
+              $ref: '#/definitions/models.ProfileResponse'
             type: array
         "401":
           description: Unauthorized
@@ -988,14 +988,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterRequest'
+          $ref: '#/definitions/models.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse'
+            $ref: '#/definitions/models.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -1187,6 +1187,57 @@ paths:
       summary: Set user active status (Admin only)
       tags:
       - admin
+  /api/v1/app-profiles/{app_id}/profiles:
+    get:
+      consumes:
+      - application/json
+      description: Get all profiles for a specific app (user must own the app) with
+        pagination
+      parameters:
+      - description: App ID
+        in: path
+        name: app_id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get profiles by app
+      tags:
+      - profiles
   /api/v1/app-proxy/{app_id}/{platform_path}:
     delete:
       consumes:
@@ -1484,7 +1535,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse'
+              $ref: '#/definitions/models.AppResponse'
             type: array
         "401":
           description: Unauthorized
@@ -1511,14 +1562,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateAppRequest'
+          $ref: '#/definitions/models.CreateAppRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse'
+            $ref: '#/definitions/models.AppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1601,7 +1652,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse'
+            $ref: '#/definitions/models.AppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1642,14 +1693,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateAppRequest'
+          $ref: '#/definitions/models.UpdateAppRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse'
+            $ref: '#/definitions/models.AppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1680,37 +1731,24 @@ paths:
       summary: Update app
       tags:
       - apps
-  /api/v1/apps/{id}/profiles:
-    get:
+  /api/v1/apps/{id}/sync-profiles:
+    post:
       consumes:
       - application/json
-      description: Get all profiles for a specific app (user must own the app) with
-        pagination
+      description: Sync all profiles from a specific app
       parameters:
-      - description: App ID
+      - description: App ID to sync profiles from
         in: path
-        name: app_id
+        name: id
         required: true
         type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.SyncBoxProfilesResponse'
         "400":
           description: Bad Request
           schema:
@@ -1721,6 +1759,11 @@ paths:
           schema:
             additionalProperties: true
             type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -1728,9 +1771,9 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get profiles by app
+      summary: Sync profiles from a specific app
       tags:
-      - profiles
+      - apps
   /api/v1/apps/check-tunnel:
     get:
       consumes:
@@ -1749,7 +1792,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CheckTunnelResponse'
+            $ref: '#/definitions/models.CheckTunnelResponse'
         "400":
           description: Bad Request
           schema:
@@ -1793,7 +1836,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RegisterAppResponse'
+            $ref: '#/definitions/models.RegisterAppResponse'
         "400":
           description: Bad Request
           schema:
@@ -1814,6 +1857,86 @@ paths:
       summary: Get subdomain and FRP configuration for app registration
       tags:
       - apps
+  /api/v1/apps/sync-all:
+    post:
+      consumes:
+      - application/json
+      description: Sync all profiles from all apps owned by the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync all user apps
+      tags:
+      - apps
+  /api/v1/apps/sync-box/{box_id}:
+    post:
+      consumes:
+      - application/json
+      description: Sync all profiles from all apps in a specific box
+      parameters:
+      - description: Box ID to sync apps from
+        in: path
+        name: box_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync all apps in a box
+      tags:
+      - apps
   /api/v1/auth/change-password:
     post:
       consumes:
@@ -1825,7 +1948,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ChangePasswordRequest'
+          $ref: '#/definitions/models.ChangePasswordRequest'
       produces:
       - application/json
       responses:
@@ -1865,14 +1988,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.LoginRequest'
+          $ref: '#/definitions/models.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse'
+            $ref: '#/definitions/models.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -1902,7 +2025,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.LogoutRequest'
+          $ref: '#/definitions/models.LogoutRequest'
       produces:
       - application/json
       responses:
@@ -1942,7 +2065,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.User'
+            $ref: '#/definitions/models.User'
         "401":
           description: Unauthorized
           schema:
@@ -1969,14 +2092,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.RefreshTokenRequest'
+          $ref: '#/definitions/models.RefreshTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AuthResponse'
+            $ref: '#/definitions/models.AuthResponse'
         "400":
           description: Bad Request
           schema:
@@ -1995,6 +2118,46 @@ paths:
       summary: Refresh access token
       tags:
       - auth
+  /api/v1/box-apps/{box_id}/apps:
+    get:
+      consumes:
+      - application/json
+      description: Get all apps for a specific box (user must own the box)
+      parameters:
+      - description: Box ID
+        in: path
+        name: box_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.AppResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get apps by box
+      tags:
+      - apps
   /api/v1/boxes:
     get:
       consumes:
@@ -2045,14 +2208,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateBoxRequest'
+          $ref: '#/definitions/models.CreateBoxRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse'
+            $ref: '#/definitions/models.BoxResponse'
         "400":
           description: Bad Request
           schema:
@@ -2135,7 +2298,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse'
+            $ref: '#/definitions/models.BoxResponse'
         "400":
           description: Bad Request
           schema:
@@ -2178,14 +2341,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateBoxRequest'
+          $ref: '#/definitions/models.UpdateBoxRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.BoxResponse'
+            $ref: '#/definitions/models.BoxResponse'
         "400":
           description: Bad Request
           schema:
@@ -2211,26 +2374,37 @@ paths:
       summary: Update box
       tags:
       - boxes
-  /api/v1/boxes/{id}/apps:
+  /api/v1/campaign-flows/{campaign_id}/flows:
     get:
       consumes:
       - application/json
-      description: Get all apps for a specific box (user must own the box)
+      description: Get all flows for a specific campaign (user must own the campaign)
+        with pagination
       parameters:
-      - description: Box ID
+      - description: Campaign ID
         in: path
-        name: id
+        name: campaign_id
         required: true
         type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.AppResponse'
-            type: array
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -2248,79 +2422,9 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get apps by box
+      summary: Get flows by campaign
       tags:
-      - apps
-  /api/v1/boxes/{id}/sync-profiles:
-    post:
-      consumes:
-      - application/json
-      description: Sync all profiles from a specific box's platform instance via tunnel
-      parameters:
-      - description: Box ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.SyncBoxProfilesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync profiles from box's platform instance
-      tags:
-      - boxes
-  /api/v1/boxes/sync-all:
-    post:
-      consumes:
-      - application/json
-      description: Sync all boxes and their profiles for the authenticated user
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.SyncBoxProfilesResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync all boxes for the authenticated user
-      tags:
-      - boxes
+      - flows
   /api/v1/campaigns:
     get:
       consumes:
@@ -2333,7 +2437,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse'
+              $ref: '#/definitions/models.CampaignResponse'
             type: array
         "401":
           description: Unauthorized
@@ -2360,14 +2464,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateCampaignRequest'
+          $ref: '#/definitions/models.CreateCampaignRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse'
+            $ref: '#/definitions/models.CampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -2450,7 +2554,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse'
+            $ref: '#/definitions/models.CampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -2491,14 +2595,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateCampaignRequest'
+          $ref: '#/definitions/models.UpdateCampaignRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CampaignResponse'
+            $ref: '#/definitions/models.CampaignResponse'
         "400":
           description: Bad Request
           schema:
@@ -2547,7 +2651,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupResponse'
+              $ref: '#/definitions/models.FlowGroupResponse'
             type: array
         "400":
           description: Bad Request
@@ -2564,96 +2668,7 @@ paths:
       summary: Get all group campaigns for a campaign
       tags:
       - flow-groups
-  /api/v1/campaigns/{id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific campaign (user must own the campaign)
-        with pagination
-      parameters:
-      - description: Campaign ID
-        in: path
-        name: campaign_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by campaign
-      tags:
-      - flows
-  /api/v1/flow-groups/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific group campaign by its ID
-      parameters:
-      - description: Group campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get a group campaign by ID
-      tags:
-      - flow-groups
-  /api/v1/flow-groups/{id}/flows:
+  /api/v1/flow-group-flows/{flow_group_id}/flows:
     get:
       consumes:
       - application/json
@@ -2704,6 +2719,44 @@ paths:
       summary: Get flows by group campaign
       tags:
       - flows
+  /api/v1/flow-groups/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific group campaign by its ID
+      parameters:
+      - description: Group campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.FlowGroupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a group campaign by ID
+      tags:
+      - flow-groups
   /api/v1/flow-groups/{id}/stats:
     get:
       consumes:
@@ -2721,7 +2774,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowGroupStats'
+            $ref: '#/definitions/models.FlowGroupStats'
         "400":
           description: Bad Request
           schema:
@@ -2792,14 +2845,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateFlowRequest'
+          $ref: '#/definitions/models.CreateFlowRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse'
+            $ref: '#/definitions/models.FlowResponse'
         "400":
           description: Bad Request
           schema:
@@ -2877,7 +2930,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse'
+            $ref: '#/definitions/models.FlowResponse'
         "400":
           description: Bad Request
           schema:
@@ -2918,14 +2971,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateFlowRequest'
+          $ref: '#/definitions/models.UpdateFlowRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.FlowResponse'
+            $ref: '#/definitions/models.FlowResponse'
         "400":
           description: Bad Request
           schema:
@@ -3007,6 +3060,57 @@ paths:
       summary: Get flows by status
       tags:
       - flows
+  /api/v1/profile-flows/{profile_id}/flows:
+    get:
+      consumes:
+      - application/json
+      description: Get all flows for a specific profile (user must own the profile)
+        with pagination
+      parameters:
+      - description: Profile ID
+        in: path
+        name: profile_id
+        required: true
+        type: string
+      - description: 'Page number (default: 1)'
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - description: 'Number of items per page (default: 20, max: 100)'
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get flows by profile
+      tags:
+      - flows
   /api/v1/profiles:
     get:
       consumes:
@@ -3071,14 +3175,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.CreateProfileRequest'
+          $ref: '#/definitions/models.CreateProfileRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse'
+            $ref: '#/definitions/models.ProfileResponse'
         "400":
           description: Bad Request
           schema:
@@ -3161,7 +3265,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse'
+            $ref: '#/definitions/models.ProfileResponse'
         "400":
           description: Bad Request
           schema:
@@ -3202,14 +3306,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.UpdateProfileRequest'
+          $ref: '#/definitions/models.UpdateProfileRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_onegreenvn_green-provider-services-backend_internal_models.ProfileResponse'
+            $ref: '#/definitions/models.ProfileResponse'
         "400":
           description: Bad Request
           schema:
@@ -3240,57 +3344,6 @@ paths:
       summary: Update profile
       tags:
       - profiles
-  /api/v1/profiles/{id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific profile (user must own the profile)
-        with pagination
-      parameters:
-      - description: Profile ID
-        in: path
-        name: profile_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by profile
-      tags:
-      - flows
   /api/v1/profiles/default-configs:
     get:
       consumes:

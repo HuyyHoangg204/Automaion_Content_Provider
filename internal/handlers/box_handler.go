@@ -4,26 +4,17 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
+	"github.com/gin-gonic/gin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
-
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type BoxHandler struct {
 	boxService *services.BoxService
 }
 
-func NewBoxHandler(db *gorm.DB) *BoxHandler {
-	userRepo := repository.NewUserRepository(db)
-	boxRepo := repository.NewBoxRepository(db)
-	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
-
-	boxService := services.NewBoxService(boxRepo, appRepo, profileRepo, userRepo)
+func NewBoxHandler(boxService *services.BoxService) *BoxHandler {
 	return &BoxHandler{
 		boxService: boxService,
 	}
@@ -221,71 +212,6 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// SyncSingleBoxProfiles godoc
-// @Summary Sync profiles from box's platform instance
-// @Description Sync all profiles from a specific box's platform instance via tunnel
-// @Tags boxes
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Box ID"
-// @Success 200 {object} models.SyncBoxProfilesResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/boxes/{id}/sync-profiles [post]
-func (h *BoxHandler) SyncSingleBoxProfiles(c *gin.Context) {
-	// Get user ID from context
-	userID := c.MustGet("user_id").(string)
-
-	// Get box ID from URL
-	boxID := c.Param("id")
-	if boxID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Box ID is required"})
-		return
-	}
-
-	// Sync profiles from platform
-	response, err := h.boxService.SyncSingleBoxProfiles(userID, boxID)
-	if err != nil {
-		if err.Error() == "box not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync profiles from Hidemium", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-// SyncAllUserBoxes godoc
-// @Summary Sync all boxes for the authenticated user
-// @Description Sync all boxes and their profiles for the authenticated user
-// @Tags boxes
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} models.SyncAllUserBoxesResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/boxes/sync-all [post]
-func (h *BoxHandler) SyncAllUserBoxes(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-
-	response, err := h.boxService.SyncAllUserBoxes(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to sync all user boxes",
-			"details": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
 }
 
 // AdminGetAllBoxes godoc
