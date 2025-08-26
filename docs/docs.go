@@ -1255,7 +1255,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/apps/sync-all": {
+        "/api/v1/apps/sync/all-apps": {
             "post": {
                 "security": [
                     {
@@ -1272,7 +1272,7 @@ const docTemplate = `{
                 "tags": [
                     "apps"
                 ],
-                "summary": "Sync all user apps",
+                "summary": "Sync all profiles from all apps owned by the user",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1311,14 +1311,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/apps/sync-box/{box_id}": {
+        "/api/v1/apps/sync/{id}": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sync all profiles from all apps in a specific box",
+                "description": "Sync all profiles from a specific app",
                 "consumes": [
                     "application/json"
                 ],
@@ -1328,12 +1328,12 @@ const docTemplate = `{
                 "tags": [
                     "apps"
                 ],
-                "summary": "Sync all profiles from all apps in a box",
+                "summary": "Sync profiles from a specific app",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Box ID to sync profiles from",
-                        "name": "box_id",
+                        "description": "App ID to sync profiles from",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     }
@@ -1639,71 +1639,6 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/apps/{id}/sync-profiles": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from a specific app",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "apps"
-                ],
-                "summary": "Sync profiles from a specific app",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "App ID to sync profiles from",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2103,6 +2038,71 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/boxes/sync-profiles/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from all apps in a specific box",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boxes"
+                ],
+                "summary": "Sync all profiles from all apps in a box",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID to sync profiles from",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4778,6 +4778,10 @@ const docTemplate = `{
             "description": "Response containing subdomain and FRP configuration for app registration",
             "type": "object",
             "properties": {
+                "frpCustomDomainHost": {
+                    "description": "@Description FRP custom domain host\n@Example \"agent-controller.onegreen.cloud\"",
+                    "type": "string"
+                },
                 "frpDomain": {
                     "description": "@Description FRP domain\n@Example \"frp.onegreen.cloud\"",
                     "type": "string"

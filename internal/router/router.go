@@ -48,9 +48,10 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Create repositories
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
 
 	// Create services
-	boxService := services.NewBoxService(boxRepo, appRepo, userRepo)
+	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
 
 	// Create handlers with proper service dependencies
 	authHandler := handlers.NewAuthHandler(authService)
@@ -104,6 +105,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
 				boxes.GET("/:id/apps", appHandler.GetAppsByBox)
+				boxes.POST("/sync-profiles/:id", boxHandler.SyncAllProfilesInBox)
 			}
 
 			// Box Proxy routes - for direct platform operations
@@ -117,15 +119,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			{
 				apps.POST("", appHandler.CreateApp)
 				apps.GET("", appHandler.GetMyApps)
+				apps.GET("/:id/profiles", profileHandler.GetProfilesByApp)
 				apps.GET("/register-app", appHandler.GetRegisterAppDomains)
 				apps.GET("/check-tunnel", appHandler.CheckTunnelURL)
 				apps.GET("/:id", appHandler.GetAppByID)
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)
-				apps.POST("/:id/sync-profiles", appHandler.SyncAppProfiles)
-				apps.POST("/sync-box/:box_id", appHandler.SyncAllProfilesInBox)
-				apps.POST("/sync-all", appHandler.SyncAllUserApps)
-				apps.GET("/:id/profiles", profileHandler.GetProfilesByApp)
+				apps.POST("/sync/:id", appHandler.SyncAppProfiles)
+				apps.POST("/sync/all-apps", appHandler.SyncAllUserApps)
 			}
 
 			// Campaign routes

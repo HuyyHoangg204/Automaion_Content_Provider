@@ -608,6 +608,11 @@ definitions:
   models.RegisterAppResponse:
     description: Response containing subdomain and FRP configuration for app registration
     properties:
+      frpCustomDomainHost:
+        description: |-
+          @Description FRP custom domain host
+          @Example "agent-controller.onegreen.cloud"
+        type: string
       frpDomain:
         description: |-
           @Description FRP domain
@@ -1731,49 +1736,6 @@ paths:
       summary: Get profiles by app
       tags:
       - profiles
-  /api/v1/apps/{id}/sync-profiles:
-    post:
-      consumes:
-      - application/json
-      description: Sync all profiles from a specific app
-      parameters:
-      - description: App ID to sync profiles from
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SyncBoxProfilesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync profiles from a specific app
-      tags:
-      - apps
   /api/v1/apps/check-tunnel:
     get:
       consumes:
@@ -1857,7 +1819,50 @@ paths:
       summary: Get subdomain and FRP configuration for app registration
       tags:
       - apps
-  /api/v1/apps/sync-all:
+  /api/v1/apps/sync/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Sync all profiles from a specific app
+      parameters:
+      - description: App ID to sync profiles from
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync profiles from a specific app
+      tags:
+      - apps
+  /api/v1/apps/sync/all-apps:
     post:
       consumes:
       - application/json
@@ -1891,50 +1896,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Sync all user apps
-      tags:
-      - apps
-  /api/v1/apps/sync-box/{box_id}:
-    post:
-      consumes:
-      - application/json
-      description: Sync all profiles from all apps in a specific box
-      parameters:
-      - description: Box ID to sync profiles from
-        in: path
-        name: box_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SyncBoxProfilesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync all profiles from all apps in a box
+      summary: Sync all profiles from all apps owned by the user
       tags:
       - apps
   /api/v1/auth/change-password:
@@ -2374,6 +2336,49 @@ paths:
       summary: Get apps by box
       tags:
       - apps
+  /api/v1/boxes/sync-profiles/{id}:
+    post:
+      consumes:
+      - application/json
+      description: Sync all profiles from all apps in a specific box
+      parameters:
+      - description: Box ID to sync profiles from
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync all profiles from all apps in a box
+      tags:
+      - boxes
   /api/v1/campaigns:
     get:
       consumes:

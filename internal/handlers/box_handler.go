@@ -242,3 +242,31 @@ func (h *BoxHandler) AdminGetAllBoxes(c *gin.Context) {
 
 	c.JSON(http.StatusOK, boxes)
 }
+
+// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
+// @Summary Sync all profiles from all apps in a box
+// @Description Sync all profiles from all apps in a specific box
+// @Tags boxes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Box ID to sync profiles from"
+// @Success 200 {object} models.SyncBoxProfilesResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/boxes/sync-profiles/{id} [post]
+func (h *BoxHandler) SyncAllProfilesInBox(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	boxID := c.Param("id")
+
+	// Sync all profiles from all apps in the box
+	syncResult, err := h.boxService.SyncAllProfilesInBox(userID, boxID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, syncResult)
+}

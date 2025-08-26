@@ -564,24 +564,3 @@ func (s *AppService) SyncAllAppsByUser(userID string) (*models.SyncBoxProfilesRe
 		Message:         fmt.Sprintf("Sync completed: %d/%d boxes synced, %d profiles processed", boxesSynced, len(boxes), totalProfiles),
 	}, nil
 }
-
-// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
-func (s *AppService) SyncAllProfilesInBox(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
-	// Get box by ID and verify ownership
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
-	if err != nil {
-		return nil, errors.New("box not found")
-	}
-
-	// Sync all apps in this box
-	syncResult, err := s.SyncAllAppsInBox(boxID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sync box %s: %w", boxID, err)
-	}
-
-	// Set box information
-	syncResult.BoxID = boxID
-	syncResult.MachineID = box.MachineID
-
-	return syncResult, nil
-}

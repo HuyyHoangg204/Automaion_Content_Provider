@@ -350,7 +350,7 @@ func (h *AppHandler) CheckTunnelURL(c *gin.Context) {
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/{id}/sync-profiles [post]
+// @Router /api/v1/apps/sync/{id} [post]
 func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	appID := c.Param("id")
@@ -372,36 +372,8 @@ func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
 	c.JSON(http.StatusOK, syncResult)
 }
 
-// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
-// @Summary Sync all profiles from all apps in a box
-// @Description Sync all profiles from all apps in a specific box
-// @Tags apps
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param box_id path string true "Box ID to sync profiles from"
-// @Success 200 {object} models.SyncBoxProfilesResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/sync-box/{box_id} [post]
-func (h *AppHandler) SyncAllProfilesInBox(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-	boxID := c.Param("box_id")
-
-	// Sync all profiles from all apps in the box
-	syncResult, err := h.appService.SyncAllProfilesInBox(userID, boxID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, syncResult)
-}
-
 // SyncAllUserApps syncs all apps owned by the user
-// @Summary Sync all user apps
+// @Summary Sync all profiles from all apps owned by the user
 // @Description Sync all profiles from all apps owned by the user
 // @Tags apps
 // @Accept json
@@ -412,7 +384,7 @@ func (h *AppHandler) SyncAllProfilesInBox(c *gin.Context) {
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/sync-all [post]
+// @Router /api/v1/apps/sync/all-apps [post]
 func (h *AppHandler) SyncAllUserApps(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
