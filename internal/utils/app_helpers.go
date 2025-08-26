@@ -65,14 +65,43 @@ func BuildProfilesURL(baseURL string, platformType PlatformType) string {
 	}
 }
 
+// BuildProfilesURLWithPagination builds the profiles endpoint URL for the platform with pagination support
+func BuildProfilesURLWithPagination(baseURL string, platformType PlatformType, page, limit int) string {
+	baseURL = strings.TrimSuffix(baseURL, "/")
+
+	switch platformType {
+	case PlatformHidemium:
+		if paths, exists := AllowedPaths["hidemium"]; exists && len(paths) > 0 {
+			return fmt.Sprintf("%s/%s?page=%d&limit=%d", baseURL, paths[0], page, limit)
+		}
+		return fmt.Sprintf("%s/v1/browser/list?page=%d&limit=%d", baseURL, page, limit)
+	case PlatformGenLogin:
+		if paths, exists := AllowedPaths["genlogin"]; exists && len(paths) > 0 {
+			for _, path := range paths {
+				if path == "profiles/list" {
+					return fmt.Sprintf("%s/%s?page=%d&limit=%d", baseURL, path, page, limit)
+				}
+			}
+		}
+		return fmt.Sprintf("%s/profiles/list?page=%d&limit=%d", baseURL, page, limit)
+	default:
+		return fmt.Sprintf("%s/profiles?page=%d&limit=%d", baseURL, page, limit)
+	}
+}
+
 // FetchProfilesFromPlatform fetches profiles from the platform using the app's tunnel URL
 func (h *AppHelper) FetchProfilesFromPlatform(app *models.App, platformType string) ([]map[string]interface{}, error) {
+	return h.FetchProfilesFromPlatformWithPagination(app, platformType, 1, 1000)
+}
+
+// FetchProfilesFromPlatformWithPagination fetches profiles from the platform with pagination support
+func (h *AppHelper) FetchProfilesFromPlatformWithPagination(app *models.App, platformType string, page, limit int) ([]map[string]interface{}, error) {
 	if app.TunnelURL == nil || *app.TunnelURL == "" {
 		return nil, fmt.Errorf("no tunnel URL configured for app %s", app.Name)
 	}
 
-	// Build the profiles endpoint URL
-	profilesURL := BuildProfilesURL(*app.TunnelURL, PlatformType(platformType))
+	// Build the profiles endpoint URL with pagination
+	profilesURL := BuildProfilesURLWithPagination(*app.TunnelURL, PlatformType(platformType), page, limit)
 
 	// Make HTTP request to fetch profiles
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -255,19 +284,10 @@ func (h *AppHelper) ProcessPlatformProfile(appID string, platformProfile map[str
 		result.ProfilesUpdated++
 		delete(existingProfilesMap, uuid)
 	} else {
-		if err := h.CreateNewProfile(appID, platformProfile); err != nil {
-			return fmt.Errorf("failed to create profile: %w", err)
-		}
-		result.ProfilesCreated++
+		return fmt.Errorf("profile not found")
 	}
+	result.ProfilesCreated++
 	return nil
-}
-
-// CreateNewProfile creates a new profile
-func (h *AppHelper) CreateNewProfile(appID string, platformProfile map[string]interface{}) error {
-	_ = appID           // Avoid unused parameter warning
-	_ = platformProfile // Avoid unused parameter warning
-	return nil          // This should be handled by the caller with proper repository
 }
 
 // UpdateExistingProfile updates an existing profile

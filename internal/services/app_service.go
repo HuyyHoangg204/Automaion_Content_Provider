@@ -370,6 +370,39 @@ func (s *AppService) SyncAppProfiles(app *models.App) (*models.SyncBoxProfilesRe
 	return syncResult, nil
 }
 
+// fetchAllProfilesWithPagination fetches all profiles from a platform by handling pagination
+func (s *AppService) fetchAllProfilesWithPagination(app *models.App, platformType string, appHelper *utils.AppHelper) ([]map[string]interface{}, error) {
+	var allProfiles []map[string]interface{}
+	page := 1
+	pageSize := 100 // Default page size, adjust based on platform
+
+	for {
+		// Fetch profiles for current page
+		platformProfiles, err := appHelper.FetchProfilesFromPlatformWithPagination(app, platformType, page, pageSize)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch profiles from %s page %d: %w", platformType, page, err)
+		}
+
+		// If no profiles returned, we've reached the end
+		if len(platformProfiles) == 0 {
+			break
+		}
+
+		// Add profiles from this page
+		allProfiles = append(allProfiles, platformProfiles...)
+
+		// If we got fewer profiles than page size, we've reached the end
+		if len(platformProfiles) < pageSize {
+			break
+		}
+
+		// Move to next page
+		page++
+	}
+
+	return allProfiles, nil
+}
+
 // SyncAllAppsInBox syncs profiles from all apps in a box
 func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResponse, error) {
 	// Get all apps for this box
@@ -396,16 +429,16 @@ func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResp
 			continue
 		}
 
-		// Fetch profiles from platform
+		// Fetch all profiles from platform with pagination handling
 		appHelper := utils.NewAppHelper()
-		platformProfiles, err := appHelper.FetchProfilesFromPlatform(app, platformType)
+		allPlatformProfiles, err := s.fetchAllProfilesWithPagination(app, platformType, appHelper)
 		if err != nil {
 			fmt.Printf("Warning: Failed to get profiles from %s for app %s: %v\n", platformType, app.Name, err)
 			continue
 		}
 
 		// Process synced profiles
-		appSyncResult, err := s.ProcessSyncedProfiles(app.ID, platformProfiles)
+		appSyncResult, err := s.ProcessSyncedProfiles(app.ID, allPlatformProfiles)
 		if err != nil {
 			fmt.Printf("Warning: Failed to process synced profiles for app %s: %v\n", app.Name, err)
 			continue
@@ -415,7 +448,7 @@ func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResp
 		totalProfilesCreated += appSyncResult.ProfilesCreated
 		totalProfilesUpdated += appSyncResult.ProfilesUpdated
 		totalProfilesDeleted += appSyncResult.ProfilesDeleted
-		totalProfilesSynced += len(platformProfiles)
+		totalProfilesSynced += len(allPlatformProfiles)
 	}
 
 	// Build response
@@ -436,10 +469,11 @@ func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResp
 	return syncResult, nil
 }
 
-// ProcessSyncedProfiles processes profiles and updates local DB
-func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[string]interface{}) (*models.SyncBoxProfilesResponse, error) {
+// ProcessSyncedProfiles processes synced profiles and returns response
+func (s *AppService) ProcessSyncedProfiles(appID string, profiles []map[string]interface{}) (*models.SyncBoxProfilesResponse, error) {
 	result := &models.SyncBoxProfilesResponse{
-		ProfilesSynced: len(platformProfiles),
+		ProfilesSynced: len(profiles),
+		Message:        "Profiles synced successfully",
 	}
 
 	// Get existing profiles for this app
@@ -455,9 +489,8 @@ func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[
 		}
 	}
 
-	for _, platformProfile := range platformProfiles {
+	for _, platformProfile := range profiles {
 		if err := s.processPlatformProfile(appID, platformProfile, existingProfilesMap, result); err != nil {
-			fmt.Printf("Warning: Failed to process profile: %v\n", err)
 			continue
 		}
 	}
@@ -474,9 +507,28 @@ func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[
 	return result, nil
 }
 
+// processPlatformProfile processes a single platform profile
 func (s *AppService) processPlatformProfile(appID string, platformProfile map[string]interface{}, existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) error {
-	appHelper := utils.NewAppHelper()
-	return appHelper.ProcessPlatformProfile(appID, platformProfile, existingProfilesMap, result)
+	uuid := utils.ExtractUUIDFromPlatformProfile(platformProfile)
+	if uuid == "" {
+		return fmt.Errorf("platform profile has no UUID")
+	}
+
+	if existingProfile, exists := existingProfilesMap[uuid]; exists {
+		// Update existing profile
+		if err := s.UpdateExistingProfile(existingProfile, platformProfile); err != nil {
+			return fmt.Errorf("failed to update profile: %w", err)
+		}
+		result.ProfilesUpdated++
+		delete(existingProfilesMap, uuid)
+	} else {
+		// Create new profile using AppService method
+		if err := s.CreateNewProfile(appID, platformProfile); err != nil {
+			return fmt.Errorf("failed to create profile: %w", err)
+		}
+		result.ProfilesCreated++
+	}
+	return nil
 }
 
 // CreateNewProfile creates a new profile using provided repo
@@ -485,24 +537,50 @@ func (s *AppService) CreateNewProfile(appID string, platformProfile map[string]i
 	if !ok {
 		profileName = "Unknown Profile"
 	}
-	profile := &models.Profile{AppID: appID, Name: profileName, Data: platformProfile}
-	return s.profileRepo.Create(profile)
+
+	profile := &models.Profile{
+		AppID: appID,
+		Name:  profileName,
+		Data:  platformProfile,
+	}
+
+	// Verify app exists before creating profile
+	if _, err := s.appRepo.GetByID(appID); err != nil {
+		return fmt.Errorf("app not found: %w", err)
+	}
+
+	// Try to create profile
+	if err := s.profileRepo.Create(profile); err != nil {
+		return fmt.Errorf("failed to create profile in database: %w", err)
+	}
+
+	return nil
 }
 
-// UpdateExistingProfile updates an existing profile using provided repo
+// UpdateExistingProfile updates an existing profile
 func (s *AppService) UpdateExistingProfile(existingProfile *models.Profile, platformProfile map[string]interface{}) error {
 	if existingProfile.Data == nil {
 		existingProfile.Data = make(map[string]interface{})
 	}
+
+	// Update profile data
 	for key, value := range platformProfile {
 		existingProfile.Data[key] = value
 	}
+
+	// Update profile name if available
 	if name, exists := platformProfile["name"]; exists {
 		if nameStr, ok := name.(string); ok && nameStr != existingProfile.Name {
 			existingProfile.Name = nameStr
 		}
 	}
-	return s.profileRepo.Update(existingProfile)
+
+	// Save updated profile to database
+	if err := s.profileRepo.Update(existingProfile); err != nil {
+		return fmt.Errorf("failed to update profile in database: %w", err)
+	}
+
+	return nil
 }
 
 // MarkDeletedProfiles clears associations and deletes missing profiles
