@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -78,7 +78,8 @@ func (s *AppService) CreateApp(userID string, req *models.CreateAppRequest) (*mo
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	return s.toResponse(app), nil
+	converter := utils.NewAppResponseConverter()
+	return converter.ToAppResponse(app), nil
 }
 
 // GetAppsByUser retrieves all apps for a specific user
@@ -89,8 +90,9 @@ func (s *AppService) GetAppsByUser(userID string) ([]*models.AppResponse, error)
 	}
 
 	responses := make([]*models.AppResponse, len(apps))
+	converter := utils.NewAppResponseConverter()
 	for i, app := range apps {
-		responses[i] = s.toResponse(app)
+		responses[i] = converter.ToAppResponse(app)
 	}
 
 	return responses, nil
@@ -110,8 +112,9 @@ func (s *AppService) GetAppsByBox(userID, boxID string) ([]*models.AppResponse, 
 	}
 
 	responses := make([]*models.AppResponse, len(apps))
+	converter := utils.NewAppResponseConverter()
 	for i, app := range apps {
-		responses[i] = s.toResponse(app)
+		responses[i] = converter.ToAppResponse(app)
 	}
 
 	return responses, nil
@@ -124,7 +127,8 @@ func (s *AppService) GetAppByID(userID, appID string) (*models.AppResponse, erro
 		return nil, errors.New("app not found")
 	}
 
-	return s.toResponse(app), nil
+	converter := utils.NewAppResponseConverter()
+	return converter.ToAppResponse(app), nil
 }
 
 // GetAppByUserIDAndID gets an app by ID and verifies user ownership
@@ -180,7 +184,8 @@ func (s *AppService) UpdateApp(userID, appID string, req *models.UpdateAppReques
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
 
-	return s.toResponse(app), nil
+	converter := utils.NewAppResponseConverter()
+	return converter.ToAppResponse(app), nil
 }
 
 // DeleteApp deletes an app (user must own it)
@@ -206,8 +211,9 @@ func (s *AppService) GetAllApps() ([]*models.AppResponse, error) {
 	}
 
 	responses := make([]*models.AppResponse, len(apps))
+	converter := utils.NewAppResponseConverter()
 	for i, app := range apps {
-		responses[i] = s.toResponse(app)
+		responses[i] = converter.ToAppResponse(app)
 	}
 
 	return responses, nil
@@ -342,13 +348,14 @@ func (s *AppService) CheckTunnelURL(tunnelURL string) (*models.CheckTunnelRespon
 // SyncAppProfiles syncs profiles for a specific app
 func (s *AppService) SyncAppProfiles(app *models.App) (*models.SyncBoxProfilesResponse, error) {
 	// Determine platform type from app name
-	platformType := s.GetPlatformType(app.Name)
+	platformType := string(utils.GetPlatformType(app.Name))
 	if platformType == "" {
 		return nil, fmt.Errorf("unsupported platform for app %s", app.Name)
 	}
 
 	// Fetch profiles from platform
-	platformProfiles, err := s.FetchProfilesFromPlatform(app, platformType)
+	appHelper := utils.NewAppHelper()
+	platformProfiles, err := appHelper.FetchProfilesFromPlatform(app, platformType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch profiles for app %s: %w", app.Name, err)
 	}
@@ -382,14 +389,15 @@ func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResp
 	// Sync each app
 	for _, app := range apps {
 		// Determine platform from app name
-		platformType := s.GetPlatformType(app.Name)
+		platformType := string(utils.GetPlatformType(app.Name))
 		if platformType == "" {
 			unsupportedPlatforms = append(unsupportedPlatforms, app.Name)
 			continue
 		}
 
 		// Fetch profiles from platform
-		platformProfiles, err := s.FetchProfilesFromPlatform(app, platformType)
+		appHelper := utils.NewAppHelper()
+		platformProfiles, err := appHelper.FetchProfilesFromPlatform(app, platformType)
 		if err != nil {
 			fmt.Printf("Warning: Failed to get profiles from %s for app %s: %v\n", platformType, app.Name, err)
 			continue
@@ -427,179 +435,6 @@ func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResp
 	return syncResult, nil
 }
 
-// GetPlatformType determines the platform type from app name
-func (s *AppService) GetPlatformType(appName string) string {
-	appNameLower := strings.ToLower(appName)
-
-	switch {
-	case strings.Contains(appNameLower, "hidemium"):
-		return "hidemium"
-	case strings.Contains(appNameLower, "genlogin"):
-		return "genlogin"
-	default:
-		return ""
-	}
-}
-
-// FetchProfilesFromPlatform fetches profiles from the platform using the app's tunnel URL
-func (s *AppService) FetchProfilesFromPlatform(app *models.App, platformType string) ([]map[string]interface{}, error) {
-	if app.TunnelURL == nil || *app.TunnelURL == "" {
-		return nil, fmt.Errorf("no tunnel URL configured for app %s", app.Name)
-	}
-
-	// Build the profiles endpoint URL
-	profilesURL := s.BuildProfilesURL(*app.TunnelURL, platformType)
-
-	// Make HTTP request to fetch profiles
-	client := &http.Client{Timeout: 30 * time.Second}
-
-	var req *http.Request
-	var err error
-
-	// Hidemium uses POST, GenLogin uses GET
-	if platformType == "hidemium" {
-		req, err = http.NewRequest("POST", profilesURL, nil)
-	} else {
-		req, err = http.NewRequest("GET", profilesURL, nil)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Set headers
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Green-Controller/1.0")
-
-	// Make the request
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request to platform: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Check response status
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("platform returned status %d", resp.StatusCode)
-	}
-
-	// Parse response based on platform
-	var platformProfiles []map[string]interface{}
-	switch platformType {
-	case "hidemium":
-		platformProfiles, err = s.parseHidemiumProfilesResponse(resp.Body)
-	case "genlogin":
-		platformProfiles, err = s.parseGenLoginProfilesResponse(resp.Body)
-	default:
-		return nil, fmt.Errorf("unsupported platform for parsing: %s", platformType)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s response: %w", platformType, err)
-	}
-
-	return platformProfiles, nil
-}
-
-// BuildProfilesURL builds the profiles endpoint URL for the platform
-func (s *AppService) BuildProfilesURL(baseURL, platformType string) string {
-	baseURL = strings.TrimSuffix(baseURL, "/")
-
-	switch platformType {
-	case "hidemium":
-		return fmt.Sprintf("%s/v1/browser/list", baseURL)
-	case "genlogin":
-		return fmt.Sprintf("%s/profiles/list", baseURL)
-	default:
-		return fmt.Sprintf("%s/profiles", baseURL)
-	}
-}
-
-// parseHidemiumProfilesResponse parses Hidemium profiles response
-func (s *AppService) parseHidemiumProfilesResponse(body io.Reader) ([]map[string]interface{}, error) {
-	var response map[string]interface{}
-	if err := json.NewDecoder(body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode hidemium response: %w", err)
-	}
-
-	// Extract profiles from response - Hidemium uses data.content structure
-	var profiles []map[string]interface{}
-
-	// Check if data.content exists (Hidemium structure)
-	if data, ok := response["data"].(map[string]interface{}); ok {
-		if content, ok := data["content"].([]interface{}); ok {
-			for _, item := range content {
-				if profile, ok := item.(map[string]interface{}); ok {
-					profiles = append(profiles, profile)
-				}
-			}
-			return profiles, nil
-		}
-	}
-
-	// Fallback: try other possible field names
-	possibleFields := []string{"data", "profiles", "result", "list", "browsers"}
-
-	for _, field := range possibleFields {
-		if value, exists := response[field]; exists {
-			switch v := value.(type) {
-			case []interface{}:
-				for _, item := range v {
-					if profile, ok := item.(map[string]interface{}); ok {
-						profiles = append(profiles, profile)
-					}
-				}
-				return profiles, nil
-			case map[string]interface{}:
-				// Check if this map contains arrays (like data.content)
-				for _, nestedValue := range v {
-					if nestedArray, ok := nestedValue.([]interface{}); ok {
-						for _, item := range nestedArray {
-							if profile, ok := item.(map[string]interface{}); ok {
-								profiles = append(profiles, profile)
-							}
-						}
-						return profiles, nil
-					}
-				}
-			}
-		}
-	}
-
-	return nil, nil
-}
-
-// parseGenLoginProfilesResponse parses GenLogin profiles response
-func (s *AppService) parseGenLoginProfilesResponse(body io.Reader) ([]map[string]interface{}, error) {
-	var response map[string]interface{}
-	if err := json.NewDecoder(body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode genlogin response: %w", err)
-	}
-
-	// Extract profiles from response
-	var profiles []map[string]interface{}
-
-	// Try different possible field names
-	possibleFields := []string{"data", "profiles", "result", "list"}
-
-	for _, field := range possibleFields {
-		if data, exists := response[field]; exists {
-			if profilesData, ok := data.([]interface{}); ok {
-				for _, profileData := range profilesData {
-					if profile, ok := profileData.(map[string]interface{}); ok {
-						profiles = append(profiles, profile)
-					}
-				}
-				if len(profiles) > 0 {
-					break
-				}
-			}
-		}
-	}
-
-	return profiles, nil
-}
-
 // ProcessSyncedProfiles processes profiles and updates local DB
 func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[string]interface{}) (*models.SyncBoxProfilesResponse, error) {
 	result := &models.SyncBoxProfilesResponse{
@@ -614,7 +449,7 @@ func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[
 
 	existingProfilesMap := make(map[string]*models.Profile)
 	for _, profile := range existingProfiles {
-		if uuid := s.ExtractUUID(profile); uuid != "" {
+		if uuid := utils.ExtractUUID(profile); uuid != "" {
 			existingProfilesMap[uuid] = profile
 		}
 	}
@@ -631,24 +466,8 @@ func (s *AppService) ProcessSyncedProfiles(appID string, platformProfiles []map[
 }
 
 func (s *AppService) processPlatformProfile(appID string, platformProfile map[string]interface{}, existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) error {
-	uuid := s.ExtractUUIDFromPlatformProfile(platformProfile)
-	if uuid == "" {
-		return fmt.Errorf("platform profile has no UUID")
-	}
-
-	if existingProfile, exists := existingProfilesMap[uuid]; exists {
-		if err := s.UpdateExistingProfile(existingProfile, platformProfile); err != nil {
-			return fmt.Errorf("failed to update profile: %w", err)
-		}
-		result.ProfilesUpdated++
-		delete(existingProfilesMap, uuid)
-	} else {
-		if err := s.CreateNewProfile(appID, platformProfile); err != nil {
-			return fmt.Errorf("failed to create profile: %w", err)
-		}
-		result.ProfilesCreated++
-	}
-	return nil
+	appHelper := utils.NewAppHelper()
+	return appHelper.ProcessPlatformProfile(appID, platformProfile, existingProfilesMap, result)
 }
 
 // CreateNewProfile creates a new profile using provided repo
@@ -689,49 +508,6 @@ func (s *AppService) MarkDeletedProfiles(existingProfilesMap map[string]*models.
 			continue
 		}
 		result.ProfilesDeleted++
-	}
-}
-
-// ExtractUUID reads uuid from stored profile data
-func (s *AppService) ExtractUUID(profile *models.Profile) string {
-	if profile.Data == nil {
-		return ""
-	}
-	if uuid, exists := profile.Data["uuid"]; exists {
-		if uuidStr, ok := uuid.(string); ok {
-			return uuidStr
-		}
-	}
-	if uuid, exists := profile.Data["id"]; exists {
-		if uuidStr, ok := uuid.(string); ok {
-			return uuidStr
-		}
-	}
-	return ""
-}
-
-// ExtractUUIDFromPlatformProfile reads uuid from raw platform payload
-func (s *AppService) ExtractUUIDFromPlatformProfile(platformProfile map[string]interface{}) string {
-	fields := []string{"uuid", "id", "browser_id", "profile_id", "browser_uuid", "profile_uuid"}
-	for _, f := range fields {
-		if v, ok := platformProfile[f]; ok {
-			if s, ok2 := v.(string); ok2 && s != "" {
-				return s
-			}
-		}
-	}
-	return ""
-}
-
-// toResponse converts App model to response DTO
-func (s *AppService) toResponse(app *models.App) *models.AppResponse {
-	return &models.AppResponse{
-		ID:        app.ID,
-		BoxID:     app.BoxID,
-		Name:      app.Name,
-		TunnelURL: app.TunnelURL,
-		CreatedAt: app.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: app.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
