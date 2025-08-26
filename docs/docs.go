@@ -596,14 +596,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/app-profiles/{app_id}/profiles": {
+        "/api/v1/app-proxy/{app_id}/{platform_path}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all profiles for a specific app (user must own the app) with pagination",
+                "description": "Forwards requests to the appropriate platform based on app. Supports Hidemium and GenLogin platforms.",
                 "consumes": [
                     "application/json"
                 ],
@@ -611,60 +611,412 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "profiles"
+                    "Box Proxy"
                 ],
-                "summary": "Get profiles by app",
+                "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "App ID",
+                        "description": "App ID (UUID)",
                         "name": "app_id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
+                        "type": "string",
+                        "description": "Platform-specific API path",
+                        "name": "platform_path",
+                        "in": "path",
+                        "required": true
                     },
                     {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
+                        "description": "Request body for POST/PUT requests (platform-specific format)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Platform response (varies by platform)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "201": {
+                        "description": "Resource created successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "204": {
+                        "description": "No content (for DELETE requests)"
+                    },
+                    "400": {
+                        "description": "Bad request (invalid path, missing tunnel URL, etc.)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized (invalid/missing JWT token)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (app doesn't belong to user)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found (app not found)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error (forwarding failed)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Forwards requests to the appropriate platform based on app. Supports Hidemium and GenLogin platforms.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Box Proxy"
+                ],
+                "summary": "Proxy request to anti-detect browser platform",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID (UUID)",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Platform-specific API path",
+                        "name": "platform_path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request body for POST/PUT requests (platform-specific format)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Platform response (varies by platform)",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "201": {
+                        "description": "Resource created successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "204": {
+                        "description": "No content (for DELETE requests)"
+                    },
+                    "400": {
+                        "description": "Bad request (invalid path, missing tunnel URL, etc.)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized (invalid/missing JWT token)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (app doesn't belong to user)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found (app not found)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error (forwarding failed)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Forwards requests to the appropriate platform based on app. Supports Hidemium and GenLogin platforms.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Box Proxy"
+                ],
+                "summary": "Proxy request to anti-detect browser platform",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID (UUID)",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Platform-specific API path",
+                        "name": "platform_path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request body for POST/PUT requests (platform-specific format)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Platform response (varies by platform)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "201": {
+                        "description": "Resource created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "204": {
+                        "description": "No content (for DELETE requests)"
+                    },
+                    "400": {
+                        "description": "Bad request (invalid path, missing tunnel URL, etc.)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized (invalid/missing JWT token)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (app doesn't belong to user)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found (app not found)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error (forwarding failed)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Forwards requests to the appropriate platform based on app. Supports Hidemium and GenLogin platforms.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Box Proxy"
+                ],
+                "summary": "Proxy request to anti-detect browser platform",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID (UUID)",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Platform-specific API path",
+                        "name": "platform_path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Request body for POST/PUT requests (platform-specific format)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Platform response (varies by platform)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "201": {
+                        "description": "Resource created successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "204": {
+                        "description": "No content (for DELETE requests)"
+                    },
+                    "400": {
+                        "description": "Bad request (invalid path, missing tunnel URL, etc.)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized (invalid/missing JWT token)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (app doesn't belong to user)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not found (app not found)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error (forwarding failed)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -903,6 +1255,127 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/apps/sync/all-apps": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from all apps owned by the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Sync all profiles from all apps owned by the user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apps/sync/{id}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from a specific app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Sync profiles from a specific app",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID to sync profiles from",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/apps/{id}": {
             "get": {
                 "security": [
@@ -1092,6 +1565,80 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apps/{id}/profiles": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all profiles for a specific app (user must own the app) with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profiles"
+                ],
+                "summary": "Get profiles by app",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1381,67 +1928,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/box-apps/{box_id}/apps": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all apps for a specific box (user must own the box)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "apps"
-                ],
-                "summary": "Get apps by box",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Box ID",
-                        "name": "box_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.AppResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/boxes": {
             "get": {
                 "security": [
@@ -1567,14 +2053,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/boxes/sync-all": {
+        "/api/v1/boxes/sync-profiles/{id}": {
             "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sync all boxes and their profiles for the authenticated user",
+                "description": "Sync all profiles from all apps in a specific box",
                 "consumes": [
                     "application/json"
                 ],
@@ -1584,16 +2070,39 @@ const docTemplate = `{
                 "tags": [
                     "boxes"
                 ],
-                "summary": "Sync all boxes for the authenticated user",
+                "summary": "Sync all profiles from all apps in a box",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID to sync profiles from",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncAllUserBoxesResponse"
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1806,14 +2315,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/boxes/{id}/sync-profiles": {
-            "post": {
+        "/api/v1/boxes/{id}/apps": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sync all profiles from a specific box's platform instance via tunnel",
+                "description": "Get all apps for a specific box (user must own the box)",
                 "consumes": [
                     "application/json"
                 ],
@@ -1821,9 +2330,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "boxes"
+                    "apps"
                 ],
-                "summary": "Sync profiles from box's platform instance",
+                "summary": "Get apps by box",
                 "parameters": [
                     {
                         "type": "string",
@@ -1837,88 +2346,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/campaign-flows/{campaign_id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Campaign ID",
-                        "name": "campaign_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.AppResponse"
+                            }
                         }
                     },
                     "400": {
@@ -2313,14 +2744,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/flow-group-flows/{flow_group_id}/flows": {
+        "/api/v1/campaigns/{id}/flows": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
+                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
                 "consumes": [
                     "application/json"
                 ],
@@ -2330,12 +2761,12 @@ const docTemplate = `{
                 "tags": [
                     "flows"
                 ],
-                "summary": "Get flows by group campaign",
+                "summary": "Get flows by campaign",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Group Campaign ID",
-                        "name": "flow_group_id",
+                        "description": "Campaign ID",
+                        "name": "id",
                         "in": "path",
                         "required": true
                     },
@@ -2437,6 +2868,80 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/flow-groups/{id}/flows": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flows"
+                ],
+                "summary": "Get flows by group campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Group Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2899,80 +3404,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/profile-flows/{profile_id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific profile (user must own the profile) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "profile_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/profiles": {
             "get": {
                 "security": [
@@ -3396,6 +3827,80 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/profiles/{id}/flows": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all flows for a specific profile (user must own the profile) with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "flows"
+                ],
+                "summary": "Get flows by profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Profile ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 100,
+                        "minimum": 1,
+                        "type": "integer",
+                        "description": "Number of items per page (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3552,47 +4057,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.BoxSyncResult": {
-            "type": "object",
-            "properties": {
-                "box_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "error": {
-                    "type": "string",
-                    "example": "Connection failed"
-                },
-                "machine_id": {
-                    "type": "string",
-                    "example": "pc-91542"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "My Computer"
-                },
-                "profiles_created": {
-                    "type": "integer",
-                    "example": 5
-                },
-                "profiles_deleted": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "profiles_synced": {
-                    "type": "integer",
-                    "example": 10
-                },
-                "profiles_updated": {
-                    "type": "integer",
-                    "example": 3
-                },
-                "success": {
-                    "type": "boolean",
-                    "example": true
-                }
-            }
-        },
         "models.Campaign": {
             "type": "object",
             "properties": {
@@ -3739,7 +4203,7 @@ const docTemplate = `{
                 "profiles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.Profile"
+                        "$ref": "#/definitions/models.ProfileWithBoxResponse"
                     }
                 },
                 "schedule": {
@@ -4230,6 +4694,35 @@ const docTemplate = `{
                 }
             }
         },
+        "models.ProfileWithBoxResponse": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "box_name": {
+                    "type": "string",
+                    "example": "My Computer"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:00:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Profile"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2025-01-09T10:00:00Z"
+                }
+            }
+        },
         "models.RefreshToken": {
             "type": "object",
             "properties": {
@@ -4285,6 +4778,10 @@ const docTemplate = `{
             "description": "Response containing subdomain and FRP configuration for app registration",
             "type": "object",
             "properties": {
+                "frpCustomDomainHost": {
+                    "description": "@Description FRP custom domain host\n@Example \"agent-controller.onegreen.cloud\"",
+                    "type": "string"
+                },
                 "frpDomain": {
                     "description": "@Description FRP domain\n@Example \"frp.onegreen.cloud\"",
                     "type": "string"
@@ -4331,49 +4828,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
-                }
-            }
-        },
-        "models.SyncAllUserBoxesResponse": {
-            "type": "object",
-            "properties": {
-                "box_results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.BoxSyncResult"
-                    }
-                },
-                "boxes_synced": {
-                    "type": "integer",
-                    "example": 4
-                },
-                "message": {
-                    "type": "string",
-                    "example": "Sync completed: 4/5 boxes synced, 50 profiles processed"
-                },
-                "profiles_created": {
-                    "type": "integer",
-                    "example": 20
-                },
-                "profiles_deleted": {
-                    "type": "integer",
-                    "example": 5
-                },
-                "profiles_updated": {
-                    "type": "integer",
-                    "example": 15
-                },
-                "total_boxes": {
-                    "type": "integer",
-                    "example": 5
-                },
-                "total_profiles": {
-                    "type": "integer",
-                    "example": 50
-                },
-                "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },

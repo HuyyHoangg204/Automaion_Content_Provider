@@ -4,21 +4,31 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type CampaignHandler struct {
 	campaignService *services.CampaignService
 }
 
-func NewCampaignHandler(campaignService *services.CampaignService) *CampaignHandler {
+func NewCampaignHandler(db *gorm.DB) *CampaignHandler {
+	userRepo := repository.NewUserRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
+	flowGroupRepo := repository.NewFlowGroupRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+	
+	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
 	return &CampaignHandler{
 		campaignService: campaignService,
 	}
 }
+
+
 
 // CreateCampaign godoc
 // @Summary Create a new campaign

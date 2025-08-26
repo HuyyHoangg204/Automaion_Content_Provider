@@ -1,0 +1,42 @@
+package utils
+
+// AllowedPaths defines the allowed API paths for each service
+var AllowedPaths = map[string][]string{
+	"hidemium": {
+		"v1/browser/list",
+		"v2/default-config",
+		"v2/status-profile",
+		"v2/tag",
+		"v2/browser/get-list-version",
+		"v2/browser/get-profile-by-uuid",
+		"v1/folder/list",
+		"create-profile-by-default",
+		"create-profile-custom",
+		"v2/browser/change-fingerprint",
+		"v2/browser/update-note",
+		"v2/browser/update-once",
+		"v2/tag",
+		"v2/status-profile/change-status",
+		"v1/browser/destroy",
+		"v1/folder/add-browser",
+		"v2/proxy/quick-edit",
+		"v2/browser/proxy/update",
+		"automation/campaign",
+		"automation/schedule",
+		"automation/campaign/save-campaign-profile",
+		"automation/campaign/save-auto-campaign",
+		"automation/delete-campaign",
+		"automation/campaign/delete-all-campaign-profile",
+		"user-settings/token",
+	},
+	"genlogin": {
+		"profiles",
+		"profiles/create",
+		"profiles/update",
+		"profiles/delete",
+		"profiles/list",
+		"configs",
+		"campaigns",
+		"automation",
+	},
+}

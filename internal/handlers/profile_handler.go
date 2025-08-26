@@ -6,18 +6,25 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
-
-	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ProfileHandler struct {
 	profileService *services.ProfileService
 }
 
-func NewProfileHandler(profileService *services.ProfileService) *ProfileHandler {
+func NewProfileHandler(db *gorm.DB) *ProfileHandler {
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+
+	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
 	return &ProfileHandler{
 		profileService: profileService,
 	}
@@ -126,17 +133,17 @@ func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param app_id path string true "App ID"
+// @Param id path string true "App ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/app-profiles/{app_id}/profiles [get]
+// @Router /api/v1/apps/{id}/profiles [get]
 func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	appID := c.Param("app_id")
+	appID := c.Param("id")
 
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
@@ -359,17 +366,12 @@ func (h *ProfileHandler) GetDefaultConfigs(c *gin.Context) {
 		limit = 10
 	}
 
-	configs, err := h.profileService.GetDefaultConfigs(context.Background(), userID, platformType, boxID, page, limit)
+	// Get default configs from platform
+	configs, err := h.profileService.GetDefaultConfigsFromPlatform(context.Background(), userID, platformType, boxID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get default configs", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"platform": platformType,
-		"box_id":   boxID,
-		"page":     page,
-		"limit":    limit,
-		"configs":  configs,
-	})
+	c.JSON(http.StatusOK, configs)
 }

@@ -4,18 +4,27 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type FlowHandler struct {
 	flowService *services.FlowService
 }
 
-func NewFlowHandler(flowService *services.FlowService) *FlowHandler {
+func NewFlowHandler(db *gorm.DB) *FlowHandler {
+	userRepo := repository.NewUserRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
+	flowGroupRepo := repository.NewFlowGroupRepository(db)
+	flowRepo := repository.NewFlowRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+
+	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
 	return &FlowHandler{
 		flowService: flowService,
 	}
@@ -103,17 +112,17 @@ func (h *FlowHandler) GetMyFlows(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param campaign_id path string true "Campaign ID"
+// @Param id path string true "Campaign ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/campaign-flows/{campaign_id}/flows [get]
+// @Router /api/v1/campaigns/{id}/flows [get]
 func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	campaignID := c.Param("campaign_id")
+	campaignID := c.Param("id")
 
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
@@ -150,17 +159,17 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param flow_group_id path string true "Group Campaign ID"
+// @Param id path string true "Group Campaign ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/flow-group-flows/{flow_group_id}/flows [get]
+// @Router /api/v1/flow-groups/{id}/flows [get]
 func (h *FlowHandler) GetFlowsByFlowGroup(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	flowGroupID := c.Param("flow_group_id")
+	flowGroupID := c.Param("id")
 
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
@@ -197,17 +206,17 @@ func (h *FlowHandler) GetFlowsByFlowGroup(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param profile_id path string true "Profile ID"
+// @Param id path string true "Profile ID"
 // @Param page query int false "Page number (default: 1)" minimum(1)
 // @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/profile-flows/{profile_id}/flows [get]
+// @Router /api/v1/profiles/{id}/flows [get]
 func (h *FlowHandler) GetFlowsByProfile(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	profileID := c.Param("profile_id")
+	profileID := c.Param("id")
 
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))

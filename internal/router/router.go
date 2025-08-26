@@ -1,7 +1,6 @@
 package router
 
 import (
-	"context"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -19,7 +18,7 @@ import (
 )
 
 // SetupRouter configures the Gin router with user authentication routes
-func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
+func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -40,36 +39,29 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Initialize repositories
+	// Create auth service and middleware
 	userRepo := repository.NewUserRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	boxRepo := repository.NewBoxRepository(db)
-	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
-	campaignRepo := repository.NewCampaignRepository(db)
-	flowGroupRepo := repository.NewFlowGroupRepository(db)
-	flowRepo := repository.NewFlowRepository(db)
-
-	// Create auth service and middleware
 	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
 
-	// Create services
-	boxService := services.NewBoxService(boxRepo, userRepo, appRepo, profileRepo)
-	appService := services.NewAppService(appRepo, boxRepo, userRepo)
-	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
-	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
-	flowGroupService := services.NewFlowGroupService(flowGroupRepo, campaignRepo, flowRepo)
-	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
+	// Create repositories
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
 
-	// Create handlers
+	// Create services
+	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
+
+	// Create handlers with proper service dependencies
 	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(boxService)
-	appHandler := handlers.NewAppHandler(appService)
-	profileHandler := handlers.NewProfileHandler(profileService)
-	campaignHandler := handlers.NewCampaignHandler(campaignService)
-	flowGroupHandler := handlers.NewFlowGroupHandler(flowGroupService)
-	flowHandler := handlers.NewFlowHandler(flowService)
+	appHandler := handlers.NewAppHandler(db)
+	profileHandler := handlers.NewProfileHandler(db)
+	campaignHandler := handlers.NewCampaignHandler(db)
+	flowGroupHandler := handlers.NewFlowGroupHandler(db)
+	flowHandler := handlers.NewFlowHandler(db)
+	appProxyHandler := handlers.NewAppProxyHandler(db)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -104,13 +96,6 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				authProtected.POST("/change-password", authHandler.ChangePassword)
 			}
 
-			// User routes
-			users := protected.Group("/users")
-			{
-				// Get current user info
-				users.GET("/me", authHandler.GetProfile)
-			}
-
 			// Box routes
 			boxes := protected.Group("/boxes")
 			{
@@ -119,14 +104,14 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				boxes.GET("/:id", boxHandler.GetBoxByID)
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
-				boxes.POST("/:id/sync-profiles", boxHandler.SyncSingleBoxProfiles)
-				boxes.POST("/sync-all", boxHandler.SyncAllUserBoxes)
+				boxes.GET("/:id/apps", appHandler.GetAppsByBox)
+				boxes.POST("/sync-profiles/:id", boxHandler.SyncAllProfilesInBox)
 			}
 
-			// Box Apps routes (separate to avoid conflict)
-			boxApps := protected.Group("/box-apps")
+			// Box Proxy routes - for direct platform operations
+			appProxy := protected.Group("/app-proxy")
 			{
-				boxApps.GET("/:box_id/apps", appHandler.GetAppsByBox)
+				appProxy.Any("/:app_id/*platform_path", appProxyHandler.ProxyRequest)
 			}
 
 			// App routes
@@ -134,17 +119,14 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 			{
 				apps.POST("", appHandler.CreateApp)
 				apps.GET("", appHandler.GetMyApps)
+				apps.GET("/:id/profiles", profileHandler.GetProfilesByApp)
 				apps.GET("/register-app", appHandler.GetRegisterAppDomains)
 				apps.GET("/check-tunnel", appHandler.CheckTunnelURL)
 				apps.GET("/:id", appHandler.GetAppByID)
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)
-			}
-
-			// App Profiles routes (separate to avoid conflict)
-			appProfiles := protected.Group("/app-profiles")
-			{
-				appProfiles.GET("/:app_id/profiles", profileHandler.GetProfilesByApp)
+				apps.POST("/sync/:id", appHandler.SyncAppProfiles)
+				apps.POST("/sync/all-apps", appHandler.SyncAllUserApps)
 			}
 
 			// Campaign routes
@@ -156,25 +138,15 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
 				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
 				campaigns.GET("/:id/flow-groups", flowGroupHandler.GetFlowGroupsByCampaign)
+				campaigns.GET("/:id/flows", flowHandler.GetFlowsByCampaign)
 			}
 
-			// Group Campaign routes
+			// Flow Group routes
 			flowGroups := protected.Group("/flow-groups")
 			{
 				flowGroups.GET("/:id", flowGroupHandler.GetFlowGroupByID)
 				flowGroups.GET("/:id/stats", flowGroupHandler.GetFlowGroupStats)
-			}
-
-			// Group Campaign Flows routes
-			flowGroupFlows := protected.Group("/flow-group-flows")
-			{
-				flowGroupFlows.GET("/:flow_group_id/flows", flowHandler.GetFlowsByFlowGroup)
-			}
-
-			// Campaign Flows routes (separate to avoid conflict)
-			campaignFlows := protected.Group("/campaign-flows")
-			{
-				campaignFlows.GET("/:campaign_id/flows", flowHandler.GetFlowsByCampaign)
+				flowGroups.GET("/:id/flows", flowHandler.GetFlowsByFlowGroup)
 			}
 
 			// Profile routes
@@ -186,12 +158,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				profiles.GET("/:id", profileHandler.GetProfileByID)
 				profiles.PUT("/:id", profileHandler.UpdateProfile)
 				profiles.DELETE("/:id", profileHandler.DeleteProfile)
-			}
-
-			// Profile Flows routes (separate to avoid conflict)
-			profileFlows := protected.Group("/profile-flows")
-			{
-				profileFlows.GET("/:profile_id/flows", flowHandler.GetFlowsByProfile)
+				profiles.GET("/:id/flows", flowHandler.GetFlowsByProfile)
 			}
 
 			// Flow routes

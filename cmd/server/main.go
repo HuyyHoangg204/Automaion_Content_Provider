@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/onegreenvn/green-provider-services-backend/docs"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/router"
@@ -48,11 +47,6 @@ func main() {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// Set Swagger base path dynamically
-	basePath := getEnv("BASE_PATH", "/")
-	docs.SwaggerInfo.BasePath = basePath
-	logrus.Infof("Swagger configured with base path: %s", basePath)
-
 	// Configure logging
 	configureLogging()
 
@@ -85,7 +79,7 @@ func main() {
 	defer tokenCleanupService.Stop()
 
 	// Initialize router
-	r := router.SetupRouter(db, basePath)
+	r := router.SetupRouter(db)
 
 	// Configure HTTP server
 	port := getEnv("PORT", "8080")

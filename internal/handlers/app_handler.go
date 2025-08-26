@@ -4,17 +4,25 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AppHandler struct {
 	appService *services.AppService
 }
 
-func NewAppHandler(appService *services.AppService) *AppHandler {
+func NewAppHandler(db *gorm.DB) *AppHandler {
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+
+	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
 	return &AppHandler{
 		appService: appService,
 	}
@@ -94,15 +102,15 @@ func (h *AppHandler) GetMyApps(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param box_id path string true "Box ID"
+// @Param id path string true "Box ID"
 // @Success 200 {array} models.AppResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/box-apps/{box_id}/apps [get]
+// @Router /api/v1/boxes/{id}/apps [get]
 func (h *AppHandler) GetAppsByBox(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
-	boxID := c.Param("box_id")
+	boxID := c.Param("id")
 
 	apps, err := h.appService.GetAppsByBox(userID, boxID)
 	if err != nil {
@@ -327,4 +335,65 @@ func (h *AppHandler) CheckTunnelURL(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// SyncAppProfiles syncs profiles from a specific app
+// @Summary Sync profiles from a specific app
+// @Description Sync all profiles from a specific app
+// @Tags apps
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "App ID to sync profiles from"
+// @Success 200 {object} models.SyncBoxProfilesResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/apps/sync/{id} [post]
+func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	appID := c.Param("id")
+
+	// Get app by ID and verify ownership
+	app, err := h.appService.GetAppByUserIDAndID(userID, appID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "App not found"})
+		return
+	}
+
+	// Sync profiles from the app
+	syncResult, err := h.appService.SyncAppProfiles(app)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, syncResult)
+}
+
+// SyncAllUserApps syncs all apps owned by the user
+// @Summary Sync all profiles from all apps owned by the user
+// @Description Sync all profiles from all apps owned by the user
+// @Tags apps
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.SyncBoxProfilesResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/apps/sync/all-apps [post]
+func (h *AppHandler) SyncAllUserApps(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+
+	// Sync all user apps
+	syncResult, err := h.appService.SyncAllAppsByUser(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, syncResult)
 }

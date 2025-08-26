@@ -68,6 +68,10 @@ type RegisterAppResponse struct {
 	// @Description FRP protocol
 	// @Example "tcp"
 	FrpProtocol string `json:"frpProtocol"`
+
+	// @Description FRP custom domain host
+	// @Example "agent-controller.onegreen.cloud"
+	FrpCustomDomainHost string `json:"frpCustomDomainHost"`
 }
 
 // CheckTunnelResponse represents the response for tunnel check API

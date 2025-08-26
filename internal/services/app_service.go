@@ -11,6 +11,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -25,16 +26,18 @@ func (e *AppAlreadyExistsError) Error() string {
 }
 
 type AppService struct {
-	appRepo  *repository.AppRepository
-	boxRepo  *repository.BoxRepository
-	userRepo *repository.UserRepository
+	appRepo     *repository.AppRepository
+	profileRepo *repository.ProfileRepository
+	boxRepo     *repository.BoxRepository
+	userRepo    *repository.UserRepository
 }
 
-func NewAppService(appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *AppService {
+func NewAppService(appRepo *repository.AppRepository, profileRepo *repository.ProfileRepository, boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *AppService {
 	return &AppService{
-		appRepo:  appRepo,
-		boxRepo:  boxRepo,
-		userRepo: userRepo,
+		appRepo:     appRepo,
+		profileRepo: profileRepo,
+		boxRepo:     boxRepo,
+		userRepo:    userRepo,
 	}
 }
 
@@ -75,7 +78,8 @@ func (s *AppService) CreateApp(userID string, req *models.CreateAppRequest) (*mo
 		return nil, fmt.Errorf("failed to create app: %w", err)
 	}
 
-	return s.toResponse(app), nil
+	converter := utils.NewAppResponseConverter()
+	return converter.ToAppResponse(app), nil
 }
 
 // GetAppsByUser retrieves all apps for a specific user
@@ -86,8 +90,9 @@ func (s *AppService) GetAppsByUser(userID string) ([]*models.AppResponse, error)
 	}
 
 	responses := make([]*models.AppResponse, len(apps))
+	converter := utils.NewAppResponseConverter()
 	for i, app := range apps {
-		responses[i] = s.toResponse(app)
+		responses[i] = converter.ToAppResponse(app)
 	}
 
 	return responses, nil
@@ -107,8 +112,9 @@ func (s *AppService) GetAppsByBox(userID, boxID string) ([]*models.AppResponse, 
 	}
 
 	responses := make([]*models.AppResponse, len(apps))
+	converter := utils.NewAppResponseConverter()
 	for i, app := range apps {
-		responses[i] = s.toResponse(app)
+		responses[i] = converter.ToAppResponse(app)
 	}
 
 	return responses, nil
@@ -121,7 +127,30 @@ func (s *AppService) GetAppByID(userID, appID string) (*models.AppResponse, erro
 		return nil, errors.New("app not found")
 	}
 
-	return s.toResponse(app), nil
+	converter := utils.NewAppResponseConverter()
+	return converter.ToAppResponse(app), nil
+}
+
+// GetAppByUserIDAndID gets an app by ID and verifies user ownership
+func (s *AppService) GetAppByUserIDAndID(userID, appID string) (*models.App, error) {
+	// Get app by ID
+	app, err := s.appRepo.GetByID(appID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get box that contains this app
+	box, err := s.boxRepo.GetByID(app.BoxID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if user owns the box
+	if box.UserID != userID {
+		return nil, errors.New("access denied: app does not belong to user")
+	}
+
+	return app, nil
 }
 
 // UpdateApp updates an app (user must own it)
@@ -155,7 +184,8 @@ func (s *AppService) UpdateApp(userID, appID string, req *models.UpdateAppReques
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
 
-	return s.toResponse(app), nil
+	converter := utils.NewAppResponseConverter()
+	return converter.ToAppResponse(app), nil
 }
 
 // DeleteApp deletes an app (user must own it)
@@ -181,8 +211,9 @@ func (s *AppService) GetAllApps() ([]*models.AppResponse, error) {
 	}
 
 	responses := make([]*models.AppResponse, len(apps))
+	converter := utils.NewAppResponseConverter()
 	for i, app := range apps {
-		responses[i] = s.toResponse(app)
+		responses[i] = converter.ToAppResponse(app)
 	}
 
 	return responses, nil
@@ -228,6 +259,7 @@ func (s *AppService) GetRegisterAppDomains(userID, boxID, platformNames string) 
 	response.FrpServerPort = frpConfig.Port
 	response.FrpToken = frpConfig.Token
 	response.FrpProtocol = frpConfig.Protocol
+	response.FrpCustomDomainHost = frpConfig.CustomDomainHost
 	return response, nil
 }
 
@@ -314,14 +346,299 @@ func (s *AppService) CheckTunnelURL(tunnelURL string) (*models.CheckTunnelRespon
 	}, nil
 }
 
-// toResponse converts App model to response DTO
-func (s *AppService) toResponse(app *models.App) *models.AppResponse {
-	return &models.AppResponse{
-		ID:        app.ID,
-		BoxID:     app.BoxID,
-		Name:      app.Name,
-		TunnelURL: app.TunnelURL,
-		CreatedAt: app.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: app.UpdatedAt.Format(time.RFC3339),
+// SyncAppProfiles syncs profiles for a specific app
+func (s *AppService) SyncAppProfiles(app *models.App) (*models.SyncBoxProfilesResponse, error) {
+	// Determine platform type from app name
+	platformType := string(utils.GetPlatformType(app.Name))
+	if platformType == "" {
+		return nil, fmt.Errorf("unsupported platform for app %s", app.Name)
 	}
+
+	// Fetch profiles from platform
+	appHelper := utils.NewAppHelper()
+	platformProfiles, err := appHelper.FetchProfilesFromPlatform(app, platformType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch profiles for app %s: %w", app.Name, err)
+	}
+
+	// Process synced profiles
+	syncResult, err := s.ProcessSyncedProfiles(app.ID, platformProfiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process profiles for app %s: %w", app.Name, err)
+	}
+
+	return syncResult, nil
+}
+
+// fetchAllProfilesWithPagination fetches all profiles from a platform by handling pagination
+func (s *AppService) fetchAllProfilesWithPagination(app *models.App, platformType string, appHelper *utils.AppHelper) ([]map[string]interface{}, error) {
+	var allProfiles []map[string]interface{}
+	page := 1
+	pageSize := 100
+
+	for {
+		// Fetch profiles for current page
+		platformProfiles, err := appHelper.FetchProfilesFromPlatformWithPagination(app, platformType, page, pageSize)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch profiles from %s page %d: %w", platformType, page, err)
+		}
+
+		// If no profiles returned, we've reached the end
+		if len(platformProfiles) == 0 {
+			break
+		}
+
+		// Add profiles from this page
+		allProfiles = append(allProfiles, platformProfiles...)
+
+		// If we got fewer profiles than page size, we've reached the end
+		if len(platformProfiles) < pageSize {
+			break
+		}
+
+		// Move to next page
+		page++
+	}
+
+	return allProfiles, nil
+}
+
+// SyncAllAppsInBox syncs profiles from all apps in a box
+func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResponse, error) {
+	// Get all apps for this box
+	apps, err := s.appRepo.GetByBoxID(boxID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get apps for box %s: %w", boxID, err)
+	}
+
+	if len(apps) == 0 {
+		return nil, errors.New("no apps found for this box")
+	}
+
+	// Track results
+	var totalProfilesCreated, totalProfilesUpdated, totalProfilesDeleted int
+	var totalProfilesSynced int
+	var unsupportedPlatforms []string
+
+	// Sync each app
+	for _, app := range apps {
+		// Determine platform from app name
+		platformType := string(utils.GetPlatformType(app.Name))
+		if platformType == "" {
+			unsupportedPlatforms = append(unsupportedPlatforms, app.Name)
+			continue
+		}
+
+		// Fetch all profiles from platform with pagination handling
+		appHelper := utils.NewAppHelper()
+		allPlatformProfiles, err := s.fetchAllProfilesWithPagination(app, platformType, appHelper)
+		if err != nil {
+			fmt.Printf("Warning: Failed to get profiles from %s for app %s: %v\n", platformType, app.Name, err)
+			continue
+		}
+
+		// Process synced profiles
+		appSyncResult, err := s.ProcessSyncedProfiles(app.ID, allPlatformProfiles)
+		if err != nil {
+			fmt.Printf("Warning: Failed to process synced profiles for app %s: %v\n", app.Name, err)
+			continue
+		}
+
+		// Accumulate results
+		totalProfilesCreated += appSyncResult.ProfilesCreated
+		totalProfilesUpdated += appSyncResult.ProfilesUpdated
+		totalProfilesDeleted += appSyncResult.ProfilesDeleted
+		totalProfilesSynced += len(allPlatformProfiles)
+	}
+
+	// Build response
+	syncResult := &models.SyncBoxProfilesResponse{
+		ProfilesCreated: totalProfilesCreated,
+		ProfilesUpdated: totalProfilesUpdated,
+		ProfilesDeleted: totalProfilesDeleted,
+		ProfilesSynced:  totalProfilesSynced,
+	}
+
+	// Set message based on results
+	if len(unsupportedPlatforms) > 0 {
+		syncResult.Message = fmt.Sprintf("Profiles synced successfully from supported platforms. Unsupported platforms: %s", strings.Join(unsupportedPlatforms, ", "))
+	} else {
+		syncResult.Message = "Profiles synced successfully from all platforms"
+	}
+
+	return syncResult, nil
+}
+
+// ProcessSyncedProfiles processes synced profiles and returns response
+func (s *AppService) ProcessSyncedProfiles(appID string, profiles []map[string]interface{}) (*models.SyncBoxProfilesResponse, error) {
+	result := &models.SyncBoxProfilesResponse{
+		ProfilesSynced: len(profiles),
+		Message:        "Profiles synced successfully",
+	}
+
+	// Get existing profiles for this app
+	existingProfiles, err := s.profileRepo.GetByAppID(appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get existing profiles: %w", err)
+	}
+
+	existingProfilesMap := make(map[string]*models.Profile)
+	for _, profile := range existingProfiles {
+		if uuid := utils.ExtractUUID(profile); uuid != "" {
+			existingProfilesMap[uuid] = profile
+		}
+	}
+
+	for _, platformProfile := range profiles {
+		if err := s.processPlatformProfile(appID, platformProfile, existingProfilesMap, result); err != nil {
+			continue
+		}
+	}
+
+	s.MarkDeletedProfiles(existingProfilesMap, result)
+
+	// Set message based on results
+	if result.ProfilesCreated > 0 || result.ProfilesUpdated > 0 || result.ProfilesDeleted > 0 {
+		result.Message = fmt.Sprintf("Sync completed: %d created, %d updated, %d deleted",
+			result.ProfilesCreated, result.ProfilesUpdated, result.ProfilesDeleted)
+	} else {
+		result.Message = "No changes detected during sync"
+	}
+	return result, nil
+}
+
+// processPlatformProfile processes a single platform profile
+func (s *AppService) processPlatformProfile(appID string, platformProfile map[string]interface{}, existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) error {
+	uuid := utils.ExtractUUIDFromPlatformProfile(platformProfile)
+	if uuid == "" {
+		return fmt.Errorf("platform profile has no UUID")
+	}
+
+	if existingProfile, exists := existingProfilesMap[uuid]; exists {
+		// Update existing profile
+		if err := s.UpdateExistingProfile(existingProfile, platformProfile); err != nil {
+			return fmt.Errorf("failed to update profile: %w", err)
+		}
+		result.ProfilesUpdated++
+		delete(existingProfilesMap, uuid)
+	} else {
+		// Create new profile using AppService method
+		if err := s.CreateNewProfile(appID, platformProfile); err != nil {
+			return fmt.Errorf("failed to create profile: %w", err)
+		}
+		result.ProfilesCreated++
+	}
+	return nil
+}
+
+// CreateNewProfile creates a new profile using provided repo
+func (s *AppService) CreateNewProfile(appID string, platformProfile map[string]interface{}) error {
+	profileName, ok := platformProfile["name"].(string)
+	if !ok {
+		profileName = "Unknown Profile"
+	}
+
+	profile := &models.Profile{
+		AppID: appID,
+		Name:  profileName,
+		Data:  platformProfile,
+	}
+
+	// Verify app exists before creating profile
+	if _, err := s.appRepo.GetByID(appID); err != nil {
+		return fmt.Errorf("app not found: %w", err)
+	}
+
+	// Try to create profile
+	if err := s.profileRepo.Create(profile); err != nil {
+		return fmt.Errorf("failed to create profile in database: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateExistingProfile updates an existing profile
+func (s *AppService) UpdateExistingProfile(existingProfile *models.Profile, platformProfile map[string]interface{}) error {
+	if existingProfile.Data == nil {
+		existingProfile.Data = make(map[string]interface{})
+	}
+
+	// Update profile data
+	for key, value := range platformProfile {
+		existingProfile.Data[key] = value
+	}
+
+	// Update profile name if available
+	if name, exists := platformProfile["name"]; exists {
+		if nameStr, ok := name.(string); ok && nameStr != existingProfile.Name {
+			existingProfile.Name = nameStr
+		}
+	}
+
+	// Save updated profile to database
+	if err := s.profileRepo.Update(existingProfile); err != nil {
+		return fmt.Errorf("failed to update profile in database: %w", err)
+	}
+
+	return nil
+}
+
+// MarkDeletedProfiles clears associations and deletes missing profiles
+func (s *AppService) MarkDeletedProfiles(existingProfilesMap map[string]*models.Profile, result *models.SyncBoxProfilesResponse) {
+	for _, profile := range existingProfilesMap {
+		if err := s.profileRepo.ClearCampaignAssociations(profile.ID); err != nil {
+			fmt.Printf("Warning: Failed to clear campaign associations for profile %s: %v\n", profile.Name, err)
+			continue
+		}
+		if err := s.profileRepo.Delete(profile.ID); err != nil {
+			fmt.Printf("Warning: Failed to delete profile %s: %v\n", profile.Name, err)
+			continue
+		}
+		result.ProfilesDeleted++
+	}
+}
+
+// SyncAllAppsByUser syncs profiles from all apps owned by a user
+func (s *AppService) SyncAllAppsByUser(userID string) (*models.SyncBoxProfilesResponse, error) {
+	// Get all boxes for user
+	boxes, _, err := s.boxRepo.GetByUserID(userID, 1, 1000)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user boxes: %w", err)
+	}
+
+	if len(boxes) == 0 {
+		return nil, errors.New("no boxes found for user")
+	}
+
+	// Counters for overall response
+	totalProfiles := 0
+	totalProfilesCreated := 0
+	totalProfilesUpdated := 0
+	totalProfilesDeleted := 0
+	boxesSynced := 0
+
+	// Sync each box
+	for _, box := range boxes {
+		// Sync all apps in this box
+		syncResponse, err := s.SyncAllAppsInBox(box.ID)
+		if err != nil {
+			fmt.Printf("Warning: Failed to sync box %s: %v\n", box.ID, err)
+			continue
+		}
+
+		// Box synced successfully
+		boxesSynced++
+		totalProfiles += syncResponse.ProfilesSynced
+		totalProfilesCreated += syncResponse.ProfilesCreated
+		totalProfilesUpdated += syncResponse.ProfilesUpdated
+		totalProfilesDeleted += syncResponse.ProfilesDeleted
+	}
+
+	return &models.SyncBoxProfilesResponse{
+		ProfilesCreated: totalProfilesCreated,
+		ProfilesUpdated: totalProfilesUpdated,
+		ProfilesDeleted: totalProfilesDeleted,
+		ProfilesSynced:  totalProfiles,
+		Message:         fmt.Sprintf("Sync completed: %d/%d boxes synced, %d profiles processed", boxesSynced, len(boxes), totalProfiles),
+	}, nil
 }

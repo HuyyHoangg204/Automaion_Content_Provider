@@ -7,10 +7,11 @@ import (
 
 // FrpConfig holds FRP configuration
 type FrpConfig struct {
-	Domain   string
-	Port     int
-	Token    string
-	Protocol string
+	Domain           string
+	Port             int
+	Token            string
+	Protocol         string
+	CustomDomainHost string
 }
 
 // GetFrpConfig returns FRP configuration from environment variables
@@ -18,10 +19,11 @@ func GetFrpConfig() *FrpConfig {
 	port, _ := strconv.Atoi(getEnv("FRP_SERVER_PORT", "8700"))
 
 	return &FrpConfig{
-		Domain:   getEnv("FRP_DOMAIN", "frp.onegreen.cloud"),
-		Port:     port,
-		Token:    getEnv("FRP_TOKEN", "HelloWorld"),
-		Protocol: getEnv("FRP_PROTOCOL", "http"),
+		Domain:           getEnv("FRP_DOMAIN", ""),
+		Port:             port,
+		Token:            getEnv("FRP_TOKEN", ""),
+		Protocol:         getEnv("FRP_PROTOCOL", ""),
+		CustomDomainHost: getEnv("FRP_CUSTOM_DOMAIN_HOST", ""),
 	}
 }
 
