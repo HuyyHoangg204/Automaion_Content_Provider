@@ -255,11 +255,11 @@ func (s *AppService) GetRegisterAppDomains(userID, boxID, platformNames string) 
 
 	// Set FRP configuration from environment variables
 	frpConfig := config.GetFrpConfig()
-	response.FrpDomain = frpConfig.Domain
+	response.FrpServerDomain = frpConfig.Domain
 	response.FrpServerPort = frpConfig.Port
 	response.FrpToken = frpConfig.Token
 	response.FrpProtocol = frpConfig.Protocol
-	response.FrpCustomDomainHost = frpConfig.CustomDomainHost
+	response.FrpCustomDomain = frpConfig.CustomDomain
 	return response, nil
 }
 
