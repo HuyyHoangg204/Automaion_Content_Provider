@@ -108,26 +108,15 @@ func (s *BoxService) GetBoxByID(userID, boxID string) (*models.BoxResponse, erro
 
 // UpdateBox updates a box (user must own it)
 func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxRequest) (*models.BoxResponse, error) {
-	// Get box by ID (no ownership check)
+	// Get box by ID (no ownership check - allow claiming any box)
 	box, err := s.boxRepo.GetByID(boxID)
 	if err != nil {
 		return nil, errors.New("box not found")
 	}
 
-	// If updating user_id (transferring ownership)
-	if req.UserID != "" {
-		// Verify that the new user exists
-		_, err := s.userRepo.GetByID(req.UserID)
-		if err != nil {
-			return nil, errors.New("new user not found")
-		}
-
-		// Update user_id
-		box.UserID = req.UserID
-	}
-
-	// Update name
+	// Update both name and user_id (always set to current logged-in user)
 	box.Name = req.Name
+	box.UserID = userID
 
 	if err := s.boxRepo.Update(box); err != nil {
 		return nil, fmt.Errorf("failed to update box: %w", err)
