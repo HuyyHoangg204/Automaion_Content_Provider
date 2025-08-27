@@ -116,7 +116,7 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 
 	// Update both name and user_id (always set to current logged-in user)
 	box.Name = req.Name
-	box.UserID = userID // Tự động gán về user đang đăng nhập
+	box.UserID = userID
 
 	if err := s.boxRepo.Update(box); err != nil {
 		return nil, fmt.Errorf("failed to update box: %w", err)
