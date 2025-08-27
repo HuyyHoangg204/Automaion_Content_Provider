@@ -701,9 +701,6 @@ definitions:
       name:
         example: Updated Computer Name
         type: string
-      user_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
     required:
     - name
     type: object
@@ -2249,16 +2246,15 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update a box. Can update both name and user_id. If user_id is provided,
-        it must be a valid user ID.
+      description: Update a box name and automatically assign ownership to the current
+        logged-in user
       parameters:
       - description: Box ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update box request - name is required, user_id is optional for
-          ownership transfer
+      - description: Update box request - name is required
         in: body
         name: request
         required: true
@@ -2293,7 +2289,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Update box
+      summary: Update box name and ownership
       tags:
       - boxes
   /api/v1/boxes/{id}/apps:

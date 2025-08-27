@@ -136,14 +136,14 @@ func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 }
 
 // UpdateBox godoc
-// @Summary Update box
-// @Description Update a box. Can update both name and user_id. If user_id is provided, it must be a valid user ID.
+// @Summary Update box name and ownership
+// @Description Update a box name and automatically assign ownership to the current logged-in user
 // @Tags boxes
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Box ID"
-// @Param request body models.UpdateBoxRequest true "Update box request - name is required, user_id is optional for ownership transfer"
+// @Param request body models.UpdateBoxRequest true "Update box request - name is required"
 // @Success 200 {object} models.BoxResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -167,10 +167,6 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 	if err != nil {
 		if strings.Contains(err.Error(), "box not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
-			return
-		}
-		if strings.Contains(err.Error(), "new user not found") {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "User not found"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update box", "details": err.Error()})

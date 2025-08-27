@@ -2188,7 +2188,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update a box. Can update both name and user_id. If user_id is provided, it must be a valid user ID.",
+                "description": "Update a box name and automatically assign ownership to the current logged-in user",
                 "consumes": [
                     "application/json"
                 ],
@@ -2198,7 +2198,7 @@ const docTemplate = `{
                 "tags": [
                     "boxes"
                 ],
-                "summary": "Update box",
+                "summary": "Update box name and ownership",
                 "parameters": [
                     {
                         "type": "string",
@@ -2208,7 +2208,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Update box request - name is required, user_id is optional for ownership transfer",
+                        "description": "Update box request - name is required",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -4893,10 +4893,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Updated Computer Name"
-                },
-                "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },
