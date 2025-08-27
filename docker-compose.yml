@@ -37,11 +37,11 @@ services:
       - REFRESH_TOKEN_TTL=168h
 
       # FRP Configuration
-      - FRP_DOMAIN=api-greenbox-http.onegreen.cloud
+      - FRP_SERVER_DOMAIN=api-greenbox-http.onegreen.cloud
       - FRP_SERVER_PORT=8700
       - FRP_TOKEN=HelloWorld!!!
       - FRP_PROTOCOL=http
-      - FRP_CUSTOM_DOMAIN_HOST=agent-controller.onegreen.cloud
+      - FRP_CUSTOM_DOMAIN=agent-controller.onegreen.cloud
       
       # Server Configuration
       - PORT=8080
