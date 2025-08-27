@@ -402,32 +402,3 @@ func (h *FlowHandler) GetFlowsByStatus(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, response)
 }
-
-// AdminGetAllFlows godoc
-// @Summary Get all flows (Admin only)
-// @Description Get all flows in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.FlowResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/flows [get]
-func (h *FlowHandler) AdminGetAllFlows(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	flows, err := h.flowService.GetAllFlows()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, flows)
-}

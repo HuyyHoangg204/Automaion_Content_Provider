@@ -511,6 +511,88 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/admin/users/{id}/reset-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reset a user's password to a new password specified by admin (Admin privileges required)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Reset user password (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New password request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/admin/users/{id}/status": {
             "put": {
                 "security": [
@@ -4778,16 +4860,16 @@ const docTemplate = `{
             "description": "Response containing subdomain and FRP configuration for app registration",
             "type": "object",
             "properties": {
-                "frpCustomDomainHost": {
+                "frpCustomDomain": {
                     "description": "@Description FRP custom domain host\n@Example \"agent-controller.onegreen.cloud\"",
-                    "type": "string"
-                },
-                "frpDomain": {
-                    "description": "@Description FRP domain\n@Example \"frp.onegreen.cloud\"",
                     "type": "string"
                 },
                 "frpProtocol": {
                     "description": "@Description FRP protocol\n@Example \"tcp\"",
+                    "type": "string"
+                },
+                "frpServerDomain": {
+                    "description": "@Description FRP domain\n@Example \"frp.onegreen.cloud\"",
                     "type": "string"
                 },
                 "frpServerPort": {
@@ -4828,6 +4910,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                }
+            }
+        },
+        "models.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6
                 }
             }
         },

@@ -278,35 +278,6 @@ func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// AdminGetAllProfiles godoc
-// @Summary Get all profiles (Admin only)
-// @Description Get all profiles in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.ProfileResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/profiles [get]
-func (h *ProfileHandler) AdminGetAllProfiles(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	profiles, err := h.profileService.GetAllProfiles()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, profiles)
-}
-
 // GetDefaultConfigs godoc
 // @Summary Get default configurations from platform
 // @Description Get default configuration options available for creating profiles on a specific platform (Hidemium, Genlogin, etc.)

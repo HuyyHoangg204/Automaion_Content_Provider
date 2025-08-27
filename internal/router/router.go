@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -49,9 +50,16 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
+	flowGroupRepo := repository.NewFlowGroupRepository(db)
+	flowRepo := repository.NewFlowRepository(db)
 
 	// Create services
 	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
+	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
+	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
+	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
+	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
 
 	// Create handlers with proper service dependencies
 	authHandler := handlers.NewAuthHandler(authService)
@@ -62,6 +70,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	flowGroupHandler := handlers.NewFlowGroupHandler(db)
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
+
+	// Create admin handler with all necessary services
+	adminHandler := handlers.NewAdminHandler(authService, boxService, appService, profileService, campaignService, flowService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -175,15 +186,16 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
-				admin.POST("/register", authHandler.AdminRegister)
-				admin.GET("/users", authHandler.GetAllUsers)
-				admin.PUT("/users/:id/status", authHandler.SetUserStatus)
-				admin.DELETE("/users/:id", authHandler.DeleteUser)
-				admin.GET("/boxes", boxHandler.AdminGetAllBoxes)
-				admin.GET("/apps", appHandler.AdminGetAllApps)
-				admin.GET("/profiles", profileHandler.AdminGetAllProfiles)
-				admin.GET("/campaigns", campaignHandler.AdminGetAllCampaigns)
-				admin.GET("/flows", flowHandler.AdminGetAllFlows)
+				admin.POST("/register", adminHandler.AdminRegister)
+				admin.GET("/users", adminHandler.GetAllUsers)
+				admin.PUT("/users/:id/status", adminHandler.SetUserStatus)
+				admin.DELETE("/users/:id", adminHandler.DeleteUser)
+				admin.POST("/users/:id/reset-password", adminHandler.ResetPassword)
+				admin.GET("/boxes", adminHandler.AdminGetAllBoxes)
+				admin.GET("/apps", adminHandler.AdminGetAllApps)
+				admin.GET("/profiles", adminHandler.AdminGetAllProfiles)
+				admin.GET("/campaigns", adminHandler.AdminGetAllCampaigns)
+				admin.GET("/flows", adminHandler.AdminGetAllFlows)
 			}
 		}
 	}

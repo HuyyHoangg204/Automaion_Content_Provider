@@ -230,35 +230,6 @@ func (h *AppHandler) DeleteApp(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// AdminGetAllApps godoc
-// @Summary Get all apps (Admin only)
-// @Description Get all apps in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.AppResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/apps [get]
-func (h *AppHandler) AdminGetAllApps(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	apps, err := h.appService.GetAllApps()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get apps", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, apps)
-}
-
 // GetRegisterAppDomains godoc
 // @Summary Get subdomain and FRP configuration for app registration
 // @Description Get subdomain configuration and FRP settings for multiple platforms based on box_id and platform_name (comma-separated)

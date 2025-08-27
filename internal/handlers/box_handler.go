@@ -210,35 +210,6 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// AdminGetAllBoxes godoc
-// @Summary Get all boxes (Admin only)
-// @Description Get all boxes in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.BoxResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/boxes [get]
-func (h *BoxHandler) AdminGetAllBoxes(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	boxes, err := h.boxService.GetAllBoxes()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get boxes", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, boxes)
-}
-
 // SyncAllProfilesInBox syncs all profiles from all apps in a specific box
 // @Summary Sync all profiles from all apps in a box
 // @Description Sync all profiles from all apps in a specific box
