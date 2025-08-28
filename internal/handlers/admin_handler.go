@@ -22,7 +22,6 @@ type AdminHandler struct {
 	profileService  *services.ProfileService
 	campaignService *services.CampaignService
 	flowService     *services.FlowService
-	db              *gorm.DB
 }
 
 func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
@@ -49,7 +48,6 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 		profileService:  profileService,
 		campaignService: campaignService,
 		flowService:     flowService,
-		db:              db,
 	}
 }
 
