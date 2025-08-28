@@ -51,7 +51,7 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 	}
 }
 
-// AdminRegister godoc
+// Register godoc
 // @Summary Register a new user (Admin only)
 // @Description Register a new user account with username and password (Admin privileges required)
 // @Tags admin
@@ -66,7 +66,7 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 // @Failure 409 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/admin/register [post]
-func (h *AdminHandler) AdminRegister(c *gin.Context) {
+func (h *AdminHandler) Register(c *gin.Context) {
 	// Check if user is admin
 	user := c.MustGet("user").(*models.User)
 	if !user.IsAdmin {

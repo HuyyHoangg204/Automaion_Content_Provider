@@ -169,7 +169,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
-				admin.POST("/register", adminHandler.AdminRegister)
+				admin.POST("/register", adminHandler.Register)
 				admin.GET("/users", adminHandler.GetAllUsers)
 				admin.PUT("/users/:id/status", adminHandler.SetUserStatus)
 				admin.DELETE("/users/:id", adminHandler.DeleteUser)
