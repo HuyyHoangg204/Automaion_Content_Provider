@@ -12,23 +12,24 @@ import (
 )
 
 type BearerTokenMiddleware struct {
-	db *gorm.DB
+	authService *auth.AuthService
+	userRepo    *repository.UserRepository
+	db          *gorm.DB
 }
 
 func NewBearerTokenMiddleware(db *gorm.DB) *BearerTokenMiddleware {
-	return &BearerTokenMiddleware{db: db}
-}
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 
-// Helper method to create auth service
-func (m *BearerTokenMiddleware) createAuthService() *auth.AuthService {
-	userRepo := repository.NewUserRepository(m.db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(m.db)
-	return auth.NewAuthService(userRepo, refreshTokenRepo)
-}
+	// Create service
+	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 
-// Helper method to create user repository
-func (m *BearerTokenMiddleware) createUserRepo() *repository.UserRepository {
-	return repository.NewUserRepository(m.db)
+	return &BearerTokenMiddleware{
+		authService: authService,
+		userRepo:    userRepo,
+		db:          db,
+	}
 }
 
 // BearerTokenAuthMiddleware validates JWT token and sets user info in context
@@ -56,7 +57,7 @@ func (m *BearerTokenMiddleware) BearerTokenAuthMiddleware() gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// Validate token
-		tokenInfo, err := m.createAuthService().ValidateToken(tokenString)
+		tokenInfo, err := m.authService.ValidateToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
@@ -64,7 +65,7 @@ func (m *BearerTokenMiddleware) BearerTokenAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Get user from database
-		user, err := m.createUserRepo().GetByID(tokenInfo.UserID)
+		user, err := m.userRepo.GetByID(tokenInfo.UserID)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 			c.Abort()

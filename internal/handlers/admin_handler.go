@@ -16,64 +16,43 @@ import (
 )
 
 type AdminHandler struct {
-	db *gorm.DB
+	authService     *auth.AuthService
+	boxService      *services.BoxService
+	appService      *services.AppService
+	profileService  *services.ProfileService
+	campaignService *services.CampaignService
+	flowService     *services.FlowService
+	db              *gorm.DB
 }
 
 func NewAdminHandler(db *gorm.DB) *AdminHandler {
-	return &AdminHandler{db: db}
-}
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
+	flowGroupRepo := repository.NewFlowGroupRepository(db)
+	flowRepo := repository.NewFlowRepository(db)
 
-// Helper method to create auth service
-func (h *AdminHandler) createAuthService() *auth.AuthService {
-	userRepo := repository.NewUserRepository(h.db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(h.db)
-	return auth.NewAuthService(userRepo, refreshTokenRepo)
-}
+	// Create services
+	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
+	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
+	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
+	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
+	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
+	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
 
-// Helper method to create box service
-func (h *AdminHandler) createBoxService() *services.BoxService {
-	userRepo := repository.NewUserRepository(h.db)
-	boxRepo := repository.NewBoxRepository(h.db)
-	appRepo := repository.NewAppRepository(h.db)
-	profileRepo := repository.NewProfileRepository(h.db)
-	return services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
-}
-
-// Helper method to create app service
-func (h *AdminHandler) createAppService() *services.AppService {
-	appRepo := repository.NewAppRepository(h.db)
-	profileRepo := repository.NewProfileRepository(h.db)
-	boxRepo := repository.NewBoxRepository(h.db)
-	userRepo := repository.NewUserRepository(h.db)
-	return services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
-}
-
-// Helper method to create profile service
-func (h *AdminHandler) createProfileService() *services.ProfileService {
-	profileRepo := repository.NewProfileRepository(h.db)
-	appRepo := repository.NewAppRepository(h.db)
-	userRepo := repository.NewUserRepository(h.db)
-	boxRepo := repository.NewBoxRepository(h.db)
-	return services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
-}
-
-// Helper method to create campaign service
-func (h *AdminHandler) createCampaignService() *services.CampaignService {
-	campaignRepo := repository.NewCampaignRepository(h.db)
-	flowGroupRepo := repository.NewFlowGroupRepository(h.db)
-	userRepo := repository.NewUserRepository(h.db)
-	profileRepo := repository.NewProfileRepository(h.db)
-	return services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
-}
-
-// Helper method to create flow service
-func (h *AdminHandler) createFlowService() *services.FlowService {
-	flowRepo := repository.NewFlowRepository(h.db)
-	campaignRepo := repository.NewCampaignRepository(h.db)
-	flowGroupRepo := repository.NewFlowGroupRepository(h.db)
-	profileRepo := repository.NewProfileRepository(h.db)
-	userRepo := repository.NewUserRepository(h.db)
-	return services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
+	return &AdminHandler{
+		authService:     authService,
+		boxService:      boxService,
+		appService:      appService,
+		profileService:  profileService,
+		campaignService: campaignService,
+		flowService:     flowService,
+		db:              db,
+	}
 }
 
 // AdminRegister godoc
@@ -109,7 +88,7 @@ func (h *AdminHandler) AdminRegister(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
 	ipAddress := c.ClientIP()
 
-	response, err := h.createAuthService().Register(&req, userAgent, ipAddress)
+	response, err := h.authService.Register(&req, userAgent, ipAddress)
 	if err != nil {
 		if strings.Contains(err.Error(), "username already exists") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -150,7 +129,7 @@ func (h *AdminHandler) GetAllUsers(c *gin.Context) {
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 	search := c.DefaultQuery("search", "")
 
-	users, total, err := h.createAuthService().GetAllUsers(page, pageSize, search)
+	users, total, err := h.authService.GetAllUsers(page, pageSize, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get users", "details": err.Error()})
 		return
@@ -208,7 +187,7 @@ func (h *AdminHandler) SetUserStatus(c *gin.Context) {
 	}
 
 	// Set user status
-	err := h.createAuthService().SetUserActive(userID, req.IsActive)
+	err := h.authService.SetUserActive(userID, req.IsActive)
 	if err != nil {
 		if strings.Contains(err.Error(), "user not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -254,7 +233,7 @@ func (h *AdminHandler) DeleteUser(c *gin.Context) {
 	}
 
 	// Delete user
-	err := h.createAuthService().DeleteUser(userID)
+	err := h.authService.DeleteUser(userID)
 	if err != nil {
 		if strings.Contains(err.Error(), "user not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -287,7 +266,7 @@ func (h *AdminHandler) AdminGetAllBoxes(c *gin.Context) {
 		return
 	}
 
-	boxes, err := h.createBoxService().GetAllBoxes()
+	boxes, err := h.boxService.GetAllBoxes()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get boxes", "details": err.Error()})
 		return
@@ -316,7 +295,7 @@ func (h *AdminHandler) AdminGetAllApps(c *gin.Context) {
 		return
 	}
 
-	apps, err := h.createAppService().GetAllApps()
+	apps, err := h.appService.GetAllApps()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get apps", "details": err.Error()})
 		return
@@ -345,7 +324,7 @@ func (h *AdminHandler) AdminGetAllProfiles(c *gin.Context) {
 		return
 	}
 
-	profiles, err := h.createProfileService().GetAllProfiles()
+	profiles, err := h.profileService.GetAllProfiles()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
 		return
@@ -374,7 +353,7 @@ func (h *AdminHandler) AdminGetAllCampaigns(c *gin.Context) {
 		return
 	}
 
-	campaigns, err := h.createCampaignService().GetAllCampaigns()
+	campaigns, err := h.campaignService.GetAllCampaigns()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get campaigns", "details": err.Error()})
 		return
@@ -403,7 +382,7 @@ func (h *AdminHandler) AdminGetAllFlows(c *gin.Context) {
 		return
 	}
 
-	flows, err := h.createFlowService().GetAllFlows()
+	flows, err := h.flowService.GetAllFlows()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
 		return
@@ -440,7 +419,7 @@ func (h *AdminHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	err := h.createAuthService().ResetPassword(userID, req.NewPassword)
+	err := h.authService.ResetPassword(userID, req.NewPassword)
 	if err != nil {
 		if strings.Contains(err.Error(), "user not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})

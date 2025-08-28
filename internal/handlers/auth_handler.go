@@ -12,18 +12,22 @@ import (
 )
 
 type AuthHandler struct {
-	db *gorm.DB
+	authService *auth.AuthService
+	db          *gorm.DB
 }
 
 func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	return &AuthHandler{db: db}
-}
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 
-// Helper method to create auth service
-func (h *AuthHandler) createAuthService() *auth.AuthService {
-	userRepo := repository.NewUserRepository(h.db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(h.db)
-	return auth.NewAuthService(userRepo, refreshTokenRepo)
+	// Create service
+	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
+
+	return &AuthHandler{
+		authService: authService,
+		db:          db,
+	}
 }
 
 // Login godoc
@@ -49,7 +53,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
 	ipAddress := c.ClientIP()
 
-	response, err := h.createAuthService().Login(&req, userAgent, ipAddress)
+	response, err := h.authService.Login(&req, userAgent, ipAddress)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid credentials") || strings.Contains(err.Error(), "deactivated") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -85,7 +89,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	userAgent := c.GetHeader("User-Agent")
 	ipAddress := c.ClientIP()
 
-	response, err := h.createAuthService().RefreshToken(req.RefreshToken, userAgent, ipAddress)
+	response, err := h.authService.RefreshToken(req.RefreshToken, userAgent, ipAddress)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid refresh token") || strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "deactivated") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -121,7 +125,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		req.RefreshToken = ""
 	}
 
-	err := h.createAuthService().Logout(req.RefreshToken, userID)
+	err := h.authService.Logout(req.RefreshToken, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to logout", "details": err.Error()})
 		return
@@ -173,7 +177,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	}
 
 	// Change password
-	err := h.createAuthService().ChangePassword(userID, req.CurrentPassword, req.NewPassword)
+	err := h.authService.ChangePassword(userID, req.CurrentPassword, req.NewPassword)
 	if err != nil {
 		if strings.Contains(err.Error(), "current password is incorrect") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Current password is incorrect"})

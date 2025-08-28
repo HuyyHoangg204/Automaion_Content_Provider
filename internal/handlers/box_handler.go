@@ -13,20 +13,24 @@ import (
 )
 
 type BoxHandler struct {
-	db *gorm.DB
+	boxService *services.BoxService
+	db         *gorm.DB
 }
 
 func NewBoxHandler(db *gorm.DB) *BoxHandler {
-	return &BoxHandler{db: db}
-}
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
 
-// Helper method to create box service
-func (h *BoxHandler) createBoxService() *services.BoxService {
-	userRepo := repository.NewUserRepository(h.db)
-	boxRepo := repository.NewBoxRepository(h.db)
-	appRepo := repository.NewAppRepository(h.db)
-	profileRepo := repository.NewProfileRepository(h.db)
-	return services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
+	// Create service
+	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
+
+	return &BoxHandler{
+		boxService: boxService,
+		db:         db,
+	}
 }
 
 // CreateBox godoc
@@ -52,9 +56,7 @@ func (h *BoxHandler) CreateBox(c *gin.Context) {
 		return
 	}
 
-	// Create repositories and service
-	boxService := h.createBoxService()
-	response, err := boxService.CreateBox(userID, &req)
+	response, err := h.boxService.CreateBox(userID, &req)
 	if err != nil {
 		// Check if it's a BoxAlreadyExistsError
 		if boxExistsErr, ok := err.(*models.BoxAlreadyExistsError); ok {
@@ -91,9 +93,7 @@ func (h *BoxHandler) GetMyBoxes(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	// Create repositories and service
-	boxService := h.createBoxService()
-	boxes, total, err := boxService.GetBoxesByUserPaginated(userID, page, pageSize)
+	boxes, total, err := h.boxService.GetBoxesByUserPaginated(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get boxes", "details": err.Error()})
 		return
@@ -135,9 +135,7 @@ func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 	// Get box ID from URL
 	boxID := c.Param("id")
 
-	// Create repositories and service
-	boxService := h.createBoxService()
-	box, err := boxService.GetBoxByID(userID, boxID)
+	box, err := h.boxService.GetBoxByID(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -178,9 +176,7 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 		return
 	}
 
-	// Create repositories and service
-	boxService := h.createBoxService()
-	response, err := boxService.UpdateBox(userID, boxID, &req)
+	response, err := h.boxService.UpdateBox(userID, boxID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "box not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -214,9 +210,7 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	// Get box ID from URL
 	boxID := c.Param("id")
 
-	// Create repositories and service
-	boxService := h.createBoxService()
-	err := boxService.DeleteBox(userID, boxID)
+	err := h.boxService.DeleteBox(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -247,10 +241,8 @@ func (h *BoxHandler) SyncAllProfilesInBox(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	boxID := c.Param("id")
 
-	// Create repositories and service
-	boxService := h.createBoxService()
 	// Sync all profiles from all apps in the box
-	syncResult, err := boxService.SyncAllProfilesInBox(userID, boxID)
+	syncResult, err := h.boxService.SyncAllProfilesInBox(userID, boxID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
