@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 	"gorm.io/gorm"
@@ -16,14 +15,7 @@ type AuthHandler struct {
 	db          *gorm.DB
 }
 
-func NewAuthHandler(db *gorm.DB) *AuthHandler {
-	// Create repositories
-	userRepo := repository.NewUserRepository(db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-
-	// Create service
-	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
-
+func NewAuthHandler(authService *auth.AuthService, db *gorm.DB) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		db:          db,

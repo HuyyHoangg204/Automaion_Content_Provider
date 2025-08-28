@@ -15,6 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type AuthService struct {
@@ -25,7 +26,7 @@ type AuthService struct {
 	refreshTokenTTL  time.Duration
 }
 
-func NewAuthService(userRepo *repository.UserRepository, refreshTokenRepo *repository.RefreshTokenRepository) *AuthService {
+func NewAuthService(db *gorm.DB) *AuthService {
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {
 		jwtSecret = []byte("default-secret-key-change-in-production")
@@ -49,8 +50,8 @@ func NewAuthService(userRepo *repository.UserRepository, refreshTokenRepo *repos
 	logrus.Infof("Refresh token TTL: %f", refreshTokenTTL.Hours())
 
 	return &AuthService{
-		userRepo:         userRepo,
-		refreshTokenRepo: refreshTokenRepo,
+		userRepo:         repository.NewUserRepository(db),
+		refreshTokenRepo: repository.NewRefreshTokenRepository(db),
 		jwtSecret:        jwtSecret,
 		accessTokenTTL:   accessTokenTTL,
 		refreshTokenTTL:  refreshTokenTTL,

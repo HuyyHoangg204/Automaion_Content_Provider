@@ -25,10 +25,9 @@ type AdminHandler struct {
 	db              *gorm.DB
 }
 
-func NewAdminHandler(db *gorm.DB) *AdminHandler {
+func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 	// Create repositories
 	userRepo := repository.NewUserRepository(db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
@@ -37,7 +36,6 @@ func NewAdminHandler(db *gorm.DB) *AdminHandler {
 	flowRepo := repository.NewFlowRepository(db)
 
 	// Create services
-	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
 	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
 	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)

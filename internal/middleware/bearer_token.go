@@ -17,13 +17,9 @@ type BearerTokenMiddleware struct {
 	db          *gorm.DB
 }
 
-func NewBearerTokenMiddleware(db *gorm.DB) *BearerTokenMiddleware {
+func NewBearerTokenMiddleware(authService *auth.AuthService, db *gorm.DB) *BearerTokenMiddleware {
 	// Create repositories
 	userRepo := repository.NewUserRepository(db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-
-	// Create service
-	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
 
 	return &BearerTokenMiddleware{
 		authService: authService,

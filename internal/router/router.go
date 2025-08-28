@@ -5,6 +5,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -37,10 +38,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}))
 
 	// Create auth middleware
-	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(db)
+	// Create services
+	authService := auth.NewAuthService(db)
 
-	// Create handlers with proper service dependencies
-	authHandler := handlers.NewAuthHandler(db)
+	// Create middleware with services
+	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
+
+	// Create handlers with services
+	authHandler := handlers.NewAuthHandler(authService, db)
 	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)
@@ -49,8 +54,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
 
-	// Create admin handler with db
-	adminHandler := handlers.NewAdminHandler(db)
+	// Create admin handler with services
+	adminHandler := handlers.NewAdminHandler(authService, db)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
