@@ -3,10 +3,8 @@ package router
 import (
 	"time"
 
-	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
-	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -39,10 +37,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	}))
 
 	// Create auth middleware
-	userRepo := repository.NewUserRepository(db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
-	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
+	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(db)
 
 	// Create handlers with proper service dependencies
 	authHandler := handlers.NewAuthHandler(db)

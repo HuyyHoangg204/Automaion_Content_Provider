@@ -8,18 +8,27 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type BearerTokenMiddleware struct {
-	authService *auth.AuthService
-	userRepo    *repository.UserRepository
+	db *gorm.DB
 }
 
-func NewBearerTokenMiddleware(authService *auth.AuthService, userRepo *repository.UserRepository) *BearerTokenMiddleware {
-	return &BearerTokenMiddleware{
-		authService: authService,
-		userRepo:    userRepo,
-	}
+func NewBearerTokenMiddleware(db *gorm.DB) *BearerTokenMiddleware {
+	return &BearerTokenMiddleware{db: db}
+}
+
+// Helper method to create auth service
+func (m *BearerTokenMiddleware) createAuthService() *auth.AuthService {
+	userRepo := repository.NewUserRepository(m.db)
+	refreshTokenRepo := repository.NewRefreshTokenRepository(m.db)
+	return auth.NewAuthService(userRepo, refreshTokenRepo)
+}
+
+// Helper method to create user repository
+func (m *BearerTokenMiddleware) createUserRepo() *repository.UserRepository {
+	return repository.NewUserRepository(m.db)
 }
 
 // BearerTokenAuthMiddleware validates JWT token and sets user info in context
@@ -47,7 +56,7 @@ func (m *BearerTokenMiddleware) BearerTokenAuthMiddleware() gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// Validate token
-		tokenInfo, err := m.authService.ValidateToken(tokenString)
+		tokenInfo, err := m.createAuthService().ValidateToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
@@ -55,7 +64,7 @@ func (m *BearerTokenMiddleware) BearerTokenAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Get user from database
-		user, err := m.userRepo.GetByID(tokenInfo.UserID)
+		user, err := m.createUserRepo().GetByID(tokenInfo.UserID)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 			c.Abort()
