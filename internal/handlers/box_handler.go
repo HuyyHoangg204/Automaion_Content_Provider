@@ -14,7 +14,6 @@ import (
 
 type BoxHandler struct {
 	boxService *services.BoxService
-	db         *gorm.DB
 }
 
 func NewBoxHandler(db *gorm.DB) *BoxHandler {
@@ -29,7 +28,6 @@ func NewBoxHandler(db *gorm.DB) *BoxHandler {
 
 	return &BoxHandler{
 		boxService: boxService,
-		db:         db,
 	}
 }
 
