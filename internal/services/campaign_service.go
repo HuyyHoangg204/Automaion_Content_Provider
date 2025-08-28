@@ -58,13 +58,13 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 
 	// Create campaign
 	campaign := &models.Campaign{
-		UserID:           userID,
-		Name:             req.Name,
-		Description:      req.Description,
-		ScriptName:       req.ScriptName,
-		ScriptVariables:  req.ScriptVariables,
-		ConcurrentPhones: req.ConcurrentPhones,
-		Schedule:         req.Schedule,
+		UserID:             userID,
+		Name:               req.Name,
+		Description:        req.Description,
+		ScriptName:         req.ScriptName,
+		ScriptVariables:    req.ScriptVariables,
+		ConcurrentProfiles: req.ConcurrentProfiles,
+		Schedule:           req.Schedule,
 	}
 	if req.IsActive != nil {
 		campaign.IsActive = *req.IsActive
@@ -162,7 +162,7 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 	campaign.Description = req.Description
 	campaign.ScriptName = req.ScriptName
 	campaign.ScriptVariables = req.ScriptVariables
-	campaign.ConcurrentPhones = req.ConcurrentPhones
+	campaign.ConcurrentProfiles = req.ConcurrentProfiles
 	campaign.Schedule = req.Schedule
 	if req.IsActive != nil {
 		campaign.IsActive = *req.IsActive
@@ -237,18 +237,18 @@ func (s *CampaignService) toResponse(campaign *models.Campaign) *models.Campaign
 	}
 
 	return &models.CampaignResponse{
-		ID:               campaign.ID,
-		UserID:           campaign.UserID,
-		Name:             campaign.Name,
-		Description:      campaign.Description,
-		ScriptName:       campaign.ScriptName,
-		ScriptVariables:  campaign.ScriptVariables,
-		ConcurrentPhones: campaign.ConcurrentPhones,
-		Schedule:         campaign.Schedule,
-		IsActive:         campaign.IsActive,
-		Status:           campaign.Status,
-		Profiles:         profileResponses,
-		CreatedAt:        campaign.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:        campaign.UpdatedAt.Format(time.RFC3339),
+		ID:                 campaign.ID,
+		UserID:             campaign.UserID,
+		Name:               campaign.Name,
+		Description:        campaign.Description,
+		ScriptName:         campaign.ScriptName,
+		ScriptVariables:    campaign.ScriptVariables,
+		ConcurrentProfiles: campaign.ConcurrentProfiles,
+		Schedule:           campaign.Schedule,
+		IsActive:           campaign.IsActive,
+		Status:             campaign.Status,
+		Profiles:           profileResponses,
+		CreatedAt:          campaign.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:          campaign.UpdatedAt.Format(time.RFC3339),
 	}
 }

@@ -104,7 +104,7 @@ definitions:
     type: object
   models.Campaign:
     properties:
-      concurrent_phones:
+      concurrent_profiles:
         description: Campaign details
         type: integer
       created_at:
@@ -175,7 +175,7 @@ definitions:
     type: object
   models.CampaignResponse:
     properties:
-      concurrent_phones:
+      concurrent_profiles:
         example: 10
         type: integer
       created_at:
@@ -286,7 +286,7 @@ definitions:
     type: object
   models.CreateCampaignRequest:
     properties:
-      concurrent_phones:
+      concurrent_profiles:
         example: 10
         type: integer
       description:
@@ -714,7 +714,7 @@ definitions:
     type: object
   models.UpdateCampaignRequest:
     properties:
-      concurrent_phones:
+      concurrent_profiles:
         example: 20
         type: integer
       description:

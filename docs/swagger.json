@@ -4135,7 +4135,7 @@
         "models.Campaign": {
             "type": "object",
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "description": "Campaign details",
                     "type": "integer"
                 },
@@ -4245,7 +4245,7 @@
         "models.CampaignResponse": {
             "type": "object",
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "type": "integer",
                     "example": 10
                 },
@@ -4393,7 +4393,7 @@
                 "script_name"
             ],
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "type": "integer",
                     "example": 10
                 },
@@ -4992,7 +4992,7 @@
                 "script_name"
             ],
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "type": "integer",
                     "example": 20
                 },

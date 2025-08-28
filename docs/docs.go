@@ -4142,7 +4142,7 @@ const docTemplate = `{
         "models.Campaign": {
             "type": "object",
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "description": "Campaign details",
                     "type": "integer"
                 },
@@ -4252,7 +4252,7 @@ const docTemplate = `{
         "models.CampaignResponse": {
             "type": "object",
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "type": "integer",
                     "example": 10
                 },
@@ -4400,7 +4400,7 @@ const docTemplate = `{
                 "script_name"
             ],
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "type": "integer",
                     "example": 10
                 },
@@ -4999,7 +4999,7 @@ const docTemplate = `{
                 "script_name"
             ],
             "properties": {
-                "concurrent_phones": {
+                "concurrent_profiles": {
                     "type": "integer",
                     "example": 20
                 },

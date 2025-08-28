@@ -14,7 +14,7 @@ type Campaign struct {
 	ScriptVariables JSON   `json:"script_variables" gorm:"type:jsonb;default:'{}'"`
 
 	// Campaign details
-	ConcurrentPhones int `json:"concurrent_phones" gorm:"type:int;default:50"`
+	ConcurrentProfiles int `json:"concurrent_profiles" gorm:"type:int;default:50"`
 
 	// Scheduling
 	Schedule JSON `json:"schedule" gorm:"type:jsonb"`
@@ -39,42 +39,42 @@ func (Campaign) TableName() string {
 
 // CreateCampaignRequest represents the request to create a new campaign
 type CreateCampaignRequest struct {
-	Name             string   `json:"name" binding:"required" example:"Tăng view campaign"`
-	Description      string   `json:"description" example:"This is a campaign to increase views"`
-	ScriptName       string   `json:"script_name" binding:"required" example:"increase_views.js"`
-	ScriptVariables  JSON     `json:"script_variables"`
-	ConcurrentPhones int      `json:"concurrent_phones" example:"10"`
-	Schedule         JSON     `json:"schedule" binding:"required"`
-	IsActive         *bool    `json:"is_active" example:"true"`
-	ProfileIDs       []string `json:"profile_ids" binding:"required"`
+	Name               string   `json:"name" binding:"required" example:"Tăng view campaign"`
+	Description        string   `json:"description" example:"This is a campaign to increase views"`
+	ScriptName         string   `json:"script_name" binding:"required" example:"increase_views.js"`
+	ScriptVariables    JSON     `json:"script_variables"`
+	ConcurrentProfiles int      `json:"concurrent_profiles" example:"10"`
+	Schedule           JSON     `json:"schedule" binding:"required"`
+	IsActive           *bool    `json:"is_active" example:"true"`
+	ProfileIDs         []string `json:"profile_ids" binding:"required"`
 }
 
 // UpdateCampaignRequest represents the request to update a campaign
 type UpdateCampaignRequest struct {
-	Name             string   `json:"name" binding:"required" example:"Updated Campaign Name"`
-	Description      string   `json:"description" example:"This is an updated campaign"`
-	ScriptName       string   `json:"script_name" binding:"required" example:"updated_script.js"`
-	ScriptVariables  JSON     `json:"script_variables"`
-	ConcurrentPhones int      `json:"concurrent_phones" example:"20"`
-	Schedule         JSON     `json:"schedule" binding:"required"`
-	IsActive         *bool    `json:"is_active" example:"false"`
-	ProfileIDs       []string `json:"profile_ids" binding:"required"`
+	Name               string   `json:"name" binding:"required" example:"Updated Campaign Name"`
+	Description        string   `json:"description" example:"This is an updated campaign"`
+	ScriptName         string   `json:"script_name" binding:"required" example:"updated_script.js"`
+	ScriptVariables    JSON     `json:"script_variables"`
+	ConcurrentProfiles int      `json:"concurrent_profiles" example:"20"`
+	Schedule           JSON     `json:"schedule" binding:"required"`
+	IsActive           *bool    `json:"is_active" example:"false"`
+	ProfileIDs         []string `json:"profile_ids" binding:"required"`
 }
 
 // CampaignResponse represents the response for campaign operations
 type CampaignResponse struct {
-	ID               string                   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserID           string                   `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
-	Name             string                   `json:"name" example:"Tăng view campaign"`
-	Description      string                   `json:"description" example:"This is a campaign to increase views"`
-	ScriptName       string                   `json:"script_name" example:"increase_views.js"`
-	ScriptVariables  JSON                     `json:"script_variables"`
-	ConcurrentPhones int                      `json:"concurrent_phones" example:"10"`
-	Schedule         JSON                     `json:"schedule"`
-	IsActive         bool                     `json:"is_active" example:"true"`
-	Status           string                   `json:"status" example:"idle"`
-	Profiles         []ProfileWithBoxResponse `json:"profiles,omitempty"`
-	Logs             []CampaignLog            `json:"logs,omitempty"`
-	CreatedAt        string                   `json:"created_at" example:"2025-01-09T10:30:00Z"`
-	UpdatedAt        string                   `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+	ID                 string                   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID             string                   `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Name               string                   `json:"name" example:"Tăng view campaign"`
+	Description        string                   `json:"description" example:"This is a campaign to increase views"`
+	ScriptName         string                   `json:"script_name" example:"increase_views.js"`
+	ScriptVariables    JSON                     `json:"script_variables"`
+	ConcurrentProfiles int                      `json:"concurrent_profiles" example:"10"`
+	Schedule           JSON                     `json:"schedule"`
+	IsActive           bool                     `json:"is_active" example:"true"`
+	Status             string                   `json:"status" example:"idle"`
+	Profiles           []ProfileWithBoxResponse `json:"profiles,omitempty"`
+	Logs               []CampaignLog            `json:"logs,omitempty"`
+	CreatedAt          string                   `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt          string                   `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }
