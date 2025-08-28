@@ -80,11 +80,7 @@ func (h *AdminHandler) AdminRegister(c *gin.Context) {
 		return
 	}
 
-	// Get user agent and IP address
-	userAgent := c.GetHeader("User-Agent")
-	ipAddress := c.ClientIP()
-
-	response, err := h.authService.Register(&req, userAgent, ipAddress)
+	response, err := h.authService.Register(&req)
 	if err != nil {
 		if strings.Contains(err.Error(), "username already exists") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})

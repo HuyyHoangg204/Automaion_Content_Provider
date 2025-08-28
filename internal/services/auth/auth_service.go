@@ -59,7 +59,7 @@ func NewAuthService(db *gorm.DB) *AuthService {
 }
 
 // Register registers a new user
-func (s *AuthService) Register(req *models.RegisterRequest, userAgent, ipAddress string) (*models.AuthResponse, error) {
+func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthResponse, error) {
 	// Check if username already exists
 	exists, err := s.userRepo.CheckUsernameExists(req.Username)
 	if err != nil {
@@ -90,11 +90,11 @@ func (s *AuthService) Register(req *models.RegisterRequest, userAgent, ipAddress
 	}
 
 	// Generate tokens
-	return s.generateAuthResponse(user, userAgent, ipAddress)
+	return s.generateAuthResponse(user)
 }
 
 // Login authenticates a user
-func (s *AuthService) Login(req *models.LoginRequest, userAgent, ipAddress string) (*models.AuthResponse, error) {
+func (s *AuthService) Login(req *models.LoginRequest) (*models.AuthResponse, error) {
 	// Get user by username
 	user, err := s.userRepo.GetByUsername(req.Username)
 	if err != nil {
@@ -118,11 +118,11 @@ func (s *AuthService) Login(req *models.LoginRequest, userAgent, ipAddress strin
 	}
 
 	// Generate tokens
-	return s.generateAuthResponse(user, userAgent, ipAddress)
+	return s.generateAuthResponse(user)
 }
 
 // RefreshToken refreshes an access token using a refresh token
-func (s *AuthService) RefreshToken(refreshTokenStr string, userAgent, ipAddress string) (*models.AuthResponse, error) {
+func (s *AuthService) RefreshToken(refreshTokenStr string) (*models.AuthResponse, error) {
 	// Get refresh token from database
 	refreshToken, err := s.refreshTokenRepo.GetByToken(refreshTokenStr)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *AuthService) RefreshToken(refreshTokenStr string, userAgent, ipAddress 
 	}
 
 	// Generate new tokens
-	return s.generateAuthResponse(user, userAgent, ipAddress)
+	return s.generateAuthResponse(user)
 }
 
 // Logout logs out a user
@@ -209,7 +209,7 @@ func (s *AuthService) ValidateToken(tokenString string) (*models.TokenInfo, erro
 }
 
 // generateAuthResponse generates access and refresh tokens for a user
-func (s *AuthService) generateAuthResponse(user *models.User, userAgent, ipAddress string) (*models.AuthResponse, error) {
+func (s *AuthService) generateAuthResponse(user *models.User) (*models.AuthResponse, error) {
 	// Generate access token
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {
@@ -217,7 +217,7 @@ func (s *AuthService) generateAuthResponse(user *models.User, userAgent, ipAddre
 	}
 
 	// Generate refresh token
-	refreshToken, err := s.generateRefreshToken(user, userAgent, ipAddress)
+	refreshToken, err := s.generateRefreshToken(user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
@@ -251,7 +251,7 @@ func (s *AuthService) generateAccessToken(user *models.User) (string, error) {
 }
 
 // generateRefreshToken generates a refresh token and stores it in the database
-func (s *AuthService) generateRefreshToken(user *models.User, userAgent, ipAddress string) (string, error) {
+func (s *AuthService) generateRefreshToken(user *models.User) (string, error) {
 	// Generate random token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
@@ -265,8 +265,6 @@ func (s *AuthService) generateRefreshToken(user *models.User, userAgent, ipAddre
 		UserID:    user.ID,
 		ExpiresAt: time.Now().Add(s.refreshTokenTTL),
 		IsRevoked: false,
-		UserAgent: userAgent,
-		IPAddress: ipAddress,
 	}
 
 	if err := s.refreshTokenRepo.Create(refreshToken); err != nil {
