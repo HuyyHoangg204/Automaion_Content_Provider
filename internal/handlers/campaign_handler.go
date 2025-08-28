@@ -21,14 +21,12 @@ func NewCampaignHandler(db *gorm.DB) *CampaignHandler {
 	campaignRepo := repository.NewCampaignRepository(db)
 	flowGroupRepo := repository.NewFlowGroupRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
-	
+
 	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
 	return &CampaignHandler{
 		campaignService: campaignService,
 	}
 }
-
-
 
 // CreateCampaign godoc
 // @Summary Create a new campaign
@@ -196,33 +194,4 @@ func (h *CampaignHandler) DeleteCampaign(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// AdminGetAllCampaigns godoc
-// @Summary Get all campaigns (Admin only)
-// @Description Get all campaigns in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.CampaignResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/campaigns [get]
-func (h *CampaignHandler) AdminGetAllCampaigns(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	campaigns, err := h.campaignService.GetAllCampaigns()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get campaigns", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, campaigns)
 }
