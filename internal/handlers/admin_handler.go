@@ -5,10 +5,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
+	"gorm.io/gorm"
 )
 
 type AdminHandler struct {
@@ -20,18 +22,27 @@ type AdminHandler struct {
 	flowService     *services.FlowService
 }
 
-func NewAdminHandler(authService *auth.AuthService, boxService *services.BoxService, appService *services.AppService, profileService *services.ProfileService, campaignService *services.CampaignService, flowService *services.FlowService) *AdminHandler {
+func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
+	flowGroupRepo := repository.NewFlowGroupRepository(db)
+	flowRepo := repository.NewFlowRepository(db)
+
 	return &AdminHandler{
 		authService:     authService,
-		boxService:      boxService,
-		appService:      appService,
-		profileService:  profileService,
-		campaignService: campaignService,
-		flowService:     flowService,
+		boxService:      services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo),
+		appService:      services.NewAppService(appRepo, profileRepo, boxRepo, userRepo),
+		profileService:  services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo),
+		campaignService: services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo),
+		flowService:     services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo),
 	}
 }
 
-// AdminRegister godoc
+// Register godoc
 // @Summary Register a new user (Admin only)
 // @Description Register a new user account with username and password (Admin privileges required)
 // @Tags admin
@@ -46,7 +57,7 @@ func NewAdminHandler(authService *auth.AuthService, boxService *services.BoxServ
 // @Failure 409 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/admin/register [post]
-func (h *AdminHandler) AdminRegister(c *gin.Context) {
+func (h *AdminHandler) Register(c *gin.Context) {
 	// Check if user is admin
 	user := c.MustGet("user").(*models.User)
 	if !user.IsAdmin {
@@ -60,11 +71,7 @@ func (h *AdminHandler) AdminRegister(c *gin.Context) {
 		return
 	}
 
-	// Get user agent and IP address
-	userAgent := c.GetHeader("User-Agent")
-	ipAddress := c.ClientIP()
-
-	response, err := h.authService.Register(&req, userAgent, ipAddress)
+	response, err := h.authService.Register(&req)
 	if err != nil {
 		if strings.Contains(err.Error(), "username already exists") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -394,6 +401,7 @@ func (h *AdminHandler) ResetPassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
 		return
 	}
+
 	err := h.authService.ResetPassword(userID, req.NewPassword)
 	if err != nil {
 		if strings.Contains(err.Error(), "user not found") {

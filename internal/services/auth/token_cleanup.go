@@ -6,6 +6,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type TokenCleanupService struct {
@@ -14,9 +15,9 @@ type TokenCleanupService struct {
 	stopChan         chan bool
 }
 
-func NewTokenCleanupService(refreshTokenRepo *repository.RefreshTokenRepository) *TokenCleanupService {
+func NewTokenCleanupService(db *gorm.DB) *TokenCleanupService {
 	return &TokenCleanupService{
-		refreshTokenRepo: refreshTokenRepo,
+		refreshTokenRepo: repository.NewRefreshTokenRepository(db),
 		interval:         24 * time.Hour, // Cleanup every 24 hours
 		stopChan:         make(chan bool),
 	}

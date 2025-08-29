@@ -5,16 +5,27 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
+	"gorm.io/gorm"
 )
 
 type BoxHandler struct {
 	boxService *services.BoxService
 }
 
-func NewBoxHandler(boxService *services.BoxService) *BoxHandler {
+func NewBoxHandler(db *gorm.DB) *BoxHandler {
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	profileRepo := repository.NewProfileRepository(db)
+
+	// Create service
+	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
+
 	return &BoxHandler{
 		boxService: boxService,
 	}

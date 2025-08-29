@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database"
-	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/router"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
@@ -59,12 +58,8 @@ func main() {
 		logrus.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// Initialize repositories
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	userRepo := repository.NewUserRepository(db)
-
 	// Initialize auth service
-	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
+	authService := auth.NewAuthService(db)
 
 	// Create admin user if not exists
 	if err := authService.CreateAdminUser(); err != nil {
@@ -74,7 +69,7 @@ func main() {
 	}
 
 	// Initialize token cleanup service
-	tokenCleanupService := auth.NewTokenCleanupService(refreshTokenRepo)
+	tokenCleanupService := auth.NewTokenCleanupService(db)
 	tokenCleanupService.Start()
 	defer tokenCleanupService.Stop()
 

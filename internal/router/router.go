@@ -1,13 +1,10 @@
 package router
 
 import (
-	"context"
 	"time"
 
-	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
-	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -40,30 +37,16 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Create auth service and middleware
-	userRepo := repository.NewUserRepository(db)
-	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
-	authService := auth.NewAuthService(userRepo, refreshTokenRepo)
-	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, userRepo)
-
-	// Create repositories
-	boxRepo := repository.NewBoxRepository(db)
-	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
-	campaignRepo := repository.NewCampaignRepository(db)
-	flowGroupRepo := repository.NewFlowGroupRepository(db)
-	flowRepo := repository.NewFlowRepository(db)
-
+	// Create auth middleware
 	// Create services
-	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
-	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
-	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
-	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
-	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
+	authService := auth.NewAuthService(db)
 
-	// Create handlers with proper service dependencies
+	// Create middleware with services
+	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
+
+	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService)
-	boxHandler := handlers.NewBoxHandler(boxService)
+	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)
 	campaignHandler := handlers.NewCampaignHandler(db)
@@ -71,8 +54,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
 
-	// Create admin handler with all necessary services
-	adminHandler := handlers.NewAdminHandler(authService, boxService, appService, profileService, campaignService, flowService)
+	// Create admin handler with services
+	adminHandler := handlers.NewAdminHandler(authService, db)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -186,7 +169,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 			// Admin routes (requires admin privileges)
 			admin := protected.Group("/admin")
 			{
-				admin.POST("/register", adminHandler.AdminRegister)
+				admin.POST("/register", adminHandler.Register)
 				admin.GET("/users", adminHandler.GetAllUsers)
 				admin.PUT("/users/:id/status", adminHandler.SetUserStatus)
 				admin.DELETE("/users/:id", adminHandler.DeleteUser)

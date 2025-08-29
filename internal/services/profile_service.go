@@ -24,7 +24,7 @@ type ProfileService struct {
 	boxRepo     *repository.BoxRepository
 }
 
-func NewProfileService(ctx context.Context, profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
+func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, boxRepo *repository.BoxRepository) *ProfileService {
 	return &ProfileService{
 		profileRepo: profileRepo,
 		appRepo:     appRepo,

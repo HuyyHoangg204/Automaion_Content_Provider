@@ -104,9 +104,9 @@ func (h *AppProxyHandler) forwardRequest(c *gin.Context, targetURL, platformType
 		req, err = http.NewRequest(method, targetURL, nil)
 	} else {
 		// For POST/PUT/DELETE, read body
-		body, err := io.ReadAll(c.Request.Body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read request body: %w", err)
+		body, readErr := io.ReadAll(c.Request.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", readErr)
 		}
 		req, err = http.NewRequest(method, targetURL, strings.NewReader(string(body)))
 	}

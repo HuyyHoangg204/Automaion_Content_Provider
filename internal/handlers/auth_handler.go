@@ -38,11 +38,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Get user agent and IP address
-	userAgent := c.GetHeader("User-Agent")
-	ipAddress := c.ClientIP()
-
-	response, err := h.authService.Login(&req, userAgent, ipAddress)
+	response, err := h.authService.Login(&req)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid credentials") || strings.Contains(err.Error(), "deactivated") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -74,11 +70,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Get user agent and IP address
-	userAgent := c.GetHeader("User-Agent")
-	ipAddress := c.ClientIP()
-
-	response, err := h.authService.RefreshToken(req.RefreshToken, userAgent, ipAddress)
+	response, err := h.authService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid refresh token") || strings.Contains(err.Error(), "expired") || strings.Contains(err.Error(), "deactivated") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})

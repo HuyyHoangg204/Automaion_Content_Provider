@@ -8,17 +8,23 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type BearerTokenMiddleware struct {
 	authService *auth.AuthService
 	userRepo    *repository.UserRepository
+	db          *gorm.DB
 }
 
-func NewBearerTokenMiddleware(authService *auth.AuthService, userRepo *repository.UserRepository) *BearerTokenMiddleware {
+func NewBearerTokenMiddleware(authService *auth.AuthService, db *gorm.DB) *BearerTokenMiddleware {
+	// Create repositories
+	userRepo := repository.NewUserRepository(db)
+
 	return &BearerTokenMiddleware{
 		authService: authService,
 		userRepo:    userRepo,
+		db:          db,
 	}
 }
 
