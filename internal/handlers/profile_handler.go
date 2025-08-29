@@ -24,7 +24,7 @@ func NewProfileHandler(db *gorm.DB) *ProfileHandler {
 	appRepo := repository.NewAppRepository(db)
 	profileRepo := repository.NewProfileRepository(db)
 
-	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
+	profileService := services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo)
 	return &ProfileHandler{
 		profileService: profileService,
 	}

@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"strings"
 
-	"context"
-
 	"github.com/gin-gonic/gin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
@@ -34,20 +32,13 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 	flowGroupRepo := repository.NewFlowGroupRepository(db)
 	flowRepo := repository.NewFlowRepository(db)
 
-	// Create services
-	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
-	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
-	profileService := services.NewProfileService(context.Background(), profileRepo, appRepo, userRepo, boxRepo)
-	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
-	flowService := services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo)
-
 	return &AdminHandler{
 		authService:     authService,
-		boxService:      boxService,
-		appService:      appService,
-		profileService:  profileService,
-		campaignService: campaignService,
-		flowService:     flowService,
+		boxService:      services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo),
+		appService:      services.NewAppService(appRepo, profileRepo, boxRepo, userRepo),
+		profileService:  services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo),
+		campaignService: services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo),
+		flowService:     services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo),
 	}
 }
 
