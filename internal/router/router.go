@@ -17,7 +17,7 @@ import (
 )
 
 // SetupRouter configures the Gin router with user authentication routes
-func SetupRouter(db *gorm.DB) *gin.Engine {
+func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -41,14 +41,6 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Create auth middleware
 	// Create services
 	authService := auth.NewAuthService(db)
-
-	// Initialize RabbitMQ service
-	rabbitMQService, err := services.NewRabbitMQService()
-	if err != nil {
-		logrus.Warnf("Failed to initialize RabbitMQ: %v", err)
-	} else {
-		logrus.Info("RabbitMQ service initialized in router")
-	}
 
 	// Create middleware with services
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)

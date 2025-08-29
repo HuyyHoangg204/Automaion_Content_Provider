@@ -83,8 +83,8 @@ func main() {
 	tokenCleanupService.Start()
 	defer tokenCleanupService.Stop()
 
-	// Initialize router
-	r := router.SetupRouter(db)
+	// Initialize router với RabbitMQ service
+	r := router.SetupRouter(db, rabbitMQService)
 
 	// Configure HTTP server
 	port := getEnv("PORT", "8080")
