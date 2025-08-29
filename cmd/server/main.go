@@ -12,6 +12,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database"
 	"github.com/onegreenvn/green-provider-services-backend/internal/router"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 
@@ -60,6 +61,15 @@ func main() {
 
 	// Initialize auth service
 	authService := auth.NewAuthService(db)
+
+	// Initialize RabbitMQ service
+	rabbitMQService, err := services.NewRabbitMQService()
+	if err != nil {
+		logrus.Warnf("Failed to initialize RabbitMQ: %v", err)
+	} else {
+		logrus.Info("RabbitMQ service initialized")
+		defer rabbitMQService.Close()
+	}
 
 	// Create admin user if not exists
 	if err := authService.CreateAdminUser(); err != nil {

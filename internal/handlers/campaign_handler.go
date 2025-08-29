@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -14,9 +15,10 @@ import (
 
 type CampaignHandler struct {
 	campaignService *services.CampaignService
+	rabbitMQService *services.RabbitMQService
 }
 
-func NewCampaignHandler(db *gorm.DB) *CampaignHandler {
+func NewCampaignHandler(db *gorm.DB, rabbitMQService *services.RabbitMQService) *CampaignHandler {
 	userRepo := repository.NewUserRepository(db)
 	campaignRepo := repository.NewCampaignRepository(db)
 	flowGroupRepo := repository.NewFlowGroupRepository(db)
@@ -25,6 +27,7 @@ func NewCampaignHandler(db *gorm.DB) *CampaignHandler {
 	campaignService := services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo)
 	return &CampaignHandler{
 		campaignService: campaignService,
+		rabbitMQService: rabbitMQService,
 	}
 }
 
@@ -194,4 +197,58 @@ func (h *CampaignHandler) DeleteCampaign(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// RunCampaign godoc
+// @Summary Run a campaign
+// @Description Execute a campaign by sending execution request to queue
+// @Tags campaigns
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Campaign ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/campaigns/{id}/run [post]
+func (h *CampaignHandler) RunCampaign(c *gin.Context) {
+	// Get campaign ID from URL
+	campaignID := c.Param("id")
+	if campaignID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "Campaign ID is required",
+		})
+		return
+	}
+
+	// Get user ID from context (set by auth middleware)
+	userID := c.MustGet("user_id").(string)
+
+	// Check if campaign exists in the database for the user
+	_, err := h.campaignService.GetCampaignByID(userID, campaignID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"success": false,
+			"error":   fmt.Sprintf("Campaign with ID %s not found", campaignID),
+		})
+		return
+	}
+
+	// Send execution request to event handler service
+	if h.rabbitMQService != nil {
+		message := map[string]interface{}{
+			"type":        "execute_campaign",
+			"campaign_id": campaignID,
+		}
+		if err := h.rabbitMQService.PublishMessage(c, "campaign_executor", message); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send execution request"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "Campaign execution request sent"})
+	} else {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Campaign execution service is not available"})
+	}
 }

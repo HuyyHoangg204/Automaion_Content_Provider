@@ -2733,6 +2733,50 @@ paths:
       summary: Get flows by campaign
       tags:
       - flows
+  /api/v1/campaigns/{id}/run:
+    post:
+      consumes:
+      - application/json
+      description: Execute a campaign by sending execution request to queue
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Run a campaign
+      tags:
+      - campaigns
   /api/v1/flow-groups/{id}:
     get:
       consumes:

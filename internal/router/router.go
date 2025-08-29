@@ -5,6 +5,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -41,6 +42,14 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	// Create services
 	authService := auth.NewAuthService(db)
 
+	// Initialize RabbitMQ service
+	rabbitMQService, err := services.NewRabbitMQService()
+	if err != nil {
+		logrus.Warnf("Failed to initialize RabbitMQ: %v", err)
+	} else {
+		logrus.Info("RabbitMQ service initialized in router")
+	}
+
 	// Create middleware with services
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
 
@@ -49,7 +58,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)
-	campaignHandler := handlers.NewCampaignHandler(db)
+	campaignHandler := handlers.NewCampaignHandler(db, rabbitMQService)
 	flowGroupHandler := handlers.NewFlowGroupHandler(db)
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
@@ -131,6 +140,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
 				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
 				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+				campaigns.POST("/:id/run", campaignHandler.RunCampaign)
 				campaigns.GET("/:id/flow-groups", flowGroupHandler.GetFlowGroupsByCampaign)
 				campaigns.GET("/:id/flows", flowHandler.GetFlowsByCampaign)
 			}
