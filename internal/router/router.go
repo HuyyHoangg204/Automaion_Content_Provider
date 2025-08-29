@@ -45,7 +45,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
 
 	// Create handlers with services
-	authHandler := handlers.NewAuthHandler(authService, db)
+	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)

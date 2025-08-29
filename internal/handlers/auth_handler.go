@@ -7,18 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
-	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
 	authService *auth.AuthService
-	db          *gorm.DB
 }
 
-func NewAuthHandler(authService *auth.AuthService, db *gorm.DB) *AuthHandler {
+func NewAuthHandler(authService *auth.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
-		db:          db,
 	}
 }
 
