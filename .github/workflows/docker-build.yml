@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/green-provider-services-backend
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/backend-provider-services
 
 jobs:
   build-and-push:
