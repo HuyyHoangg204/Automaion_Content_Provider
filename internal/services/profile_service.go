@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,7 +33,7 @@ func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repos
 }
 
 // CreateProfile creates a new profile for a user
-func (s *ProfileService) CreateProfile(ctx context.Context, userID string, req *models.CreateProfileRequest) (*models.ProfileResponse, error) {
+func (s *ProfileService) CreateProfile(userID string, req *models.CreateProfileRequest) (*models.ProfileResponse, error) {
 	// Verify user exists
 	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
@@ -125,7 +124,7 @@ func (s *ProfileService) CreateProfile(ctx context.Context, userID string, req *
 }
 
 // GetProfilesByUser retrieves all profiles for a specific user
-func (s *ProfileService) GetProfilesByUser(ctx context.Context, userID string) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfilesByUser(userID string) ([]*models.ProfileResponse, error) {
 	profiles, err := s.profileRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profiles: %w", err)
@@ -140,7 +139,7 @@ func (s *ProfileService) GetProfilesByUser(ctx context.Context, userID string) (
 }
 
 // GetProfilesByBox retrieves all profiles for a specific box (user must own the box)
-func (s *ProfileService) GetProfilesByBox(ctx context.Context, userID, boxID string) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfilesByBox(userID, boxID string) ([]*models.ProfileResponse, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -161,7 +160,7 @@ func (s *ProfileService) GetProfilesByBox(ctx context.Context, userID, boxID str
 }
 
 // GetProfilesByBoxPaginated retrieves paginated profiles for a specific box
-func (s *ProfileService) GetProfilesByBoxPaginated(ctx context.Context, userID, boxID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
+func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -185,7 +184,7 @@ func (s *ProfileService) GetProfilesByBoxPaginated(ctx context.Context, userID, 
 }
 
 // GetProfilesByAppPaginated retrieves paginated profiles for a specific app
-func (s *ProfileService) GetProfilesByAppPaginated(ctx context.Context, userID, appID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
+func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
 	// Verify app belongs to user
 	_, err := s.appRepo.GetByUserIDAndID(userID, appID)
 	if err != nil {
@@ -209,7 +208,7 @@ func (s *ProfileService) GetProfilesByAppPaginated(ctx context.Context, userID, 
 }
 
 // GetProfileByID retrieves a profile by ID (user must own it)
-func (s *ProfileService) GetProfileByID(ctx context.Context, userID, profileID string) (*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfileByID(userID, profileID string) (*models.ProfileResponse, error) {
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
 		return nil, errors.New("profile not found")
@@ -219,7 +218,7 @@ func (s *ProfileService) GetProfileByID(ctx context.Context, userID, profileID s
 }
 
 // UpdateProfile updates a profile (user must own it)
-func (s *ProfileService) UpdateProfile(ctx context.Context, userID, profileID string, req *models.UpdateProfileRequest) (*models.ProfileResponse, error) {
+func (s *ProfileService) UpdateProfile(userID, profileID string, req *models.UpdateProfileRequest) (*models.ProfileResponse, error) {
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
 		return nil, errors.New("profile not found")
@@ -248,7 +247,7 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID, profileID st
 }
 
 // Now supports multiple platforms through platform system
-func (s *ProfileService) DeleteProfile(ctx context.Context, userID, profileID string) error {
+func (s *ProfileService) DeleteProfile(userID, profileID string) error {
 	// Check if profile exists and belongs to user
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
@@ -293,7 +292,7 @@ func (s *ProfileService) DeleteProfile(ctx context.Context, userID, profileID st
 
 // GetDefaultConfigsFromPlatform gets default configuration options from a specific platform
 // Now uses HTTP requests to get actual configs from platform
-func (s *ProfileService) GetDefaultConfigsFromPlatform(ctx context.Context, userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
+func (s *ProfileService) GetDefaultConfigsFromPlatform(userID, platformType, boxID string, page, limit int) (map[string]interface{}, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {

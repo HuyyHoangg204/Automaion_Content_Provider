@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,7 +52,7 @@ func (h *ProfileHandler) CreateProfile(c *gin.Context) {
 		return
 	}
 
-	response, err := h.profileService.CreateProfile(context.Background(), userID, &req)
+	response, err := h.profileService.CreateProfile(userID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -101,7 +100,7 @@ func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	profiles, total, err := h.profileService.GetProfilesByBoxPaginated(context.Background(), userID, boxID, page, pageSize)
+	profiles, total, err := h.profileService.GetProfilesByBoxPaginated(userID, boxID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -148,7 +147,7 @@ func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	profiles, total, err := h.profileService.GetProfilesByAppPaginated(context.Background(), userID, appID, page, pageSize)
+	profiles, total, err := h.profileService.GetProfilesByAppPaginated(userID, appID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -191,7 +190,7 @@ func (h *ProfileHandler) GetProfileByID(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	profileID := c.Param("id")
 
-	profile, err := h.profileService.GetProfileByID(context.Background(), userID, profileID)
+	profile, err := h.profileService.GetProfileByID(userID, profileID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
@@ -230,7 +229,7 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	response, err := h.profileService.UpdateProfile(context.Background(), userID, profileID, &req)
+	response, err := h.profileService.UpdateProfile(userID, profileID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
@@ -265,7 +264,7 @@ func (h *ProfileHandler) DeleteProfile(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	profileID := c.Param("id")
 
-	err := h.profileService.DeleteProfile(context.Background(), userID, profileID)
+	err := h.profileService.DeleteProfile(userID, profileID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})
@@ -338,7 +337,7 @@ func (h *ProfileHandler) GetDefaultConfigs(c *gin.Context) {
 	}
 
 	// Get default configs from platform
-	configs, err := h.profileService.GetDefaultConfigsFromPlatform(context.Background(), userID, platformType, boxID, page, limit)
+	configs, err := h.profileService.GetDefaultConfigsFromPlatform(userID, platformType, boxID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get default configs", "details": err.Error()})
 		return
