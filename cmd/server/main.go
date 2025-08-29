@@ -83,7 +83,7 @@ func main() {
 	tokenCleanupService.Start()
 	defer tokenCleanupService.Stop()
 
-	// Initialize router với RabbitMQ service
+	// Initialize router with RabbitMQ service
 	r := router.SetupRouter(db, rabbitMQService)
 
 	// Configure HTTP server
