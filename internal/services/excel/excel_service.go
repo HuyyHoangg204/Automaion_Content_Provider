@@ -218,13 +218,12 @@ func (s *Service) ExportFlowGroupToExcel(flowGroupID string) (*ExportResult, err
 			f.SetCellValue(flowSheetName, fmt.Sprintf("I%d", rowNum), flow.ProfileID)
 			f.SetCellValue(flowSheetName, fmt.Sprintf("J%d", rowNum), flow.Status)
 			f.SetCellValue(flowSheetName, fmt.Sprintf("K%d", rowNum), resultMessage)
-
-			f.SetCellValue(flowSheetName, fmt.Sprintf("T%d", rowNum), flow.CreatedAt.Format(time.RFC3339))
-			f.SetCellValue(flowSheetName, fmt.Sprintf("U%d", rowNum), flow.UpdatedAt.Format(time.RFC3339))
+			f.SetCellValue(flowSheetName, fmt.Sprintf("L%d", rowNum), flow.CreatedAt.Format(time.RFC3339))
+			f.SetCellValue(flowSheetName, fmt.Sprintf("M%d", rowNum), flow.UpdatedAt.Format(time.RFC3339))
 
 			// Apply row styling based on status
 			switch strings.ToLower(flow.Status) {
-			case "error":
+			case "failed":
 				f.SetCellStyle(flowSheetName, fmt.Sprintf("A%d", rowNum), fmt.Sprintf("%s%d", columnToLetter(len(flowColumns)), rowNum), errorStyle)
 			case "stopped":
 				f.SetCellStyle(flowSheetName, fmt.Sprintf("A%d", rowNum), fmt.Sprintf("%s%d", columnToLetter(len(flowColumns)), rowNum), stoppedStyle)
