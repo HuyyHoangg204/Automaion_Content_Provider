@@ -15,6 +15,7 @@ import (
 
 type ProfileHandler struct {
 	profileService *services.ProfileService
+	profileRepo    *repository.ProfileRepository
 }
 
 func NewProfileHandler(db *gorm.DB) *ProfileHandler {
@@ -26,6 +27,7 @@ func NewProfileHandler(db *gorm.DB) *ProfileHandler {
 	profileService := services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo)
 	return &ProfileHandler{
 		profileService: profileService,
+		profileRepo:    profileRepo,
 	}
 }
 

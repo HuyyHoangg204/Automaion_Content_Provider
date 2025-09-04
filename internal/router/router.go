@@ -1,6 +1,7 @@
 package router
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
@@ -16,7 +17,7 @@ import (
 )
 
 // SetupRouter configures the Gin router with user authentication routes
-func SetupRouter(db *gorm.DB) *gin.Engine {
+func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -36,6 +37,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	// Define export and temp directories
+	exportsDir := filepath.Join("/app", "exports", "excel")
+	tempDir := filepath.Join("/app", "temp", "excel")
 
 	// Create auth middleware
 	// Create services
@@ -53,6 +57,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	flowGroupHandler := handlers.NewFlowGroupHandler(db)
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
+	excelHandler := handlers.NewExcelHandler(db, exportsDir, tempDir, basePath)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db)
@@ -180,6 +185,13 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 				admin.GET("/campaigns", adminHandler.AdminGetAllCampaigns)
 				admin.GET("/flows", adminHandler.AdminGetAllFlows)
 			}
+		}
+
+		unProtected := api.Group("")
+		{
+			excel := unProtected.Group("/excel")
+			excel.GET("/export/flow-groups/:flowgroupid", excelHandler.ExportFlowGroups)
+			excel.GET("/download/:filename", excelHandler.DownloadExcelFile)
 		}
 	}
 

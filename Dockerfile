@@ -33,6 +33,9 @@ WORKDIR /app
 COPY --from=builder /app/green-provider-services-backend .
 COPY --from=builder /app/docs ./docs
 
+RUN mkdir -p /app/exports/excel
+RUN mkdir -p /app/temp/excel
+
 # Expose the application's port
 EXPOSE 8080
 
