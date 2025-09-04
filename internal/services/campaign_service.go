@@ -38,15 +38,6 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 		return nil, errors.New("user not found")
 	}
 
-	// Check if campaign name already exists for this user
-	exists, err := s.campaignRepo.CheckNameExistsForUser(userID, req.Name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check campaign name: %w", err)
-	}
-	if exists {
-		return nil, fmt.Errorf("campaign with name '%s' already exists", req.Name)
-	}
-
 	// Fetch profiles
 	profiles, err := s.profileRepo.GetByIDs(req.ProfileIDs)
 	if err != nil {
@@ -135,17 +126,6 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 	campaign, err := s.campaignRepo.GetByUserIDAndID(userID, campaignID)
 	if err != nil {
 		return nil, errors.New("campaign not found")
-	}
-
-	// Check if new name already exists for this user (if name is being changed)
-	if req.Name != campaign.Name {
-		exists, err := s.campaignRepo.CheckNameExistsForUser(userID, req.Name)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check campaign name: %w", err)
-		}
-		if exists {
-			return nil, fmt.Errorf("campaign with name '%s' already exists", req.Name)
-		}
 	}
 
 	// Fetch profiles

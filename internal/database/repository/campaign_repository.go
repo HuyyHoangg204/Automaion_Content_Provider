@@ -69,13 +69,6 @@ func (r *CampaignRepository) DeleteByUserIDAndID(userID, campaignID string) erro
 	return r.db.Where("user_id = ? AND id = ?", userID, campaignID).Delete(&models.Campaign{}).Error
 }
 
-// CheckNameExistsForUser checks if a campaign name already exists for a specific user
-func (r *CampaignRepository) CheckNameExistsForUser(userID, name string) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Campaign{}).Where("user_id = ? AND name = ?", userID, name).Count(&count).Error
-	return count > 0, err
-}
-
 // GetAll retrieves all campaigns (admin only)
 func (r *CampaignRepository) GetAll() ([]*models.Campaign, error) {
 	var campaigns []*models.Campaign
