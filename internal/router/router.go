@@ -6,6 +6,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -17,7 +18,7 @@ import (
 )
 
 // SetupRouter configures the Gin router with user authentication routes
-func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
+func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePath string) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 
@@ -53,7 +54,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)
-	campaignHandler := handlers.NewCampaignHandler(db)
+	campaignHandler := handlers.NewCampaignHandler(db, rabbitMQService)
 	flowGroupHandler := handlers.NewFlowGroupHandler(db)
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
@@ -136,6 +137,7 @@ func SetupRouter(db *gorm.DB, basePath string) *gin.Engine {
 				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
 				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
 				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
+				campaigns.POST("/:id/run", campaignHandler.RunCampaign)
 				campaigns.GET("/:id/flow-groups", flowGroupHandler.GetFlowGroupsByCampaign)
 				campaigns.GET("/:id/flows", flowHandler.GetFlowsByCampaign)
 			}
