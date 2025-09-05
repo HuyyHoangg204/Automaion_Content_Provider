@@ -234,7 +234,7 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/boxes/sync-profiles/{id} [post]
+// @Router /api/v1/boxes/{id}/sync-profiles [post]
 func (h *BoxHandler) SyncAllProfilesInBox(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	boxID := c.Param("id")

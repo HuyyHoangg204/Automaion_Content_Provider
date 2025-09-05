@@ -36,16 +36,6 @@ type UpdateAppRequest struct {
 	TunnelURL *string `json:"tunnel_url,omitempty" example:"http://machineid-platform-userid.agent-controller.onegreen.cloud/"`
 }
 
-// AppResponse represents the response for app operations
-type AppResponse struct {
-	ID        string  `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	BoxID     string  `json:"box_id" example:"550e8400-e29b-41d4-a716-446655440001"`
-	Name      string  `json:"name" example:"Hidemium"`
-	TunnelURL *string `json:"tunnel_url,omitempty" example:"http://machineid-platform-userid.agent-controller.onegreen.cloud/"`
-	CreatedAt string  `json:"created_at" example:"2025-01-09T10:30:00Z"`
-	UpdatedAt string  `json:"updated_at" example:"2025-01-09T10:30:00Z"`
-}
-
 // RegisterAppResponse represents the response for register-app API
 // @Description Response containing subdomain and FRP configuration for app registration
 type RegisterAppResponse struct {
@@ -95,4 +85,13 @@ type CheckTunnelResponse struct {
 	// @Description Error message if tunnel is not accessible
 	// @Example "Connection timeout"
 	Error *string `json:"error,omitempty"`
+}
+
+// SyncAppProfilesResponse represents the response for syncing app profiles
+type SyncAppProfilesResponse struct {
+	ProfilesCreated int    `json:"profiles_created"`
+	ProfilesUpdated int    `json:"profiles_updated"`
+	ProfilesDeleted int    `json:"profiles_deleted"`
+	ProfilesSynced  int    `json:"profiles_synced"`
+	Message         string `json:"message"`
 }

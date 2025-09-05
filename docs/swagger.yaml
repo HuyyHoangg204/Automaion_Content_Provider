@@ -666,32 +666,31 @@ definitions:
     required:
     - new_password
     type: object
-  models.SyncBoxProfilesResponse:
+  models.SyncAppProfilesResponse:
     properties:
-      box_id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      machine_id:
-        example: pc-91542
-        type: string
       message:
-        example: Sync completed successfully
         type: string
       profiles_created:
-        example: 5
         type: integer
       profiles_deleted:
-        example: 2
         type: integer
       profiles_synced:
-        example: 10
         type: integer
       profiles_updated:
-        example: 3
         type: integer
-      tunnel_url:
-        example: http://pc-91542.agent-controller.onegreen.cloud/frps
+    type: object
+  models.SyncBoxProfilesResponse:
+    properties:
+      message:
         type: string
+      profiles_created:
+        type: integer
+      profiles_deleted:
+        type: integer
+      profiles_synced:
+        type: integer
+      profiles_updated:
+        type: integer
     type: object
   models.UpdateAppRequest:
     properties:
@@ -1797,6 +1796,49 @@ paths:
       summary: Get profiles by app
       tags:
       - profiles
+  /api/v1/apps/{id}/sync-profiles:
+    post:
+      consumes:
+      - application/json
+      description: Sync all profiles from a specific app
+      parameters:
+      - description: App ID to sync profiles from
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SyncAppProfilesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync profiles from a specific app
+      tags:
+      - apps
   /api/v1/apps/check-tunnel:
     get:
       consumes:
@@ -1880,50 +1922,7 @@ paths:
       summary: Get subdomain and FRP configuration for app registration
       tags:
       - apps
-  /api/v1/apps/sync/{id}:
-    post:
-      consumes:
-      - application/json
-      description: Sync all profiles from a specific app
-      parameters:
-      - description: App ID to sync profiles from
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SyncBoxProfilesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync profiles from a specific app
-      tags:
-      - apps
-  /api/v1/apps/sync/all-apps:
+  /api/v1/apps/sync-profiles-all-apps:
     post:
       consumes:
       - application/json
@@ -1934,7 +1933,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+            $ref: '#/definitions/models.SyncAppProfilesResponse'
         "400":
           description: Bad Request
           schema:
@@ -2396,7 +2395,7 @@ paths:
       summary: Get apps by box
       tags:
       - apps
-  /api/v1/boxes/sync-profiles/{id}:
+  /api/v1/boxes/{id}/sync-profiles:
     post:
       consumes:
       - application/json
@@ -2777,6 +2776,70 @@ paths:
       summary: Run a campaign
       tags:
       - campaigns
+  /api/v1/excel/download/{filename}:
+    get:
+      consumes:
+      - application/json
+      description: Download a previously exported Excel file
+      parameters:
+      - description: Excel filename
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: Excel file
+          schema:
+            type: file
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Download Excel file
+      tags:
+      - excel
+  /api/v1/excel/export/flow-groups/{flowgroupid}:
+    get:
+      consumes:
+      - application/json
+      description: Export a specific flow group and its flows to an Excel file
+      parameters:
+      - description: Flow Group ID
+        in: path
+        name: flowgroupid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to download URL
+          schema:
+            type: string
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Export flow group to Excel
+      tags:
+      - excel
   /api/v1/flow-groups/{id}:
     get:
       consumes:

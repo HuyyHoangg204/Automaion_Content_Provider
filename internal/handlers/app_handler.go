@@ -36,7 +36,7 @@ func NewAppHandler(db *gorm.DB) *AppHandler {
 // @Produce json
 // @Security BearerAuth
 // @Param request body models.CreateAppRequest true "Create app request"
-// @Success 201 {object} models.AppResponse
+// @Success 201 {object} models.App
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 409 {object} map[string]interface{}
@@ -79,7 +79,7 @@ func (h *AppHandler) CreateApp(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.AppResponse
+// @Success 200 {array} models.App
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/apps [get]
@@ -103,7 +103,7 @@ func (h *AppHandler) GetMyApps(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Box ID"
-// @Success 200 {array} models.AppResponse
+// @Success 200 {array} models.App
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -133,7 +133,7 @@ func (h *AppHandler) GetAppsByBox(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "App ID"
-// @Success 200 {object} models.AppResponse
+// @Success 200 {object} models.App
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
@@ -165,7 +165,7 @@ func (h *AppHandler) GetAppByID(c *gin.Context) {
 // @Security BearerAuth
 // @Param id path string true "App ID"
 // @Param request body models.UpdateAppRequest true "Update app request"
-// @Success 200 {object} models.AppResponse
+// @Success 200 {object} models.App
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
@@ -316,31 +316,30 @@ func (h *AppHandler) CheckTunnelURL(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "App ID to sync profiles from"
-// @Success 200 {object} models.SyncBoxProfilesResponse
+// @Success 200 {object} models.SyncAppProfilesResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/sync/{id} [post]
+// @Router /api/v1/apps/{id}/sync-profiles [post]
 func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	appID := c.Param("id")
 
-	// Get app by ID and verify ownership
-	app, err := h.appService.GetAppByUserIDAndID(userID, appID)
-	if err != nil {
+	// Verify user has access to the app
+	if _, err := h.appService.GetAppByUserIDAndID(userID, appID); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "App not found"})
 		return
 	}
 
 	// Sync profiles from the app
-	syncResult, err := h.appService.SyncAppProfiles(app)
+	response, err := h.appService.SyncProfilesByAppID(appID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync profiles", "details": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, syncResult)
+	c.JSON(http.StatusOK, response)
 }
 
 // SyncAllUserApps syncs all apps owned by the user
@@ -350,21 +349,32 @@ func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} models.SyncBoxProfilesResponse
+// @Success 200 {object} models.SyncAppProfilesResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/sync/all-apps [post]
+// @Router /api/v1/apps/sync-profiles-all-apps [post]
 func (h *AppHandler) SyncAllUserApps(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	// Sync all user apps
-	syncResult, err := h.appService.SyncAllAppsByUser(userID)
+	// Get all apps for the user
+	apps, err := h.appService.GetAppsByUser(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user apps"})
+		return
+	}
+	if len(apps) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "No apps found for user"})
 		return
 	}
 
-	c.JSON(http.StatusOK, syncResult)
+	// Sync all user apps
+	response, err := h.appService.SyncProfilesByApps(apps)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync profiles", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

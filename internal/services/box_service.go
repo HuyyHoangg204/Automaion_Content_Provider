@@ -61,11 +61,6 @@ func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*mo
 
 // SyncAllProfilesInBox syncs all profiles from all apps in a specific box
 func (s *BoxService) SyncAllProfilesInBox(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
-	// Get box by ID and verify ownership
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
-	if err != nil {
-		return nil, errors.New("box not found")
-	}
 
 	// Call app service to sync all apps in this box
 	appService := NewAppService(s.appRepo, s.profileRepo, s.boxRepo, s.userRepo)
@@ -73,10 +68,6 @@ func (s *BoxService) SyncAllProfilesInBox(userID, boxID string) (*models.SyncBox
 	if err != nil {
 		return nil, fmt.Errorf("failed to sync box %s: %w", boxID, err)
 	}
-
-	// Set box information
-	syncResult.BoxID = boxID
-	syncResult.MachineID = box.MachineID
 
 	return syncResult, nil
 }
