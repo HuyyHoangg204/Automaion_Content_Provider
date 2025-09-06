@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
 type HidemiumService struct{}
@@ -17,21 +15,13 @@ func NewHidemiumService() *HidemiumService {
 	return &HidemiumService{}
 }
 
-func (s *HidemiumService) GetProfiles(app *models.App) ([]map[string]interface{}, error) {
-	allPlatformProfiles, err := s.fetchAllProfilesWithPagination(app, "hidemium")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get profiles from hidemium for app %s: %w", app.Name, err)
-	}
-	return allPlatformProfiles, nil
-}
-
-func (s *HidemiumService) fetchAllProfilesWithPagination(app *models.App, platformType string) ([]map[string]interface{}, error) {
+func (s *HidemiumService) FetchAllProfilesWithPagination(tunnelURL string) ([]map[string]interface{}, error) {
 	var allProfiles []map[string]interface{}
 	page := 1
 	limit := 100
 
 	for {
-		profiles, err := s.fetchProfilesFromPlatformWithPagination(app, platformType, page, limit)
+		profiles, err := s.fetchProfilesFromPlatformWithPagination(tunnelURL, page, limit)
 		if err != nil {
 			return nil, err
 		}
@@ -47,12 +37,12 @@ func (s *HidemiumService) fetchAllProfilesWithPagination(app *models.App, platfo
 	return allProfiles, nil
 }
 
-func (s *HidemiumService) fetchProfilesFromPlatformWithPagination(app *models.App, platformType string, page, limit int) ([]map[string]interface{}, error) {
-	if app.TunnelURL == nil || *app.TunnelURL == "" {
-		return nil, fmt.Errorf("no tunnel URL configured for app %s", app.Name)
+func (s *HidemiumService) fetchProfilesFromPlatformWithPagination(tunnelURL string, page, limit int) ([]map[string]interface{}, error) {
+	if tunnelURL == "" {
+		return nil, fmt.Errorf("no tunnel URL configured")
 	}
 
-	profilesURL := s.buildProfilesURLWithPagination(*app.TunnelURL, platformType, page, limit)
+	profilesURL := s.buildProfilesURLWithPagination(tunnelURL, page, limit)
 
 	client := &http.Client{Timeout: 30 * time.Second}
 
@@ -82,7 +72,7 @@ func (s *HidemiumService) fetchProfilesFromPlatformWithPagination(app *models.Ap
 	return platformProfiles, nil
 }
 
-func (s *HidemiumService) buildProfilesURLWithPagination(baseURL string, platformType string, page, limit int) string {
+func (s *HidemiumService) buildProfilesURLWithPagination(baseURL string, page, limit int) string {
 	baseURL = strings.TrimSuffix(baseURL, "/")
 	return fmt.Sprintf("%s/v1/browser/list?page=%d&limit=%d", baseURL, page, limit)
 }

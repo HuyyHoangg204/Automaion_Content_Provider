@@ -22,6 +22,14 @@ func (r *ProfileRepository) Create(profile *models.Profile) error {
 	return r.db.Create(profile).Error
 }
 
+// CreateMany creates multiple profiles in a transaction
+func (r *ProfileRepository) CreateMany(profiles []*models.Profile) error {
+	if len(profiles) == 0 {
+		return nil
+	}
+	return r.db.Create(&profiles).Error
+}
+
 // GetByID retrieves a profile by ID
 func (r *ProfileRepository) GetByID(id string) (*models.Profile, error) {
 	var profile models.Profile
@@ -119,18 +127,36 @@ func (r *ProfileRepository) Update(profile *models.Profile) error {
 	return r.db.Save(profile).Error
 }
 
-// ClearCampaignAssociations removes campaign associations for a profile (doesn't delete campaigns)
-func (r *ProfileRepository) ClearCampaignAssociations(profileID string) error {
-	var profile models.Profile
-	if err := r.db.First(&profile, "id = ?", profileID).Error; err != nil {
-		return err
+// UpdateMany updates multiple profiles in a transaction
+func (r *ProfileRepository) UpdateMany(profiles []*models.Profile) error {
+	if len(profiles) == 0 {
+		return nil
 	}
-	return r.db.Model(&profile).Association("Campaigns").Clear()
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, profile := range profiles {
+			if err := tx.Save(profile).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // Delete deletes a profile
 func (r *ProfileRepository) Delete(id string) error {
 	return r.db.Delete(&models.Profile{}, "id = ?", id).Error
+}
+
+// DeleteMany deletes multiple profiles by their IDs
+func (r *ProfileRepository) DeleteMany(profiles []*models.Profile) error {
+	if len(profiles) == 0 {
+		return nil
+	}
+	profileIDs := make([]string, len(profiles))
+	for i, p := range profiles {
+		profileIDs[i] = p.ID
+	}
+	return r.db.Where("id IN ?", profileIDs).Delete(&models.Profile{}).Error
 }
 
 // DeleteByUserIDAndID deletes a profile by user ID and profile ID
@@ -158,13 +184,6 @@ func (r *ProfileRepository) DeleteByUserIDAndID(userID, profileID string) error 
 
 		return nil
 	})
-}
-
-// CheckNameExistsInApp checks if a profile name already exists in a specific app
-func (r *ProfileRepository) CheckNameExistsInApp(appID, name string) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Profile{}).Where("app_id = ? AND name = ?", appID, name).Count(&count).Error
-	return count > 0, err
 }
 
 // GetAll retrieves all profiles (admin only)

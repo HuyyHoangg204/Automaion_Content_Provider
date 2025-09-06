@@ -29,7 +29,7 @@ type AppService struct {
 	appRepo            *repository.AppRepository
 	boxRepo            *repository.BoxRepository
 	userRepo           *repository.UserRepository
-	profileSyncService *ProfileSyncService
+	profileSyncService *platform_service.ProfileSyncService
 	hidemiumService    *platform_service.HidemiumService
 }
 
@@ -38,7 +38,7 @@ func NewAppService(appRepo *repository.AppRepository, profileRepo *repository.Pr
 		appRepo:            appRepo,
 		boxRepo:            boxRepo,
 		userRepo:           userRepo,
-		profileSyncService: NewProfileSyncService(profileRepo, appRepo),
+		profileSyncService: platform_service.NewProfileSyncService(profileRepo, appRepo),
 		hidemiumService:    platform_service.NewHidemiumService(),
 	}
 }
@@ -387,7 +387,7 @@ func (s *AppService) syncApp(app *models.App) (*models.SyncBoxProfilesResponse, 
 
 	switch app.Name {
 	case "hidemium":
-		profiles, err = s.hidemiumService.GetProfiles(app)
+		profiles, err = s.hidemiumService.FetchAllProfilesWithPagination(*app.TunnelURL)
 	default:
 		return nil, fmt.Errorf("unsupported platform for app %s", app.Name)
 	}
@@ -396,7 +396,7 @@ func (s *AppService) syncApp(app *models.App) (*models.SyncBoxProfilesResponse, 
 		return nil, fmt.Errorf("failed to get profiles from %s for app %s: %w", app.Name, app.Name, err)
 	}
 
-	return s.profileSyncService.ProcessSyncedProfiles(app.ID, profiles)
+	return s.profileSyncService.UpdateProfilesAfterSync(app, profiles)
 }
 
 // SyncAllAppsInBox syncs profiles from all apps in a box
