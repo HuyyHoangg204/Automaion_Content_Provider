@@ -62,18 +62,11 @@ func (h *AppProxyHandler) ProxyRequest(c *gin.Context) {
 		return
 	}
 
-	// Determine platform type from app name
-	platformType := h.appProxyService.GetPlatformType(app.Name)
-	if platformType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported platform type"})
-		return
-	}
-
 	// Build target URL
-	targetURL := h.appProxyService.BuildTargetURL(*app.TunnelURL, platformType, platformPath)
+	targetURL := h.appProxyService.BuildTargetURL(*app.TunnelURL, app.Name, platformPath)
 
 	// Forward the request
-	response, err := h.forwardRequest(c, targetURL, platformType)
+	response, err := h.forwardRequest(c, targetURL, app.Name)
 	if err != nil {
 		logrus.Errorf("Failed to forward request: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to forward request to platform"})
@@ -85,7 +78,7 @@ func (h *AppProxyHandler) ProxyRequest(c *gin.Context) {
 }
 
 // forwardRequest forwards the HTTP request to the target platform
-func (h *AppProxyHandler) forwardRequest(c *gin.Context, targetURL, platformType string) ([]byte, error) {
+func (h *AppProxyHandler) forwardRequest(c *gin.Context, targetURL, appName string) ([]byte, error) {
 	// Get request method and headers
 	method := c.Request.Method
 	headers := c.Request.Header
@@ -119,7 +112,7 @@ func (h *AppProxyHandler) forwardRequest(c *gin.Context, targetURL, platformType
 	}
 
 	// Set platform-specific headers
-	h.setPlatformHeaders(req, platformType)
+	h.setPlatformHeaders(req, appName)
 
 	// Make the request
 	client := &http.Client{
@@ -173,12 +166,12 @@ func (h *AppProxyHandler) shouldSkipHeader(key string) bool {
 }
 
 // setPlatformHeaders sets platform-specific headers
-func (h *AppProxyHandler) setPlatformHeaders(req *http.Request, platformType string) {
-	switch platformType {
-	case "hidemium":
+func (h *AppProxyHandler) setPlatformHeaders(req *http.Request, appName string) {
+	switch appName {
+	case "Hidemium":
 		// Hidemium specific headers if needed
 		req.Header.Set("User-Agent", "Green-Controller/1.0")
-	case "genlogin":
+	case "Genlogin":
 		// GenLogin specific headers if needed
 		req.Header.Set("User-Agent", "Green-Controller/1.0")
 	}

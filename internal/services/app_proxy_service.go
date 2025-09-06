@@ -50,58 +50,20 @@ func (s *AppProxyService) ValidateAppProxyRequest(userID, appID string) (*models
 	return app, nil
 }
 
-// GetPlatformType determines the platform type from app name
-func (s *AppProxyService) GetPlatformType(appName string) string {
-	appNameLower := strings.ToLower(appName)
-
-	switch {
-	case strings.Contains(appNameLower, "hidemium"):
-		return "hidemium"
-	case strings.Contains(appNameLower, "genlogin"):
-		return "genlogin"
-	default:
-		return ""
-	}
-}
-
 // BuildTargetURL builds the target URL for the platform
-func (s *AppProxyService) BuildTargetURL(baseURL, platformType, platformPath string) string {
+func (s *AppProxyService) BuildTargetURL(baseURL, appName, platformPath string) string {
 	// Remove trailing slash from base URL if present
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
 	// Add platform-specific base path if needed
-	switch platformType {
-	case "hidemium":
+	switch appName {
+	case "Hidemium":
 		// Hidemium typically uses root path
 		return fmt.Sprintf("%s/%s", baseURL, platformPath)
-	case "genlogin":
+	case "Genlogin":
 		// GenLogin might have different base path
 		return fmt.Sprintf("%s/%s", baseURL, platformPath)
 	default:
 		return fmt.Sprintf("%s/%s", baseURL, platformPath)
-	}
-}
-
-// GetPlatformConfig returns platform-specific configuration
-func (s *AppProxyService) GetPlatformConfig(platformType string) map[string]interface{} {
-	switch platformType {
-	case "hidemium":
-		return map[string]interface{}{
-			"name":      "Hidemium",
-			"version":   "v4",
-			"base_path": "/",
-		}
-	case "genlogin":
-		return map[string]interface{}{
-			"name":      "GenLogin",
-			"version":   "latest",
-			"base_path": "/",
-		}
-	default:
-		return map[string]interface{}{
-			"name":      "Unknown",
-			"version":   "unknown",
-			"base_path": "/",
-		}
 	}
 }

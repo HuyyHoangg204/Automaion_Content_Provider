@@ -381,7 +381,7 @@ func (s *AppService) syncApp(app *models.App) (*models.SyncBoxProfilesResponse, 
 	var err error
 
 	switch app.Name {
-	case "hidemium":
+	case "Hidemium":
 		profiles, err = s.hidemiumService.FetchAllProfilesWithPagination(*app.TunnelURL)
 	default:
 		return nil, fmt.Errorf("unsupported platform for app %s", app.Name)
