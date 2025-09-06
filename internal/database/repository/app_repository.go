@@ -22,7 +22,7 @@ func (r *AppRepository) Create(app *models.App) error {
 // GetByID retrieves an app by ID
 func (r *AppRepository) GetByID(id string) (*models.App, error) {
 	var app models.App
-	err := r.db.Preload("Box").Preload("Profiles").First(&app, "id = ?", id).Error
+	err := r.db.First(&app, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +34,6 @@ func (r *AppRepository) GetByUserID(userID string) ([]*models.App, error) {
 	var apps []*models.App
 	err := r.db.Joins("JOIN boxes ON apps.box_id = boxes.id").
 		Where("boxes.user_id = ?", userID).
-		Preload("Box").
-		Preload("Profiles").
 		Find(&apps).Error
 	return apps, err
 }
@@ -45,8 +43,6 @@ func (r *AppRepository) GetByUserIDAndBoxID(userID, boxID string) ([]*models.App
 	var apps []*models.App
 	err := r.db.Joins("JOIN boxes ON apps.box_id = boxes.id").
 		Where("boxes.user_id = ? AND apps.box_id = ?", userID, boxID).
-		Preload("Box").
-		Preload("Profiles").
 		Find(&apps).Error
 	return apps, err
 }
@@ -56,8 +52,6 @@ func (r *AppRepository) GetByUserIDAndID(userID, appID string) (*models.App, err
 	var app models.App
 	err := r.db.Joins("JOIN boxes ON apps.box_id = boxes.id").
 		Where("boxes.user_id = ? AND apps.id = ?", userID, appID).
-		Preload("Box").
-		Preload("Profiles").
 		First(&app).Error
 	if err != nil {
 		return nil, err
@@ -102,6 +96,6 @@ func (r *AppRepository) GetByNameAndBoxID(boxID, name string) (*models.App, erro
 // GetAll retrieves all apps (admin only)
 func (r *AppRepository) GetAll() ([]*models.App, error) {
 	var apps []*models.App
-	err := r.db.Preload("Box").Preload("Profiles").Find(&apps).Error
+	err := r.db.Find(&apps).Error
 	return apps, err
 }
