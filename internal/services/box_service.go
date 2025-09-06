@@ -11,23 +11,21 @@ import (
 
 type BoxService struct {
 	boxRepo     *repository.BoxRepository
-	appRepo     *repository.AppRepository
 	userRepo    *repository.UserRepository
 	profileRepo *repository.ProfileRepository
 }
 
 // NewBoxService creates a new box service
-func NewBoxService(boxRepo *repository.BoxRepository, appRepo *repository.AppRepository, userRepo *repository.UserRepository, profileRepo *repository.ProfileRepository) *BoxService {
+func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserRepository, profileRepo *repository.ProfileRepository) *BoxService {
 	return &BoxService{
 		boxRepo:     boxRepo,
-		appRepo:     appRepo,
 		userRepo:    userRepo,
 		profileRepo: profileRepo,
 	}
 }
 
 // CreateBox creates a new box for a user
-func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*models.BoxResponse, error) {
+func (s *BoxService) CreateBoxByUserID(userID string, req *models.CreateBoxRequest) (*models.BoxResponse, error) {
 	// Check if machine ID already exists
 	existingBox, err := s.boxRepo.GetByMachineID(req.MachineID)
 	if err == nil {
@@ -59,30 +57,8 @@ func (s *BoxService) CreateBox(userID string, req *models.CreateBoxRequest) (*mo
 	return s.toResponse(box), nil
 }
 
-// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
-func (s *BoxService) SyncAllProfilesInBox(userID, boxID string) (*models.SyncBoxProfilesResponse, error) {
-	// Get box by ID and verify ownership
-	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
-	if err != nil {
-		return nil, errors.New("box not found")
-	}
-
-	// Call app service to sync all apps in this box
-	appService := NewAppService(s.appRepo, s.profileRepo, s.boxRepo, s.userRepo)
-	syncResult, err := appService.SyncAllAppsInBox(boxID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sync box %s: %w", boxID, err)
-	}
-
-	// Set box information
-	syncResult.BoxID = boxID
-	syncResult.MachineID = box.MachineID
-
-	return syncResult, nil
-}
-
 // GetBoxesByUserPaginated retrieves paginated boxes for a specific user
-func (s *BoxService) GetBoxesByUserPaginated(userID string, page, pageSize int) ([]*models.BoxResponse, int, error) {
+func (s *BoxService) GetBoxesByUserIDPaginated(userID string, page, pageSize int) ([]*models.BoxResponse, int, error) {
 	boxes, total, err := s.boxRepo.GetByUserID(userID, page, pageSize)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get boxes: %w", err)
@@ -97,7 +73,7 @@ func (s *BoxService) GetBoxesByUserPaginated(userID string, page, pageSize int) 
 }
 
 // GetBoxByID retrieves a box by ID (user must own it)
-func (s *BoxService) GetBoxByID(userID, boxID string) (*models.BoxResponse, error) {
+func (s *BoxService) GetBoxByUserIDAndID(userID, boxID string) (*models.BoxResponse, error) {
 	box, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
 		return nil, errors.New("box not found")
@@ -107,7 +83,7 @@ func (s *BoxService) GetBoxByID(userID, boxID string) (*models.BoxResponse, erro
 }
 
 // UpdateBox updates a box (user must own it)
-func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxRequest) (*models.BoxResponse, error) {
+func (s *BoxService) UpdateBoxByUserIDAndID(userID, boxID string, req *models.UpdateBoxRequest) (*models.BoxResponse, error) {
 	// Get box by ID (no ownership check - allow claiming any box)
 	box, err := s.boxRepo.GetByID(boxID)
 	if err != nil {
@@ -132,7 +108,7 @@ func (s *BoxService) UpdateBox(userID, boxID string, req *models.UpdateBoxReques
 }
 
 // DeleteBox deletes a box (user must own it)
-func (s *BoxService) DeleteBox(userID, boxID string) error {
+func (s *BoxService) DeleteBoxByUserIDAndID(userID, boxID string) error {
 	// Check if box exists and belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {

@@ -26,7 +26,7 @@ func NewFlowGroupService(
 }
 
 // GetFlowGroupByID retrieves a group campaign by ID
-func (s *FlowGroupService) GetFlowGroupByID(userID, flowGroupID string) (*models.FlowGroup, error) {
+func (s *FlowGroupService) GetFlowGroupByUserIDAndID(userID, flowGroupID string) (*models.FlowGroup, error) {
 	flowGroup, err := s.flowGroupRepo.GetByID(flowGroupID)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (s *FlowGroupService) GetFlowGroupByID(userID, flowGroupID string) (*models
 }
 
 // GetFlowGroupsByCampaign retrieves all group campaigns for a specific campaign
-func (s *FlowGroupService) GetFlowGroupsByCampaign(userID, campaignID string) ([]*models.FlowGroup, error) {
+func (s *FlowGroupService) GetFlowGroupsByUserIDAndCampaignID(userID, campaignID string) ([]*models.FlowGroup, error) {
 	// Validate that the campaign belongs to the user
 	_, err := s.campaignRepo.GetByUserIDAndID(userID, campaignID)
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *FlowGroupService) GetFlowGroupsByCampaign(userID, campaignID string) ([
 }
 
 // GetFlowGroupStats retrieves statistics for a group campaign
-func (s *FlowGroupService) GetFlowGroupStats(userID, flowGroupID string) (*models.FlowGroupStats, error) {
+func (s *FlowGroupService) GetFlowGroupStatsByUserIDAndID(userID, flowGroupID string) (*models.FlowGroupStats, error) {
 	flowGroup, err := s.flowGroupRepo.GetByID(flowGroupID)
 	if err != nil {
 		return nil, err

@@ -7,7 +7,6 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
-	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 )
 
 type AppProxyService struct {
@@ -105,25 +104,4 @@ func (s *AppProxyService) GetPlatformConfig(platformType string) map[string]inte
 			"base_path": "/",
 		}
 	}
-}
-
-// ValidatePlatformPath validates if the platform path is allowed
-func (s *AppProxyService) ValidatePlatformPath(platformType, platformPath string) bool {
-	// Trim leading slash from platformPath for consistent comparison
-	platformPath = strings.TrimPrefix(platformPath, "/")
-
-	// Get allowed paths from utils constants
-	allowedPathsForPlatform, exists := utils.AllowedPaths[platformType]
-	if !exists {
-		return false
-	}
-
-	// Check if the path starts with any allowed path
-	for _, allowedPath := range allowedPathsForPlatform {
-		if strings.HasPrefix(platformPath, allowedPath) {
-			return true
-		}
-	}
-
-	return false
 }

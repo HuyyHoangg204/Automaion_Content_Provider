@@ -52,7 +52,7 @@ func (h *FlowHandler) CreateFlow(c *gin.Context) {
 		return
 	}
 
-	response, err := h.flowService.CreateFlow(userID, &req)
+	response, err := h.flowService.CreateFlowByUserID(userID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -84,7 +84,7 @@ func (h *FlowHandler) GetMyFlows(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	flows, total, err := h.flowService.GetFlowsByUser(userID, page, pageSize)
+	flows, total, err := h.flowService.GetFlowsByUserID(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
 		return
@@ -127,7 +127,7 @@ func (h *FlowHandler) GetFlowsByCampaign(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	flows, total, err := h.flowService.GetFlowsByCampaign(userID, campaignID, page, pageSize)
+	flows, total, err := h.flowService.GetFlowsByUserIDAndCampaignID(userID, campaignID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -174,7 +174,7 @@ func (h *FlowHandler) GetFlowsByFlowGroup(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	flows, total, err := h.flowService.GetFlowsByFlowGroup(userID, flowGroupID, page, pageSize)
+	flows, total, err := h.flowService.GetFlowsByUserIDAndFlowGroupID(userID, flowGroupID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -221,7 +221,7 @@ func (h *FlowHandler) GetFlowsByProfile(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	flows, total, err := h.flowService.GetFlowsByProfile(userID, profileID, page, pageSize)
+	flows, total, err := h.flowService.GetFlowsByUserIDAndProfileID(userID, profileID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -264,7 +264,7 @@ func (h *FlowHandler) GetFlowByID(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	flowID := c.Param("id")
 
-	flow, err := h.flowService.GetFlowByID(userID, flowID)
+	flow, err := h.flowService.GetFlowByUserIDAndID(userID, flowID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Flow not found"})
@@ -302,7 +302,7 @@ func (h *FlowHandler) UpdateFlow(c *gin.Context) {
 		return
 	}
 
-	response, err := h.flowService.UpdateFlow(userID, flowID, &req)
+	response, err := h.flowService.UpdateFlowByUserIDAndID(userID, flowID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Flow not found"})
@@ -333,7 +333,7 @@ func (h *FlowHandler) DeleteFlow(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	flowID := c.Param("id")
 
-	err := h.flowService.DeleteFlow(userID, flowID)
+	err := h.flowService.DeleteFlowByUserIDAndID(userID, flowID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Flow not found"})
@@ -382,7 +382,7 @@ func (h *FlowHandler) GetFlowsByStatus(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	flows, total, err := h.flowService.GetFlowsByStatus(userID, status, page, pageSize)
+	flows, total, err := h.flowService.GetFlowsByUserIDAndStatus(userID, status, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
 		return

@@ -49,7 +49,7 @@ func (h *FlowGroupHandler) GetFlowGroupByID(c *gin.Context) {
 
 	flowGroupID := c.Param("id")
 
-	flowGroup, err := h.flowGroupService.GetFlowGroupByID(userID, flowGroupID)
+	flowGroup, err := h.flowGroupService.GetFlowGroupByUserIDAndID(userID, flowGroupID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -88,7 +88,7 @@ func (h *FlowGroupHandler) GetFlowGroupsByCampaign(c *gin.Context) {
 
 	campaignID := c.Param("id")
 
-	flowGroups, err := h.flowGroupService.GetFlowGroupsByCampaign(userID, campaignID)
+	flowGroups, err := h.flowGroupService.GetFlowGroupsByUserIDAndCampaignID(userID, campaignID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -132,7 +132,7 @@ func (h *FlowGroupHandler) GetFlowGroupStats(c *gin.Context) {
 
 	flowGroupID := c.Param("id")
 
-	stats, err := h.flowGroupService.GetFlowGroupStats(userID, flowGroupID)
+	stats, err := h.flowGroupService.GetFlowGroupStatsByUserIDAndID(userID, flowGroupID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

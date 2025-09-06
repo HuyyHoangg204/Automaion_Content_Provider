@@ -34,7 +34,7 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 
 	return &AdminHandler{
 		authService:     authService,
-		boxService:      services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo),
+		boxService:      services.NewBoxService(boxRepo, userRepo, profileRepo),
 		appService:      services.NewAppService(appRepo, profileRepo, boxRepo, userRepo),
 		profileService:  services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo),
 		campaignService: services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo),

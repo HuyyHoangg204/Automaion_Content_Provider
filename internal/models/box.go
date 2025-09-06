@@ -55,14 +55,11 @@ type BoxResponse struct {
 	UpdatedAt string `json:"updated_at" example:"2025-01-09T10:30:00Z"`
 }
 
-// SyncBoxProfilesResponse represents the response for syncing profiles from a box
+// SyncBoxProfilesResponse represents the response for syncing box profiles
 type SyncBoxProfilesResponse struct {
-	BoxID           string `json:"box_id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	MachineID       string `json:"machine_id" example:"pc-91542"`
-	TunnelURL       string `json:"tunnel_url" example:"http://pc-91542.agent-controller.onegreen.cloud/frps"`
-	ProfilesSynced  int    `json:"profiles_synced" example:"10"`
-	ProfilesCreated int    `json:"profiles_created" example:"5"`
-	ProfilesUpdated int    `json:"profiles_updated" example:"3"`
-	ProfilesDeleted int    `json:"profiles_deleted" example:"2"`
-	Message         string `json:"message" example:"Sync completed successfully"`
+	ProfilesCreated int    `json:"profiles_created"`
+	ProfilesUpdated int    `json:"profiles_updated"`
+	ProfilesDeleted int    `json:"profiles_deleted"`
+	ProfilesSynced  int    `json:"profiles_synced"`
+	Message         string `json:"message"`
 }

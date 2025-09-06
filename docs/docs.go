@@ -1337,7 +1337,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/apps/sync/all-apps": {
+        "/api/v1/apps/sync-profiles-all-apps": {
             "post": {
                 "security": [
                     {
@@ -1359,72 +1359,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/apps/sync/{id}": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from a specific app",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "apps"
-                ],
-                "summary": "Sync profiles from a specific app",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "App ID to sync profiles from",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                            "$ref": "#/definitions/models.SyncAppProfilesResponse"
                         }
                     },
                     "400": {
@@ -1721,6 +1656,71 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/apps/{id}/sync-profiles": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from a specific app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Sync profiles from a specific app",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "App ID to sync profiles from",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncAppProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2135,71 +2135,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/boxes/sync-profiles/{id}": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from all apps in a specific box",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "boxes"
-                ],
-                "summary": "Sync all profiles from all apps in a box",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Box ID to sync profiles from",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/boxes/{id}": {
             "get": {
                 "security": [
@@ -2443,6 +2378,71 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/boxes/{id}/sync-profiles": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sync all profiles from all apps in a specific box",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "boxes"
+                ],
+                "summary": "Sync all profiles from all apps in a box",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Box ID to sync profiles from",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2958,6 +2958,103 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/excel/download/{filename}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Download a previously exported Excel file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ],
+                "tags": [
+                    "excel"
+                ],
+                "summary": "Download Excel file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Excel filename",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Excel file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "404": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/excel/export/flow-groups/{flowgroupid}": {
+            "get": {
+                "description": "Export a specific flow group and its flows to an Excel file",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "excel"
+                ],
+                "summary": "Export flow group to Excel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Flow Group ID",
+                        "name": "flowgroupid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect to download URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "success: false, error: error message",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4991,40 +5088,43 @@ const docTemplate = `{
                 }
             }
         },
+        "models.SyncAppProfilesResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "profiles_created": {
+                    "type": "integer"
+                },
+                "profiles_deleted": {
+                    "type": "integer"
+                },
+                "profiles_synced": {
+                    "type": "integer"
+                },
+                "profiles_updated": {
+                    "type": "integer"
+                }
+            }
+        },
         "models.SyncBoxProfilesResponse": {
             "type": "object",
             "properties": {
-                "box_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "machine_id": {
-                    "type": "string",
-                    "example": "pc-91542"
-                },
                 "message": {
-                    "type": "string",
-                    "example": "Sync completed successfully"
+                    "type": "string"
                 },
                 "profiles_created": {
-                    "type": "integer",
-                    "example": 5
+                    "type": "integer"
                 },
                 "profiles_deleted": {
-                    "type": "integer",
-                    "example": 2
+                    "type": "integer"
                 },
                 "profiles_synced": {
-                    "type": "integer",
-                    "example": 10
+                    "type": "integer"
                 },
                 "profiles_updated": {
-                    "type": "integer",
-                    "example": 3
-                },
-                "tunnel_url": {
-                    "type": "string",
-                    "example": "http://pc-91542.agent-controller.onegreen.cloud/frps"
+                    "type": "integer"
                 }
             }
         },

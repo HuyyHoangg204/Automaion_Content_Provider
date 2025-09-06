@@ -105,7 +105,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
 				boxes.GET("/:id/apps", appHandler.GetAppsByBox)
-				boxes.POST("/sync-profiles/:id", boxHandler.SyncAllProfilesInBox)
+				boxes.POST("/:id/sync-profiles", boxHandler.SyncAllProfilesInBox)
 			}
 
 			// Box Proxy routes - for direct platform operations
@@ -120,13 +120,13 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				apps.POST("", appHandler.CreateApp)
 				apps.GET("", appHandler.GetMyApps)
 				apps.GET("/:id/profiles", profileHandler.GetProfilesByApp)
-				apps.GET("/register-app", appHandler.GetRegisterAppDomains)
-				apps.GET("/check-tunnel", appHandler.CheckTunnelURL)
 				apps.GET("/:id", appHandler.GetAppByID)
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)
-				apps.POST("/sync/:id", appHandler.SyncAppProfiles)
-				apps.POST("/sync/all-apps", appHandler.SyncAllUserApps)
+				apps.GET("/register-app", appHandler.GetRegisterAppDomains)
+				apps.GET("/check-tunnel", appHandler.CheckTunnelURL)
+				apps.POST("/:id/sync-profiles", appHandler.SyncAppProfiles)
+				apps.POST("/sync-profiles-all-apps", appHandler.SyncAllUserApps)
 			}
 
 			// Campaign routes
@@ -153,12 +153,8 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 			// Profile routes
 			profiles := protected.Group("/profiles")
 			{
-				profiles.POST("", profileHandler.CreateProfile)
 				profiles.GET("", profileHandler.GetMyProfiles)
-				profiles.GET("/default-configs", profileHandler.GetDefaultConfigs)
 				profiles.GET("/:id", profileHandler.GetProfileByID)
-				profiles.PUT("/:id", profileHandler.UpdateProfile)
-				profiles.DELETE("/:id", profileHandler.DeleteProfile)
 				profiles.GET("/:id/flows", flowHandler.GetFlowsByProfile)
 			}
 

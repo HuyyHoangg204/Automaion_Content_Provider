@@ -69,12 +69,6 @@ func (h *AppProxyHandler) ProxyRequest(c *gin.Context) {
 		return
 	}
 
-	// Validate platform path
-	if !h.appProxyService.ValidatePlatformPath(platformType, platformPath) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid platform path"})
-		return
-	}
-
 	// Build target URL
 	targetURL := h.appProxyService.BuildTargetURL(*app.TunnelURL, platformType, platformPath)
 

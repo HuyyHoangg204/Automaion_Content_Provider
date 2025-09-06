@@ -54,7 +54,7 @@ func (h *CampaignHandler) CreateCampaign(c *gin.Context) {
 		return
 	}
 
-	response, err := h.campaignService.CreateCampaign(userID, &req)
+	response, err := h.campaignService.CreateCampaignByUserID(userID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -85,7 +85,7 @@ func (h *CampaignHandler) CreateCampaign(c *gin.Context) {
 func (h *CampaignHandler) GetMyCampaigns(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	campaigns, err := h.campaignService.GetCampaignsByUser(userID)
+	campaigns, err := h.campaignService.GetCampaignsByUserID(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get campaigns", "details": err.Error()})
 		return
@@ -112,7 +112,7 @@ func (h *CampaignHandler) GetCampaignByID(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	campaignID := c.Param("id")
 
-	campaign, err := h.campaignService.GetCampaignByID(userID, campaignID)
+	campaign, err := h.campaignService.GetCampaignByUserIDAndID(userID, campaignID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Campaign not found"})
@@ -151,7 +151,7 @@ func (h *CampaignHandler) UpdateCampaign(c *gin.Context) {
 		return
 	}
 
-	response, err := h.campaignService.UpdateCampaign(userID, campaignID, &req)
+	response, err := h.campaignService.UpdateCampaignByUserIDAndID(userID, campaignID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Campaign not found"})
@@ -186,7 +186,7 @@ func (h *CampaignHandler) DeleteCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	campaignID := c.Param("id")
 
-	err := h.campaignService.DeleteCampaign(userID, campaignID)
+	err := h.campaignService.DeleteCampaignByUserIDAndID(userID, campaignID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Campaign not found"})
@@ -228,7 +228,7 @@ func (h *CampaignHandler) RunCampaign(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
 	// Check if campaign exists in the database for the user
-	_, err := h.campaignService.GetCampaignByID(userID, campaignID)
+	_, err := h.campaignService.GetCampaignByUserIDAndID(userID, campaignID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"success": false,
