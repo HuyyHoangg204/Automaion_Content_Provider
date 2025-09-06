@@ -381,19 +381,3 @@ func (s *AuthService) GetAllUsers(page, pageSize int, search string) ([]*models.
 
 	return userPointers, total, nil
 }
-
-// DeleteUser deletes a user (admin only)
-func (s *AuthService) DeleteUser(userID string) error {
-	// Check if user exists
-	_, err := s.userRepo.GetByID(userID)
-	if err != nil {
-		return fmt.Errorf("user not found: %w", err)
-	}
-
-	// Revoke all refresh tokens for the user
-	if err := s.refreshTokenRepo.RevokeAllUserTokens(userID); err != nil {
-		return fmt.Errorf("failed to revoke refresh tokens: %w", err)
-	}
-
-	return s.userRepo.Delete(userID)
-}

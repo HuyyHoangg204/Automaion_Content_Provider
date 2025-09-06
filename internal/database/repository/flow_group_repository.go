@@ -57,11 +57,6 @@ func (r *FlowGroupRepository) Update(flowGroup *models.FlowGroup) error {
 	return r.db.Save(flowGroup).Error
 }
 
-// Delete deletes a group campaign
-func (r *FlowGroupRepository) Delete(id string) error {
-	return r.db.Delete(&models.FlowGroup{}, "id = ?", id).Error
-}
-
 // GetStats retrieves statistics for a group campaign
 func (r *FlowGroupRepository) GetStats(id string) (*models.FlowGroupStats, error) {
 	var flowGroup models.FlowGroup

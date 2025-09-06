@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -59,14 +61,16 @@ func (r *CampaignRepository) Update(campaign *models.Campaign) error {
 	return r.db.Save(campaign).Error
 }
 
-// Delete deletes a campaign
-func (r *CampaignRepository) Delete(id string) error {
-	return r.db.Delete(&models.Campaign{}, "id = ?", id).Error
-}
-
 // DeleteByUserIDAndID deletes a campaign by user ID and campaign ID
 func (r *CampaignRepository) DeleteByUserIDAndID(userID, campaignID string) error {
-	return r.db.Where("user_id = ? AND id = ?", userID, campaignID).Delete(&models.Campaign{}).Error
+	result := r.db.Unscoped().Where("user_id = ?", userID).Delete(&models.Campaign{ID: campaignID})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete campaign: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("campaign not found or access denied")
+	}
+	return nil
 }
 
 // GetAll retrieves all campaigns (admin only)

@@ -183,52 +183,6 @@ func (h *AdminHandler) SetUserStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "User status updated successfully"})
 }
 
-// DeleteUser godoc
-// @Summary Delete a user (Admin only)
-// @Description Delete a user account (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "User ID"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/users/{id} [delete]
-func (h *AdminHandler) DeleteUser(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	// Get user ID from URL
-	userID := c.Param("id")
-
-	// Prevent admin from deleting themselves
-	if userID == user.ID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot delete your own account"})
-		return
-	}
-
-	// Delete user
-	err := h.authService.DeleteUser(userID)
-	if err != nil {
-		if strings.Contains(err.Error(), "user not found") {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
-}
-
 // AdminGetAllBoxes godoc
 // @Summary Get all boxes (Admin only)
 // @Description Get all boxes in the system (Admin privileges required)

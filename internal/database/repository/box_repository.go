@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -91,14 +93,16 @@ func (r *BoxRepository) Update(box *models.Box) error {
 		box.UserID, box.Name, box.ID).Error
 }
 
-// Delete deletes a box
-func (r *BoxRepository) Delete(id string) error {
-	return r.db.Delete(&models.Box{}, "id = ?", id).Error
-}
-
 // DeleteByUserIDAndID deletes a box by user ID and box ID
 func (r *BoxRepository) DeleteByUserIDAndID(userID, boxID string) error {
-	return r.db.Where("user_id = ? AND id = ?", userID, boxID).Delete(&models.Box{}).Error
+	result := r.db.Unscoped().Where("user_id = ?", userID).Delete(&models.Box{ID: boxID})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete box: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("box not found or access denied")
+	}
+	return nil
 }
 
 // GetAll retrieves all boxes (admin only)

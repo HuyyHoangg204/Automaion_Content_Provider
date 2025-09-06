@@ -142,11 +142,6 @@ func (r *ProfileRepository) UpdateMany(profiles []*models.Profile) error {
 	})
 }
 
-// Delete deletes a profile
-func (r *ProfileRepository) Delete(id string) error {
-	return r.db.Delete(&models.Profile{}, "id = ?", id).Error
-}
-
 // DeleteMany deletes multiple profiles by their IDs
 func (r *ProfileRepository) DeleteMany(profiles []*models.Profile) error {
 	if len(profiles) == 0 {
@@ -156,34 +151,33 @@ func (r *ProfileRepository) DeleteMany(profiles []*models.Profile) error {
 	for i, p := range profiles {
 		profileIDs[i] = p.ID
 	}
-	return r.db.Where("id IN ?", profileIDs).Delete(&models.Profile{}).Error
+	return r.db.Unscoped().Where("id IN ?", profileIDs).Delete(&models.Profile{}).Error
 }
 
 // DeleteByUserIDAndID deletes a profile by user ID and profile ID
 func (r *ProfileRepository) DeleteByUserIDAndID(userID, profileID string) error {
-	// Use a transaction to ensure data consistency
-	return r.db.Transaction(func(tx *gorm.DB) error {
-		// First verify the profile belongs to the user through the relationship chain
-		var profile models.Profile
-		err := tx.Joins("JOIN apps ON profiles.app_id = apps.id").
-			Joins("JOIN boxes ON apps.box_id = boxes.id").
-			Where("boxes.user_id = ? AND profiles.id = ?", userID, profileID).
-			First(&profile).Error
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return fmt.Errorf("profile not found or access denied")
-			}
-			return fmt.Errorf("failed to verify profile ownership: %w", err)
-		}
+	// The subquery finds the profile ID to delete by joining through apps and boxes to check ownership.
+	subQuery := r.db.Model(&models.Profile{}).
+		Joins("JOIN apps ON profiles.app_id = apps.id").
+		Joins("JOIN boxes ON apps.box_id = boxes.id").
+		Where("boxes.user_id = ?", userID).
+		Where("profiles.id = ?", profileID).
+		Select("profiles.id")
 
-		// Then delete the profile directly by ID
-		// Note: Flows will be automatically deleted due to CASCADE constraint
-		if err := tx.Delete(&models.Profile{}, "id = ?", profileID).Error; err != nil {
-			return fmt.Errorf("failed to delete profile: %w", err)
-		}
+	// We delete from profiles where the ID is in the result of the subquery.
+	// This ensures we only delete the profile if it belongs to the user.
+	// Note: Flows will be automatically deleted due to CASCADE constraint
+	result := r.db.Unscoped().Where("id IN (?)", subQuery).Delete(&models.Profile{})
 
-		return nil
-	})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete profile: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("profile not found or access denied")
+	}
+
+	return nil
 }
 
 // GetAll retrieves all profiles (admin only)

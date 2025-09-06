@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -64,16 +66,17 @@ func (r *AppRepository) Update(app *models.App) error {
 	return r.db.Save(app).Error
 }
 
-// Delete deletes an app
-func (r *AppRepository) Delete(id string) error {
-	return r.db.Delete(&models.App{}, "id = ?", id).Error
-}
-
 // DeleteByUserIDAndID deletes an app by user ID and app ID
 func (r *AppRepository) DeleteByUserIDAndID(userID, appID string) error {
-	return r.db.Joins("JOIN boxes ON apps.box_id = boxes.id").
-		Where("boxes.user_id = ? AND apps.id = ?", userID, appID).
-		Delete(&models.App{}).Error
+	result := r.db.Unscoped().Where("id = ? AND box_id IN (SELECT id FROM boxes WHERE user_id = ?)", appID, userID).
+		Delete(&models.App{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete app: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("app not found or access denied")
+	}
+	return nil
 }
 
 // CheckNameExistsInBox checks if an app name already exists in a specific box

@@ -175,7 +175,6 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				admin.POST("/register", adminHandler.Register)
 				admin.GET("/users", adminHandler.GetAllUsers)
 				admin.PUT("/users/:id/status", adminHandler.SetUserStatus)
-				admin.DELETE("/users/:id", adminHandler.DeleteUser)
 				admin.POST("/users/:id/reset-password", adminHandler.ResetPassword)
 				admin.GET("/boxes", adminHandler.AdminGetAllBoxes)
 				admin.GET("/apps", adminHandler.AdminGetAllApps)

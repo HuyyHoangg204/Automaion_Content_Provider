@@ -47,11 +47,6 @@ func (r *UserRepository) Update(user *models.User) error {
 	return r.db.Save(user).Error
 }
 
-// Delete deletes a user
-func (r *UserRepository) Delete(id string) error {
-	return r.db.Delete(&models.User{}, "id = ?", id).Error
-}
-
 // UpdateLastLogin updates the last login time for a user
 func (r *UserRepository) UpdateLastLogin(userID string) error {
 	now := time.Now()

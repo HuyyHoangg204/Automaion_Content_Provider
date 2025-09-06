@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 
 	"gorm.io/gorm"
@@ -181,17 +183,17 @@ func (r *FlowRepository) Update(flow *models.Flow) error {
 	return r.db.Save(flow).Error
 }
 
-// Delete deletes a flow
-func (r *FlowRepository) Delete(id string) error {
-	return r.db.Delete(&models.Flow{}, "id = ?", id).Error
-}
-
 // DeleteByUserIDAndID deletes a flow by user ID and flow ID
 func (r *FlowRepository) DeleteByUserIDAndID(userID, flowID string) error {
-	return r.db.Joins("JOIN flow_groups ON flows.flow_group_id = flow_groups.id").
-		Joins("JOIN campaigns ON flow_groups.campaign_id = campaigns.id").
-		Where("campaigns.user_id = ? AND flows.id = ?", userID, flowID).
-		Delete(&models.Flow{}).Error
+	result := r.db.Unscoped().Where("user_id = ?", userID).
+		Delete(&models.Flow{ID: flowID})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete flow: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("flow not found or access denied")
+	}
+	return nil
 }
 
 // GetByStatus retrieves flows by status
