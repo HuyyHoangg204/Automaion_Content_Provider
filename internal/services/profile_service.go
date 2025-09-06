@@ -27,7 +27,7 @@ func NewProfileService(profileRepo *repository.ProfileRepository, appRepo *repos
 }
 
 // GetProfilesByUser retrieves all profiles for a specific user
-func (s *ProfileService) GetProfilesByUser(userID string) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfilesByUserID(userID string) ([]*models.ProfileResponse, error) {
 	profiles, err := s.profileRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get profiles: %w", err)
@@ -42,7 +42,7 @@ func (s *ProfileService) GetProfilesByUser(userID string) ([]*models.ProfileResp
 }
 
 // GetProfilesByBox retrieves all profiles for a specific box (user must own the box)
-func (s *ProfileService) GetProfilesByBox(userID, boxID string) ([]*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfilesByUserIDAndBoxID(userID, boxID string) ([]*models.ProfileResponse, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *ProfileService) GetProfilesByBox(userID, boxID string) ([]*models.Profi
 }
 
 // GetProfilesByBoxPaginated retrieves paginated profiles for a specific box
-func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
+func (s *ProfileService) GetProfilesByUserIDAndBoxIDPaginated(userID, boxID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
 	// Verify box belongs to user
 	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
 	if err != nil {
@@ -87,7 +87,7 @@ func (s *ProfileService) GetProfilesByBoxPaginated(userID, boxID string, page, p
 }
 
 // GetProfilesByAppPaginated retrieves paginated profiles for a specific app
-func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
+func (s *ProfileService) GetProfilesByUserIDAndAppIDPaginated(userID, appID string, page, pageSize int) ([]*models.ProfileResponse, int, error) {
 	// Verify app belongs to user
 	_, err := s.appRepo.GetByUserIDAndID(userID, appID)
 	if err != nil {
@@ -111,7 +111,7 @@ func (s *ProfileService) GetProfilesByAppPaginated(userID, appID string, page, p
 }
 
 // GetProfileByID retrieves a profile by ID (user must own it)
-func (s *ProfileService) GetProfileByID(userID, profileID string) (*models.ProfileResponse, error) {
+func (s *ProfileService) GetProfileByUserIDAndID(userID, profileID string) (*models.ProfileResponse, error) {
 	profile, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
 		return nil, errors.New("profile not found")

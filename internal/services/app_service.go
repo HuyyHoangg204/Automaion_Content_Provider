@@ -83,8 +83,8 @@ func (s *AppService) CreateApp(userID string, req *models.CreateAppRequest) (*mo
 	return app, nil
 }
 
-// GetAppsByUser retrieves all apps for a specific user
-func (s *AppService) GetAppsByUser(userID string) ([]*models.App, error) {
+// GetAppsByUserID retrieves all apps for a specific user
+func (s *AppService) GetAppsByUserID(userID string) ([]*models.App, error) {
 	apps, err := s.appRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apps: %w", err)
@@ -93,15 +93,10 @@ func (s *AppService) GetAppsByUser(userID string) ([]*models.App, error) {
 	return apps, nil
 }
 
-// GetAppsByBox retrieves all apps for a specific box (user must own the box)
-func (s *AppService) GetAppsByBox(userID, boxID string) ([]*models.App, error) {
+// GetAppsByUserIDAndBoxID retrieves all apps for a specific user and box
+func (s *AppService) GetAppsByUserIDAndBoxID(userID, boxID string) ([]*models.App, error) {
 	// Verify box belongs to user
-	_, err := s.boxRepo.GetByUserIDAndID(userID, boxID)
-	if err != nil {
-		return nil, errors.New("box not found or access denied")
-	}
-
-	apps, err := s.appRepo.GetByBoxID(boxID)
+	apps, err := s.appRepo.GetByUserIDAndBoxID(userID, boxID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apps: %w", err)
 	}
@@ -400,9 +395,9 @@ func (s *AppService) syncApp(app *models.App) (*models.SyncBoxProfilesResponse, 
 }
 
 // SyncAllAppsInBox syncs profiles from all apps in a box
-func (s *AppService) SyncAllAppsInBox(boxID string) (*models.SyncBoxProfilesResponse, error) {
+func (s *AppService) SyncAllAppsInBox(userID string, boxID string) (*models.SyncBoxProfilesResponse, error) {
 	// Get all apps for this box
-	apps, err := s.appRepo.GetByBoxID(boxID)
+	apps, err := s.appRepo.GetByUserIDAndBoxID(userID, boxID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get apps for box %s: %w", boxID, err)
 	}

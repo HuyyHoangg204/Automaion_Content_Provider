@@ -31,7 +31,7 @@ func NewCampaignService(
 }
 
 // CreateCampaign creates a new campaign for a user
-func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampaignRequest) (*models.CampaignResponse, error) {
+func (s *CampaignService) CreateCampaignByUserID(userID string, req *models.CreateCampaignRequest) (*models.CampaignResponse, error) {
 	// Verify user exists
 	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *CampaignService) CreateCampaign(userID string, req *models.CreateCampai
 }
 
 // CompleteCampaign creates a group campaign record when a campaign is completed
-func (s *CampaignService) CompleteCampaign(campaignID string, startedAt *time.Time) error {
+func (s *CampaignService) CompleteCampaignByUserIDAndID(userID, campaignID string, startedAt *time.Time) error {
 	// Get campaign to validate it exists
 	_, err := s.campaignRepo.GetByID(campaignID)
 	if err != nil {
@@ -97,7 +97,7 @@ func (s *CampaignService) CompleteCampaign(campaignID string, startedAt *time.Ti
 }
 
 // GetCampaignsByUser retrieves all campaigns for a specific user
-func (s *CampaignService) GetCampaignsByUser(userID string) ([]*models.CampaignResponse, error) {
+func (s *CampaignService) GetCampaignsByUserID(userID string) ([]*models.CampaignResponse, error) {
 	campaigns, err := s.campaignRepo.GetByUserID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get campaigns: %w", err)
@@ -112,7 +112,7 @@ func (s *CampaignService) GetCampaignsByUser(userID string) ([]*models.CampaignR
 }
 
 // GetCampaignByID retrieves a campaign by ID (user must own it)
-func (s *CampaignService) GetCampaignByID(userID, campaignID string) (*models.CampaignResponse, error) {
+func (s *CampaignService) GetCampaignByUserIDAndID(userID, campaignID string) (*models.CampaignResponse, error) {
 	campaign, err := s.campaignRepo.GetByUserIDAndID(userID, campaignID)
 	if err != nil {
 		return nil, errors.New("campaign not found")
@@ -122,7 +122,7 @@ func (s *CampaignService) GetCampaignByID(userID, campaignID string) (*models.Ca
 }
 
 // UpdateCampaign updates a campaign (user must own it)
-func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.UpdateCampaignRequest) (*models.CampaignResponse, error) {
+func (s *CampaignService) UpdateCampaignByUserIDAndID(userID, campaignID string, req *models.UpdateCampaignRequest) (*models.CampaignResponse, error) {
 	campaign, err := s.campaignRepo.GetByUserIDAndID(userID, campaignID)
 	if err != nil {
 		return nil, errors.New("campaign not found")
@@ -161,7 +161,7 @@ func (s *CampaignService) UpdateCampaign(userID, campaignID string, req *models.
 }
 
 // DeleteCampaign deletes a campaign (user must own it)
-func (s *CampaignService) DeleteCampaign(userID, campaignID string) error {
+func (s *CampaignService) DeleteCampaignByUserIDAndID(userID, campaignID string) error {
 	// Check if campaign exists and belongs to user
 	_, err := s.campaignRepo.GetByUserIDAndID(userID, campaignID)
 	if err != nil {

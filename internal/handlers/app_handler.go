@@ -86,7 +86,7 @@ func (h *AppHandler) CreateApp(c *gin.Context) {
 func (h *AppHandler) GetMyApps(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	apps, err := h.appService.GetAppsByUser(userID)
+	apps, err := h.appService.GetAppsByUserID(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get apps", "details": err.Error()})
 		return
@@ -112,7 +112,7 @@ func (h *AppHandler) GetAppsByBox(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	boxID := c.Param("id")
 
-	apps, err := h.appService.GetAppsByBox(userID, boxID)
+	apps, err := h.appService.GetAppsByUserIDAndBoxID(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -359,7 +359,7 @@ func (h *AppHandler) SyncAllUserApps(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
 	// Get all apps for the user
-	apps, err := h.appService.GetAppsByUser(userID)
+	apps, err := h.appService.GetAppsByUserID(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user apps"})
 		return

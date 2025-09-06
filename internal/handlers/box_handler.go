@@ -14,6 +14,7 @@ import (
 
 type BoxHandler struct {
 	boxService *services.BoxService
+	appService *services.AppService
 }
 
 func NewBoxHandler(db *gorm.DB) *BoxHandler {
@@ -24,10 +25,11 @@ func NewBoxHandler(db *gorm.DB) *BoxHandler {
 	profileRepo := repository.NewProfileRepository(db)
 
 	// Create service
-	boxService := services.NewBoxService(boxRepo, appRepo, userRepo, profileRepo)
-
+	boxService := services.NewBoxService(boxRepo, userRepo, profileRepo)
+	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
 	return &BoxHandler{
 		boxService: boxService,
+		appService: appService,
 	}
 }
 
@@ -54,7 +56,7 @@ func (h *BoxHandler) CreateBox(c *gin.Context) {
 		return
 	}
 
-	response, err := h.boxService.CreateBox(userID, &req)
+	response, err := h.boxService.CreateBoxByUserID(userID, &req)
 	if err != nil {
 		// Check if it's a BoxAlreadyExistsError
 		if boxExistsErr, ok := err.(*models.BoxAlreadyExistsError); ok {
@@ -91,7 +93,7 @@ func (h *BoxHandler) GetMyBoxes(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	boxes, total, err := h.boxService.GetBoxesByUserPaginated(userID, page, pageSize)
+	boxes, total, err := h.boxService.GetBoxesByUserIDPaginated(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get boxes", "details": err.Error()})
 		return
@@ -133,7 +135,7 @@ func (h *BoxHandler) GetBoxByID(c *gin.Context) {
 	// Get box ID from URL
 	boxID := c.Param("id")
 
-	box, err := h.boxService.GetBoxByID(userID, boxID)
+	box, err := h.boxService.GetBoxByUserIDAndID(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -174,7 +176,7 @@ func (h *BoxHandler) UpdateBox(c *gin.Context) {
 		return
 	}
 
-	response, err := h.boxService.UpdateBox(userID, boxID, &req)
+	response, err := h.boxService.UpdateBoxByUserIDAndID(userID, boxID, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "box not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -208,7 +210,7 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	// Get box ID from URL
 	boxID := c.Param("id")
 
-	err := h.boxService.DeleteBox(userID, boxID)
+	err := h.boxService.DeleteBoxByUserIDAndID(userID, boxID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Box not found"})
@@ -240,7 +242,7 @@ func (h *BoxHandler) SyncAllProfilesInBox(c *gin.Context) {
 	boxID := c.Param("id")
 
 	// Sync all profiles from all apps in the box
-	syncResult, err := h.boxService.SyncAllProfilesInBox(userID, boxID)
+	syncResult, err := h.appService.SyncAllAppsInBox(userID, boxID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

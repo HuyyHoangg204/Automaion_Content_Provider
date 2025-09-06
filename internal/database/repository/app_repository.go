@@ -29,18 +29,22 @@ func (r *AppRepository) GetByID(id string) (*models.App, error) {
 	return &app, nil
 }
 
-// GetByBoxID retrieves all apps for a specific box
-func (r *AppRepository) GetByBoxID(boxID string) ([]*models.App, error) {
-	var apps []*models.App
-	err := r.db.Where("box_id = ?", boxID).Preload("Profiles").Find(&apps).Error
-	return apps, err
-}
-
 // GetByUserID retrieves all apps for a specific user (through boxes)
 func (r *AppRepository) GetByUserID(userID string) ([]*models.App, error) {
 	var apps []*models.App
 	err := r.db.Joins("JOIN boxes ON apps.box_id = boxes.id").
 		Where("boxes.user_id = ?", userID).
+		Preload("Box").
+		Preload("Profiles").
+		Find(&apps).Error
+	return apps, err
+}
+
+// GetByUserIDAndBoxID retrieves all apps for a specific user and box
+func (r *AppRepository) GetByUserIDAndBoxID(userID, boxID string) ([]*models.App, error) {
+	var apps []*models.App
+	err := r.db.Joins("JOIN boxes ON apps.box_id = boxes.id").
+		Where("boxes.user_id = ? AND apps.box_id = ?", userID, boxID).
 		Preload("Box").
 		Preload("Profiles").
 		Find(&apps).Error

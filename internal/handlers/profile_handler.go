@@ -56,7 +56,7 @@ func (h *ProfileHandler) GetMyProfiles(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	profiles, total, err := h.profileService.GetProfilesByBoxPaginated(userID, boxID, page, pageSize)
+	profiles, total, err := h.profileService.GetProfilesByUserIDAndBoxIDPaginated(userID, boxID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -103,7 +103,7 @@ func (h *ProfileHandler) GetProfilesByApp(c *gin.Context) {
 	// Parse query parameters
 	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
 
-	profiles, total, err := h.profileService.GetProfilesByAppPaginated(userID, appID, page, pageSize)
+	profiles, total, err := h.profileService.GetProfilesByUserIDAndAppIDPaginated(userID, appID, page, pageSize)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -146,7 +146,7 @@ func (h *ProfileHandler) GetProfileByID(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 	profileID := c.Param("id")
 
-	profile, err := h.profileService.GetProfileByID(userID, profileID)
+	profile, err := h.profileService.GetProfileByUserIDAndID(userID, profileID)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Profile not found"})

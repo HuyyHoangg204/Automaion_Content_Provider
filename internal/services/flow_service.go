@@ -35,7 +35,7 @@ func NewFlowService(
 }
 
 // CreateFlow creates a new flow for a user
-func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (*models.FlowResponse, error) {
+func (s *FlowService) CreateFlowByUserID(userID string, req *models.CreateFlowRequest) (*models.FlowResponse, error) {
 	// Verify user exists
 	_, err := s.userRepo.GetByID(userID)
 	if err != nil {
@@ -75,7 +75,7 @@ func (s *FlowService) CreateFlow(userID string, req *models.CreateFlowRequest) (
 }
 
 // GetFlowsByUser retrieves paginated flows for a specific user
-func (s *FlowService) GetFlowsByUser(userID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+func (s *FlowService) GetFlowsByUserID(userID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Validate and normalize pagination parameters
 	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
 
@@ -93,7 +93,7 @@ func (s *FlowService) GetFlowsByUser(userID string, page, pageSize int) ([]*mode
 }
 
 // GetFlowsByCampaign retrieves paginated flows for a specific campaign
-func (s *FlowService) GetFlowsByCampaign(userID, campaignID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+func (s *FlowService) GetFlowsByUserIDAndCampaignID(userID, campaignID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Verify campaign belongs to user
 	_, err := s.campaignRepo.GetByUserIDAndID(userID, campaignID)
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *FlowService) GetFlowsByCampaign(userID, campaignID string, page, pageSi
 }
 
 // GetFlowsByFlowGroup retrieves paginated flows for a specific group campaign
-func (s *FlowService) GetFlowsByFlowGroup(userID, flowGroupID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+func (s *FlowService) GetFlowsByUserIDAndFlowGroupID(userID, flowGroupID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Verify group campaign exists and belongs to user's campaign
 	flowGroup, err := s.flowGroupRepo.GetByID(flowGroupID)
 	if err != nil {
@@ -147,7 +147,7 @@ func (s *FlowService) GetFlowsByFlowGroup(userID, flowGroupID string, page, page
 }
 
 // GetFlowsByProfile retrieves paginated flows for a specific profile (user must own the profile)
-func (s *FlowService) GetFlowsByProfile(userID, profileID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+func (s *FlowService) GetFlowsByUserIDAndProfileID(userID, profileID string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Verify profile belongs to user
 	_, err := s.profileRepo.GetByUserIDAndID(userID, profileID)
 	if err != nil {
@@ -171,7 +171,7 @@ func (s *FlowService) GetFlowsByProfile(userID, profileID string, page, pageSize
 }
 
 // GetFlowByID retrieves a flow by ID (user must own it)
-func (s *FlowService) GetFlowByID(userID, flowID string) (*models.FlowResponse, error) {
+func (s *FlowService) GetFlowByUserIDAndID(userID, flowID string) (*models.FlowResponse, error) {
 	flow, err := s.flowRepo.GetByUserIDAndID(userID, flowID)
 	if err != nil {
 		return nil, errors.New("flow not found")
@@ -181,7 +181,7 @@ func (s *FlowService) GetFlowByID(userID, flowID string) (*models.FlowResponse, 
 }
 
 // UpdateFlow updates a flow (user must own it)
-func (s *FlowService) UpdateFlow(userID, flowID string, req *models.UpdateFlowRequest) (*models.FlowResponse, error) {
+func (s *FlowService) UpdateFlowByUserIDAndID(userID, flowID string, req *models.UpdateFlowRequest) (*models.FlowResponse, error) {
 	flow, err := s.flowRepo.GetByUserIDAndID(userID, flowID)
 	if err != nil {
 		return nil, errors.New("flow not found")
@@ -198,7 +198,7 @@ func (s *FlowService) UpdateFlow(userID, flowID string, req *models.UpdateFlowRe
 }
 
 // DeleteFlow deletes a flow (user must own it)
-func (s *FlowService) DeleteFlow(userID, flowID string) error {
+func (s *FlowService) DeleteFlowByUserIDAndID(userID, flowID string) error {
 	// Check if flow exists and belongs to user
 	_, err := s.flowRepo.GetByUserIDAndID(userID, flowID)
 	if err != nil {
@@ -213,7 +213,7 @@ func (s *FlowService) DeleteFlow(userID, flowID string) error {
 }
 
 // GetFlowsByStatus retrieves paginated flows by status for a user
-func (s *FlowService) GetFlowsByStatus(userID, status string, page, pageSize int) ([]*models.FlowResponse, int, error) {
+func (s *FlowService) GetFlowsByUserIDAndStatus(userID, status string, page, pageSize int) ([]*models.FlowResponse, int, error) {
 	// Validate and normalize pagination parameters
 	page, pageSize = utils.ValidateAndNormalizePagination(page, pageSize)
 
