@@ -23,24 +23,6 @@ func (Profile) TableName() string {
 	return "profiles"
 }
 
-// CreateProfileRequest represents the request to create a new profile
-// @Description Create profile request with platform-specific configuration
-type CreateProfileRequest struct {
-	// @Description ID of the app where the profile will be created. App must belong to a box with machine_id.
-	// @Example 550e8400-e29b-41d4-a716-446655440000
-	AppID string `json:"app_id" binding:"required"`
-
-	// @Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.
-	// @Example {"name":"My Hidemium Profile","os":"win","osVersion":"10","browser":"chrome","version":"136","canvas":"noise","language":"en-US","resolution":"1280x800","StartURL":"https://google.com"}
-	Data JSON `json:"data" binding:"required"`
-}
-
-// UpdateProfileRequest represents the request to update a profile
-type UpdateProfileRequest struct {
-	Name string `json:"name" binding:"required" example:"Updated Profile Name"`
-	Data JSON   `json:"data,omitempty"`
-}
-
 // ProfileResponse represents the response for profile operations
 type ProfileResponse struct {
 	ID        string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
