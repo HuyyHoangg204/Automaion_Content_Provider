@@ -28,7 +28,7 @@ type Campaign struct {
 	// Relationships
 	User       User          `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	FlowGroups []FlowGroup   `json:"flow_groups,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
-	Profiles   []Profile     `json:"profiles,omitempty" gorm:"many2many:campaign_profiles;"`
+	Profiles   []Profile     `json:"profiles,omitempty" gorm:"many2many:campaign_profiles;references:ID;constraint:OnDelete:CASCADE"`
 	Logs       []CampaignLog `json:"logs,omitempty" gorm:"foreignKey:CampaignID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
