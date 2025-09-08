@@ -337,24 +337,6 @@ definitions:
     - profile_id
     - status
     type: object
-  models.CreateProfileRequest:
-    description: Create profile request with platform-specific configuration
-    properties:
-      app_id:
-        description: |-
-          @Description ID of the app where the profile will be created. App must belong to a box with machine_id.
-          @Example 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      data:
-        allOf:
-        - $ref: '#/definitions/models.JSON'
-        description: |-
-          @Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.
-          @Example {"name":"My Hidemium Profile","os":"win","osVersion":"10","browser":"chrome","version":"136","canvas":"noise","language":"en-US","resolution":"1280x800","StartURL":"https://google.com"}
-    required:
-    - app_id
-    - data
-    type: object
   models.Flow:
     properties:
       created_at:
@@ -755,16 +737,6 @@ definitions:
         type: string
     required:
     - status
-    type: object
-  models.UpdateProfileRequest:
-    properties:
-      data:
-        $ref: '#/definitions/models.JSON'
-      name:
-        example: Updated Profile Name
-        type: string
-    required:
-    - name
     type: object
   models.User:
     properties:
@@ -3283,93 +3255,7 @@ paths:
       summary: Get user's profiles
       tags:
       - profiles
-    post:
-      consumes:
-      - application/json
-      description: Create a new browser profile for the authenticated user. Profile
-        data is required and must contain 'name' field along with configuration from
-        anti-detect browser.
-      parameters:
-      - description: Create profile request (data field must include 'name' and can
-          contain other configuration parameters)
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.ProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Conflict
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create a new profile
-      tags:
-      - profiles
   /api/v1/profiles/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a profile (user must own it)
-      parameters:
-      - description: Profile ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete profile
-      tags:
-      - profiles
     get:
       consumes:
       - application/json
@@ -3410,59 +3296,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get profile by ID
-      tags:
-      - profiles
-    put:
-      consumes:
-      - application/json
-      description: Update a profile (user must own it)
-      parameters:
-      - description: Profile ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update profile request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.ProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Conflict
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update profile
       tags:
       - profiles
   /api/v1/profiles/{id}/flows:
