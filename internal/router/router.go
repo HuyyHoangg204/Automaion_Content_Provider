@@ -104,7 +104,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				boxes.GET("/:id", boxHandler.GetBoxByID)
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
-				boxes.GET("/:id/apps", appHandler.GetAppsByBox)
+				boxes.GET("/:id/apps", boxHandler.GetAppsByBox)
 				boxes.POST("/:id/sync-profiles", boxHandler.SyncAllProfilesInBox)
 			}
 

@@ -250,3 +250,33 @@ func (h *BoxHandler) SyncAllProfilesInBox(c *gin.Context) {
 
 	c.JSON(http.StatusOK, syncResult)
 }
+
+// GetAppsByBox godoc
+// @Summary Get apps by box
+// @Description Get all apps for a specific box (user must own the box)
+// @Tags boxes
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Box ID"
+// @Success 200 {array} models.App
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/boxes/{id}/apps [get]
+func (h *BoxHandler) GetAppsByBox(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	boxID := c.Param("id")
+
+	apps, err := h.appService.GetAppsByUserIDAndBoxID(userID, boxID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "access denied") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get apps", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, apps)
+}
