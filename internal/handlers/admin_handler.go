@@ -219,7 +219,7 @@ func (h *AdminHandler) AdminGetAllBoxes(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.AppResponse
+// @Success 200 {array} models.App
 // @Failure 401 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
