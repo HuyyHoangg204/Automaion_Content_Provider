@@ -111,7 +111,6 @@ The API provides the following endpoints:
 - `POST /api/v1/admin/register` - Register new user (admin only)
 - `GET /api/v1/admin/users` - Get all users (admin only)
 - `PUT /api/v1/admin/users/{id}/status` - Set user active status (admin only)
-- `DELETE /api/v1/admin/users/{id}` - Delete user (admin only)
 
 ### Health Check
 - `GET /api/v1/health` - Health check endpoint
