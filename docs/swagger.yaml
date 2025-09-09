@@ -3410,6 +3410,7 @@ paths:
 securityDefinitions:
   BearerAuth:
     description: Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")
+      or `ApiKey ` followed by your API key (e.g. "ApiKey <key>")
     in: header
     name: Authorization
     type: apiKey

@@ -5062,7 +5062,7 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Enter ` + "`" + `Bearer ` + "`" + ` followed by your JWT token (e.g. \"Bearer \u003ctoken\u003e\")",
+            "description": "Enter ` + "`" + `Bearer ` + "`" + ` followed by your JWT token (e.g. \"Bearer \u003ctoken\u003e\") or ` + "`" + `ApiKey ` + "`" + ` followed by your API key (e.g. \"ApiKey \u003ckey\u003e\")",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
