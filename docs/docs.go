@@ -808,7 +808,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -914,7 +914,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -1020,7 +1020,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -1126,7 +1126,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [

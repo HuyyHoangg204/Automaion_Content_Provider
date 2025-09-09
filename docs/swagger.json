@@ -801,7 +801,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -907,7 +907,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -1013,7 +1013,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -1119,7 +1119,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "App Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [

@@ -1353,7 +1353,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - App Proxy
+      - app-proxy
     get:
       consumes:
       - application/json
@@ -1424,7 +1424,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - App Proxy
+      - app-proxy
     post:
       consumes:
       - application/json
@@ -1495,7 +1495,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - App Proxy
+      - app-proxy
     put:
       consumes:
       - application/json
@@ -1566,7 +1566,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - App Proxy
+      - app-proxy
   /api/v1/apps:
     get:
       consumes:
