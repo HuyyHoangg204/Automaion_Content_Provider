@@ -161,17 +161,11 @@ func (s *AuthService) Logout(refreshTokenStr string, userID string) error {
 	if refreshTokenStr != "" {
 		return s.refreshTokenRepo.RevokeToken(refreshTokenStr)
 	} else {
+		if err := s.userRepo.IncrementTokenVersion(userID); err != nil {
+			return fmt.Errorf("failed to increment token version: %w", err)
+		}
 		if err := s.refreshTokenRepo.RevokeAllUserTokens(userID); err != nil {
 			return fmt.Errorf("failed to revoke all refresh tokens: %w", err)
-		}
-		user, err := s.userRepo.GetByID(userID)
-		if err != nil {
-			return fmt.Errorf("failed to get user: %w", err)
-		}
-
-		user.TokenVersion++
-		if err := s.userRepo.Update(user); err != nil {
-			return fmt.Errorf("failed to update user token version: %w", err)
 		}
 		return nil
 	}
