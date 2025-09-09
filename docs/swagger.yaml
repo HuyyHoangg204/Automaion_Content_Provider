@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  handlers.APIKeyStatusRequest:
+    properties:
+      is_active:
+        type: boolean
+    type: object
   models.App:
     properties:
       box:
@@ -22,27 +27,6 @@ definitions:
         description: Optional tunnel URL
         type: string
       updated_at:
-        type: string
-    type: object
-  models.AppResponse:
-    properties:
-      box_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
-      created_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      name:
-        example: Hidemium
-        type: string
-      tunnel_url:
-        example: http://machineid-platform-userid.agent-controller.onegreen.cloud/
-        type: string
-      updated_at:
-        example: "2025-01-09T10:30:00Z"
         type: string
     type: object
   models.AuthResponse:
@@ -336,24 +320,6 @@ definitions:
     - flow_group_id
     - profile_id
     - status
-    type: object
-  models.CreateProfileRequest:
-    description: Create profile request with platform-specific configuration
-    properties:
-      app_id:
-        description: |-
-          @Description ID of the app where the profile will be created. App must belong to a box with machine_id.
-          @Example 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      data:
-        allOf:
-        - $ref: '#/definitions/models.JSON'
-        description: |-
-          @Description Profile configuration data. Must include 'name' field and can include Hidemium-specific parameters like os, browser, canvas, etc.
-          @Example {"name":"My Hidemium Profile","os":"win","osVersion":"10","browser":"chrome","version":"136","canvas":"noise","language":"en-US","resolution":"1280x800","StartURL":"https://google.com"}
-    required:
-    - app_id
-    - data
     type: object
   models.Flow:
     properties:
@@ -756,16 +722,6 @@ definitions:
     required:
     - status
     type: object
-  models.UpdateProfileRequest:
-    properties:
-      data:
-        $ref: '#/definitions/models.JSON'
-      name:
-        example: Updated Profile Name
-        type: string
-    required:
-    - name
-    type: object
   models.User:
     properties:
       boxes:
@@ -827,7 +783,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.AppResponse'
+              $ref: '#/definitions/models.App'
             type: array
         "401":
           description: Unauthorized
@@ -1090,55 +1046,6 @@ paths:
       summary: Get all users (Admin only)
       tags:
       - admin
-  /api/v1/admin/users/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a user account (Admin privileges required)
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete a user (Admin only)
-      tags:
-      - admin
   /api/v1/admin/users/{id}/reset-password:
     post:
       consumes:
@@ -1252,6 +1159,129 @@ paths:
       summary: Set user active status (Admin only)
       tags:
       - admin
+  /api/v1/api-key:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the API key for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, message: string'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete API key
+      tags:
+      - api-key
+    get:
+      consumes:
+      - application/json
+      description: Get the API key for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, api_key: models.APIKey'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get API key
+      tags:
+      - api-key
+  /api/v1/api-key/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new API key for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'success: true, api_key: models.APIKey'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate API key
+      tags:
+      - api-key
+  /api/v1/api-key/status:
+    put:
+      consumes:
+      - application/json
+      description: Enable or disable the API key for the authenticated user
+      parameters:
+      - description: Status object with is_active field
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.APIKeyStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, api_key: models.APIKey'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update API key status
+      tags:
+      - api-key
   /api/v1/app-proxy/{app_id}/{platform_path}:
     delete:
       consumes:
@@ -1323,7 +1353,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - App Proxy
     get:
       consumes:
       - application/json
@@ -1394,7 +1424,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - App Proxy
     post:
       consumes:
       - application/json
@@ -1465,7 +1495,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - App Proxy
     put:
       consumes:
       - application/json
@@ -1536,7 +1566,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - App Proxy
   /api/v1/apps:
     get:
       consumes:
@@ -1549,7 +1579,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.AppResponse'
+              $ref: '#/definitions/models.App'
             type: array
         "401":
           description: Unauthorized
@@ -1583,7 +1613,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.AppResponse'
+            $ref: '#/definitions/models.App'
         "400":
           description: Bad Request
           schema:
@@ -1666,7 +1696,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AppResponse'
+            $ref: '#/definitions/models.App'
         "400":
           description: Bad Request
           schema:
@@ -1714,7 +1744,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.AppResponse'
+            $ref: '#/definitions/models.App'
         "400":
           description: Bad Request
           schema:
@@ -2373,7 +2403,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.AppResponse'
+              $ref: '#/definitions/models.App'
             type: array
         "400":
           description: Bad Request
@@ -2394,7 +2424,7 @@ paths:
       - BearerAuth: []
       summary: Get apps by box
       tags:
-      - apps
+      - boxes
   /api/v1/boxes/{id}/sync-profiles:
     post:
       consumes:
@@ -3283,93 +3313,7 @@ paths:
       summary: Get user's profiles
       tags:
       - profiles
-    post:
-      consumes:
-      - application/json
-      description: Create a new browser profile for the authenticated user. Profile
-        data is required and must contain 'name' field along with configuration from
-        anti-detect browser.
-      parameters:
-      - description: Create profile request (data field must include 'name' and can
-          contain other configuration parameters)
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.ProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Conflict
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create a new profile
-      tags:
-      - profiles
   /api/v1/profiles/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a profile (user must own it)
-      parameters:
-      - description: Profile ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete profile
-      tags:
-      - profiles
     get:
       consumes:
       - application/json
@@ -3410,59 +3354,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get profile by ID
-      tags:
-      - profiles
-    put:
-      consumes:
-      - application/json
-      description: Update a profile (user must own it)
-      parameters:
-      - description: Profile ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update profile request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateProfileRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.ProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Conflict
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update profile
       tags:
       - profiles
   /api/v1/profiles/{id}/flows:
@@ -3516,62 +3407,6 @@ paths:
       summary: Get flows by profile
       tags:
       - flows
-  /api/v1/profiles/default-configs:
-    get:
-      consumes:
-      - application/json
-      description: Get default configuration options available for creating profiles
-        on a specific platform (Hidemium, Genlogin, etc.)
-      parameters:
-      - description: Platform type (hidemium, genlogin)
-        in: query
-        name: platform
-        required: true
-        type: string
-      - description: Box ID (used to resolve machine_id for tunnel)
-        in: query
-        name: box_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 10, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get default configurations from platform
-      tags:
-      - profiles
 securityDefinitions:
   BearerAuth:
     description: Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")
