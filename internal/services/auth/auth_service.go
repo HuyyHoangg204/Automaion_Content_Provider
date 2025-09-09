@@ -159,11 +159,28 @@ func (s *AuthService) RefreshToken(refreshTokenStr string) (*models.AuthResponse
 // Logout logs out a user
 func (s *AuthService) Logout(refreshTokenStr string, userID string) error {
 	if refreshTokenStr != "" {
-		// Revoke specific refresh token
+		// Logout 1 máy: Chỉ revoke refresh token cụ thể
 		return s.refreshTokenRepo.RevokeToken(refreshTokenStr)
 	} else {
-		// Revoke all refresh tokens for the user
-		return s.refreshTokenRepo.RevokeAllUserTokens(userID)
+		// Logout tất cả: Revoke tất cả refresh tokens + invalidate tất cả access tokens
+
+		// 1. Revoke all refresh tokens for the user
+		if err := s.refreshTokenRepo.RevokeAllUserTokens(userID); err != nil {
+			return fmt.Errorf("failed to revoke all refresh tokens: %w", err)
+		}
+
+		// 2. Increment token version để invalidate tất cả access tokens
+		user, err := s.userRepo.GetByID(userID)
+		if err != nil {
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+
+		user.TokenVersion++
+		if err := s.userRepo.Update(user); err != nil {
+			return fmt.Errorf("failed to update user token version: %w", err)
+		}
+
+		return nil
 	}
 }
 
