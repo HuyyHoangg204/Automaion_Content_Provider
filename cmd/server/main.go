@@ -40,7 +40,7 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")
+// @description Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>") or `ApiKey ` followed by your API key (e.g. "ApiKey <key>")
 
 func main() {
 	// Load environment variables

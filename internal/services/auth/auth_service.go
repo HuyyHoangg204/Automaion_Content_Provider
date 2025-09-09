@@ -293,7 +293,7 @@ func (s *AuthService) CreateAdminUser() error {
 	}
 
 	// Hash password
-	password := "admin123"
+	password := "Helloworld@@123"
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)

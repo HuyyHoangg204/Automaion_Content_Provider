@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  handlers.APIKeyStatusRequest:
+    properties:
+      is_active:
+        type: boolean
+    type: object
   models.App:
     properties:
       box:
@@ -1154,6 +1159,129 @@ paths:
       summary: Set user active status (Admin only)
       tags:
       - admin
+  /api/v1/api-key:
+    delete:
+      consumes:
+      - application/json
+      description: Delete the API key for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, message: string'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete API key
+      tags:
+      - api-key
+    get:
+      consumes:
+      - application/json
+      description: Get the API key for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, api_key: models.APIKey'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get API key
+      tags:
+      - api-key
+  /api/v1/api-key/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new API key for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'success: true, api_key: models.APIKey'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate API key
+      tags:
+      - api-key
+  /api/v1/api-key/status:
+    put:
+      consumes:
+      - application/json
+      description: Enable or disable the API key for the authenticated user
+      parameters:
+      - description: Status object with is_active field
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.APIKeyStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'success: true, api_key: models.APIKey'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'success: false, error: error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update API key status
+      tags:
+      - api-key
   /api/v1/app-proxy/{app_id}/{platform_path}:
     delete:
       consumes:
@@ -1225,7 +1353,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - app-proxy
     get:
       consumes:
       - application/json
@@ -1296,7 +1424,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - app-proxy
     post:
       consumes:
       - application/json
@@ -1367,7 +1495,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - app-proxy
     put:
       consumes:
       - application/json
@@ -1438,7 +1566,7 @@ paths:
       - BearerAuth: []
       summary: Proxy request to anti-detect browser platform
       tags:
-      - Box Proxy
+      - app-proxy
   /api/v1/apps:
     get:
       consumes:
@@ -2296,7 +2424,7 @@ paths:
       - BearerAuth: []
       summary: Get apps by box
       tags:
-      - apps
+      - boxes
   /api/v1/boxes/{id}/sync-profiles:
     post:
       consumes:
@@ -3282,6 +3410,7 @@ paths:
 securityDefinitions:
   BearerAuth:
     description: Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")
+      or `ApiKey ` followed by your API key (e.g. "ApiKey <key>")
     in: header
     name: Authorization
     type: apiKey

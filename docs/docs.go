@@ -605,6 +605,194 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/api-key": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the API key for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api-key"
+                ],
+                "summary": "Get API key",
+                "responses": {
+                    "200": {
+                        "description": "success: true, api_key: models.APIKey",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete the API key for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api-key"
+                ],
+                "summary": "Delete API key",
+                "responses": {
+                    "200": {
+                        "description": "success: true, message: string",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/api-key/generate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate a new API key for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api-key"
+                ],
+                "summary": "Generate API key",
+                "responses": {
+                    "201": {
+                        "description": "success: true, api_key: models.APIKey",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/api-key/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Enable or disable the API key for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api-key"
+                ],
+                "summary": "Update API key status",
+                "parameters": [
+                    {
+                        "description": "Status object with is_active field",
+                        "name": "status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.APIKeyStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success: true, api_key: models.APIKey",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "success: false, error: error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/app-proxy/{app_id}/{platform_path}": {
             "get": {
                 "security": [
@@ -620,7 +808,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Box Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -726,7 +914,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Box Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -832,7 +1020,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Box Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -938,7 +1126,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Box Proxy"
+                    "app-proxy"
                 ],
                 "summary": "Proxy request to anti-detect browser platform",
                 "parameters": [
@@ -2274,7 +2462,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "apps"
+                    "boxes"
                 ],
                 "summary": "Get apps by box",
                 "parameters": [
@@ -3791,6 +3979,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handlers.APIKeyStatusRequest": {
+            "type": "object",
+            "properties": {
+                "is_active": {
+                    "type": "boolean"
+                }
+            }
+        },
         "models.App": {
             "type": "object",
             "properties": {
@@ -4866,7 +5062,7 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Enter ` + "`" + `Bearer ` + "`" + ` followed by your JWT token (e.g. \"Bearer \u003ctoken\u003e\")",
+            "description": "Enter ` + "`" + `Bearer ` + "`" + ` followed by your JWT token (e.g. \"Bearer \u003ctoken\u003e\") or ` + "`" + `ApiKey ` + "`" + ` followed by your API key (e.g. \"ApiKey \u003ckey\u003e\")",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"

@@ -31,7 +31,7 @@ func NewAppProxyHandler(db *gorm.DB) *AppProxyHandler {
 // ProxyRequest handles all proxy requests to anti-detect browser platforms
 // @Summary Proxy request to anti-detect browser platform
 // @Description Forwards requests to the appropriate platform based on app. Supports Hidemium and GenLogin platforms.
-// @Tags Box Proxy
+// @Tags app-proxy
 // @Accept json
 // @Produce json
 // @Param app_id path string true "App ID (UUID)" example:"550e8400-e29b-41d4-a716-446655440001"

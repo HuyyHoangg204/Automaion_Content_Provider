@@ -80,6 +80,7 @@ func InitDB() (*gorm.DB, error) {
 		&models.Profile{},
 		&models.FlowGroup{},
 		&models.Flow{},
+		&models.APIKey{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)

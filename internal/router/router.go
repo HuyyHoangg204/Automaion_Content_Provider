@@ -7,6 +7,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services/api_key"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 
 	"github.com/gin-contrib/cors"
@@ -45,9 +46,11 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	// Create auth middleware
 	// Create services
 	authService := auth.NewAuthService(db)
+	apiKeyService := api_key.NewService(db)
 
 	// Create middleware with services
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
+	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService)
@@ -59,6 +62,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
 	excelHandler := handlers.NewExcelHandler(db, exportsDir, tempDir, basePath)
+	apiKeyHandler := handlers.NewAPIKeyHandler(db)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db)
@@ -86,7 +90,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 
 		// Protected routes
 		protected := api.Group("")
-		protected.Use(bearerTokenMiddleware.BearerTokenAuthMiddleware())
+		protected.Use(apiKeyMiddleware.APIKeyAuthMiddleware(), bearerTokenMiddleware.BearerTokenAuthMiddleware())
 		{
 			// Auth protected routes
 			authProtected := protected.Group("/auth")
@@ -94,6 +98,15 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				authProtected.POST("/logout", authHandler.Logout)
 				authProtected.GET("/profile", authHandler.GetProfile)
 				authProtected.POST("/change-password", authHandler.ChangePassword)
+			}
+
+			// API Key routes
+			apiKeys := protected.Group("/api-key")
+			{
+				apiKeys.GET("", apiKeyHandler.Get)
+				apiKeys.POST("/generate", apiKeyHandler.Generate)
+				apiKeys.PUT("/status", apiKeyHandler.UpdateStatus)
+				apiKeys.DELETE("", apiKeyHandler.Delete)
 			}
 
 			// Box routes
@@ -108,7 +121,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				boxes.POST("/:id/sync-profiles", boxHandler.SyncAllProfilesInBox)
 			}
 
-			// Box Proxy routes - for direct platform operations
+			// App Proxy routes - for direct platform operations
 			appProxy := protected.Group("/app-proxy")
 			{
 				appProxy.Any("/:app_id/*platform_path", appProxyHandler.ProxyRequest)
