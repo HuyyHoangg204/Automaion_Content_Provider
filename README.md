@@ -147,7 +147,7 @@ BASE_PATH=/
 
 The application automatically creates a default admin user on startup:
 - **Username**: admin
-- **Password**: admin123
+- **Password**: Helloworld@@123
 
 **Important**: Change the admin password immediately after first login in production!
 
