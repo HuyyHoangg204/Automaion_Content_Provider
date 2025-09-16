@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 )
 
 type HidemiumService struct{}
@@ -24,6 +26,10 @@ func (s *HidemiumService) FetchAllProfilesWithPagination(tunnelURL string) ([]ma
 	log.Printf("Start fetching all profiles from tunnel: %s", tunnelURL)
 
 	for {
+		if page > 50 {
+			log.Printf("Reached page limit of 50, stopping sync.")
+			break
+		}
 		log.Printf("Fetching page %d of profiles...", page)
 		profiles, err := s.fetchProfilesFromPlatformWithPagination(tunnelURL, page, limit)
 		if err != nil {
@@ -86,50 +92,29 @@ func (s *HidemiumService) buildProfilesURLWithPagination(baseURL string, page, l
 }
 
 func (s *HidemiumService) parseHidemiumProfilesResponse(body io.Reader) ([]map[string]interface{}, error) {
-	var response map[string]interface{}
+	var response models.HidemiumResponse
 	if err := json.NewDecoder(body).Decode(&response); err != nil {
 		return nil, fmt.Errorf("failed to decode hidemium response: %w", err)
 	}
 
-	var profiles []map[string]interface{}
-
-	if data, ok := response["data"].(map[string]interface{}); ok {
-		if content, ok := data["content"].([]interface{}); ok {
-			for _, item := range content {
-				if profile, ok := item.(map[string]interface{}); ok {
-					profiles = append(profiles, profile)
-				}
-			}
-			return profiles, nil
-		}
+	content, ok := response.Data["content"]
+	if !ok {
+		return nil, fmt.Errorf("content field not found in response data")
 	}
 
-	possibleFields := []string{"data", "profiles", "result", "list", "browsers"}
-
-	for _, field := range possibleFields {
-		if value, exists := response[field]; exists {
-			switch v := value.(type) {
-			case []interface{}:
-				for _, item := range v {
-					if profile, ok := item.(map[string]interface{}); ok {
-						profiles = append(profiles, profile)
-					}
-				}
-				return profiles, nil
-			case map[string]interface{}:
-				for _, nestedValue := range v {
-					if nestedArray, ok := nestedValue.([]interface{}); ok {
-						for _, item := range nestedArray {
-							if profile, ok := item.(map[string]interface{}); ok {
-								profiles = append(profiles, profile)
-							}
-						}
-						return profiles, nil
-					}
-				}
-			}
-		}
+	profiles, ok := content.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("content is not an array of profiles")
 	}
 
-	return nil, nil
+	var result []map[string]interface{}
+	for _, p := range profiles {
+		profile, ok := p.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("profile is not a map")
+		}
+		result = append(result, profile)
+	}
+
+	return result, nil
 }
