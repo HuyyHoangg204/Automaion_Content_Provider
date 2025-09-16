@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -20,20 +21,27 @@ func (s *HidemiumService) FetchAllProfilesWithPagination(tunnelURL string) ([]ma
 	page := 1
 	limit := 100
 
+	log.Printf("Start fetching all profiles from tunnel: %s", tunnelURL)
+
 	for {
+		log.Printf("Fetching page %d of profiles...", page)
 		profiles, err := s.fetchProfilesFromPlatformWithPagination(tunnelURL, page, limit)
 		if err != nil {
+			log.Printf("Error fetching page %d: %v", page, err)
 			return nil, err
 		}
 
 		if len(profiles) == 0 {
+			log.Printf("No more profiles to fetch. Total pages fetched: %d", page-1)
 			break
 		}
 
+		log.Printf("Fetched %d profiles from page %d", len(profiles), page)
 		allProfiles = append(allProfiles, profiles...)
 		page++
 	}
 
+	log.Printf("Successfully fetched a total of %d profiles.", len(allProfiles))
 	return allProfiles, nil
 }
 
