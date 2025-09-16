@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,11 +25,17 @@ func (s *HidemiumService) FetchAllProfilesWithPagination(tunnelURL string) ([]ma
 	page := 1
 	limit := 100
 
+	pageLimitStr := os.Getenv("SYNC_PAGE_LIMIT")
+	pageLimit, err := strconv.Atoi(pageLimitStr)
+	if err != nil || pageLimit <= 0 {
+		pageLimit = 100
+	}
+
 	log.Printf("Start fetching all profiles from tunnel: %s", tunnelURL)
 
 	for {
-		if page > 50 {
-			log.Printf("Reached page limit of 50, stopping sync.")
+		if page > pageLimit {
+			log.Printf("Reached page limit of %d, stopping sync.", pageLimit)
 			break
 		}
 		log.Printf("Fetching page %d of profiles...", page)
