@@ -1,6 +1,8 @@
 package router
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
@@ -17,6 +19,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// getEnv gets environment variable or returns default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 // SetupRouter configures the Gin router with user authentication routes
 func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePath string) *gin.Engine {
 	// Set Gin mode
@@ -24,6 +34,9 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 
 	// Create a new router
 	r := gin.New()
+
+	// Set max memory for multipart form (32MB for file uploads)
+	r.MaxMultipartMemory = 32 << 20 // 32 MB
 
 	// Use middleware
 	r.Use(gin.Recovery())
@@ -50,6 +63,14 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	// Create SSE Hub for real-time log streaming
 	sseHub := services.NewSSEHub()
 
+	// Get base URL from environment
+	baseURL := getEnv("BASE_URL", "")
+	if baseURL == "" {
+		port := getEnv("PORT", "8080")
+		baseURL = fmt.Sprintf("http://localhost:%s", port)
+		logrus.Warnf("BASE_URL not set, using default: %s", baseURL)
+	}
+
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(db)
@@ -59,6 +80,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	machineHandler := handlers.NewMachineHandler(db)
 	topicHandler := handlers.NewTopicHandler(db, sseHub, rabbitMQService)
 	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
+	fileHandler := handlers.NewFileHandler(db, baseURL)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db)
@@ -152,6 +174,14 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				topics.PUT("/:id", topicHandler.UpdateTopic)
 				topics.DELETE("/:id", topicHandler.DeleteTopic)
 				// topics.POST("/:id/sync", topicHandler.SyncTopicWithGemini) // TODO: Implement later
+			}
+
+			// File routes
+			files := protected.Group("/files")
+			{
+				files.POST("/upload", fileHandler.UploadFile)
+				files.GET("", fileHandler.GetMyFiles)
+				files.GET("/:id/download", fileHandler.DownloadFile)
 			}
 
 			// Process Log routes

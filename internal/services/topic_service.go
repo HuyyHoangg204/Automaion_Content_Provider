@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -20,15 +21,28 @@ type TopicService struct {
 	appRepo              *repository.AppRepository
 	chromeProfileService *ChromeProfileService
 	processLogService    *ProcessLogService
+	baseURL              string // Base URL để generate download URLs cho files
 }
 
 func NewTopicService(topicRepo *repository.TopicRepository, userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, chromeProfileService *ChromeProfileService, processLogService *ProcessLogService) *TopicService {
+	// Get base URL from environment
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+		baseURL = fmt.Sprintf("http://localhost:%s", port)
+		logrus.Warnf("BASE_URL not set, using default: %s", baseURL)
+	}
+
 	return &TopicService{
 		topicRepo:            topicRepo,
 		userProfileRepo:      userProfileRepo,
 		appRepo:              appRepo,
 		chromeProfileService: chromeProfileService,
 		processLogService:    processLogService,
+		baseURL:              baseURL,
 	}
 }
 
@@ -124,10 +138,13 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		}
 
 		// Log: Gem created successfully
-		s.processLogService.Log("topic", topic.ID, userID, launchResp.MachineID, "gem_created", "success", "Gem created successfully on Gemini", map[string]interface{}{
-			"gemini_gem_id":   geminiGemID,
+		logData := map[string]interface{}{
 			"gemini_gem_name": geminiGemName,
-		})
+		}
+		if geminiGemID != "" {
+			logData["gemini_gem_id"] = geminiGemID
+		}
+		s.processLogService.Log("topic", topic.ID, userID, launchResp.MachineID, "gem_created", "success", "Gem created successfully on Gemini", logData)
 
 		// Step 3: Release lock after successful Gem creation
 		if err := s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
@@ -139,7 +156,13 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		}
 
 		// Update topic with Gemini info
-		topic.GeminiGemID = &geminiGemID
+		// Note: gemini_gem_id là optional - chỉ lưu khi có giá trị
+		// Logic hiện tại xác định gem bằng name, không cần ID
+		if geminiGemID != "" {
+			topic.GeminiGemID = &geminiGemID
+		} else {
+			topic.GeminiGemID = nil
+		}
 		topic.GeminiGemName = geminiGemName
 		topic.SyncStatus = "synced"
 		now := time.Now()
@@ -150,15 +173,56 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 			logrus.Errorf("Failed to update topic with Gemini info: %v", err)
 		} else {
 			// Log: Topic creation completed
-			s.processLogService.Log("topic", topic.ID, userID, launchResp.MachineID, "completed", "success", "Topic created successfully", map[string]interface{}{
-				"gemini_gem_id":   geminiGemID,
+			completeLogData := map[string]interface{}{
 				"gemini_gem_name": geminiGemName,
-			})
-			logrus.Infof("Successfully created Gem on Gemini for topic %s, gem_id: %s", topic.ID, geminiGemID)
+			}
+			if geminiGemID != "" {
+				completeLogData["gemini_gem_id"] = geminiGemID
+				logrus.Infof("Successfully created Gem on Gemini for topic %s, gem_id: %s, gem_name: %s", topic.ID, geminiGemID, geminiGemName)
+			} else {
+				logrus.Infof("Successfully created Gem on Gemini for topic %s, gem_name: %s (no ID returned, using name for identification)", topic.ID, geminiGemName)
+			}
+			s.processLogService.Log("topic", topic.ID, userID, launchResp.MachineID, "completed", "success", "Topic created successfully", completeLogData)
 		}
 	}()
 
 	return topic, nil
+}
+
+// convertFileIDsToURLs converts file IDs (UUIDs) to download URLs
+// Logic đơn giản: Nếu là file ID (UUID format) → convert thành URL
+// Automation backend sẽ tự download files từ URLs này
+func (s *TopicService) convertFileIDsToURLs(fileInputs []string) []string {
+	if len(fileInputs) == 0 {
+		return []string{}
+	}
+
+	urls := make([]string, 0, len(fileInputs))
+	for _, fileInput := range fileInputs {
+		// Check if it's a file ID (UUID format: 8-4-4-4-12 hex digits)
+		if s.isFileID(fileInput) {
+			// Convert file ID to download URL
+			downloadURL := fmt.Sprintf("%s/api/v1/files/%s/download", strings.TrimSuffix(s.baseURL, "/"), fileInput)
+			urls = append(urls, downloadURL)
+		} else {
+			// Already a URL or local path - keep as is
+			urls = append(urls, fileInput)
+		}
+	}
+
+	return urls
+}
+
+// isFileID checks if input is a file ID (UUID format)
+func (s *TopicService) isFileID(input string) bool {
+	// Basic UUID format check (8-4-4-4-12 hex digits)
+	if len(input) == 36 {
+		parts := strings.Split(input, "-")
+		if len(parts) == 5 && len(parts[0]) == 8 && len(parts[1]) == 4 && len(parts[2]) == 4 && len(parts[3]) == 4 && len(parts[4]) == 12 {
+			return true
+		}
+	}
+	return false
 }
 
 // createGemOnGemini calls the Gemini API to create a Gem
@@ -166,6 +230,10 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *models.CreateTopicRequest, tunnelURL string) (string, string, error) {
 	// Build API URL: POST /gemini/gems
 	apiURL := fmt.Sprintf("%s/gemini/gems", strings.TrimSuffix(tunnelURL, "/"))
+
+	// Convert file IDs to download URLs nếu có
+	// Automation backend sẽ tự download files từ URLs này
+	knowledgeFiles := s.convertFileIDsToURLs(req.KnowledgeFiles)
 
 	// Prepare request body (without debugPort)
 	// Note: Không gửi userDataDir - automation backend tự resolve path
@@ -175,7 +243,7 @@ func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *m
 		"gemName":        req.Name,
 		"description":    req.Description,
 		"instructions":   req.Instructions,
-		"knowledgeFiles": req.KnowledgeFiles,
+		"knowledgeFiles": knowledgeFiles, // URLs để automation backend download
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
