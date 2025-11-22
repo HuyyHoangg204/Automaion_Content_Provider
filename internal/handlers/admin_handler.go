@@ -14,12 +14,9 @@ import (
 )
 
 type AdminHandler struct {
-	authService     *auth.AuthService
-	boxService      *services.BoxService
-	appService      *services.AppService
-	profileService  *services.ProfileService
-	campaignService *services.CampaignService
-	flowService     *services.FlowService
+	authService *auth.AuthService
+	boxService  *services.BoxService
+	appService  *services.AppService
 }
 
 func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
@@ -27,18 +24,11 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 	userRepo := repository.NewUserRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
-	campaignRepo := repository.NewCampaignRepository(db)
-	flowGroupRepo := repository.NewFlowGroupRepository(db)
-	flowRepo := repository.NewFlowRepository(db)
 
 	return &AdminHandler{
-		authService:     authService,
-		boxService:      services.NewBoxService(boxRepo, userRepo, profileRepo),
-		appService:      services.NewAppService(appRepo, profileRepo, boxRepo, userRepo),
-		profileService:  services.NewProfileService(profileRepo, appRepo, userRepo, boxRepo),
-		campaignService: services.NewCampaignService(campaignRepo, flowGroupRepo, userRepo, profileRepo),
-		flowService:     services.NewFlowService(flowRepo, campaignRepo, flowGroupRepo, profileRepo, userRepo),
+		authService: authService,
+		boxService:  services.NewBoxService(boxRepo, userRepo),
+		appService:  services.NewAppService(appRepo, boxRepo, userRepo),
 	}
 }
 
@@ -239,93 +229,6 @@ func (h *AdminHandler) AdminGetAllApps(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, apps)
-}
-
-// AdminGetAllProfiles godoc
-// @Summary Get all profiles (Admin only)
-// @Description Get all profiles in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.ProfileResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/profiles [get]
-func (h *AdminHandler) AdminGetAllProfiles(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	profiles, err := h.profileService.GetAllProfiles()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get profiles", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, profiles)
-}
-
-// AdminGetAllCampaigns godoc
-// @Summary Get all campaigns (Admin only)
-// @Description Get all campaigns in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.CampaignResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/campaigns [get]
-func (h *AdminHandler) AdminGetAllCampaigns(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	campaigns, err := h.campaignService.GetAllCampaigns()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get campaigns", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, campaigns)
-}
-
-// AdminGetAllFlows godoc
-// @Summary Get all flows (Admin only)
-// @Description Get all flows in the system (Admin privileges required)
-// @Tags admin
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {array} models.FlowResponse
-// @Failure 401 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/admin/flows [get]
-func (h *AdminHandler) AdminGetAllFlows(c *gin.Context) {
-	// Check if user is admin
-	user := c.MustGet("user").(*models.User)
-	if !user.IsAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
-		return
-	}
-
-	flows, err := h.flowService.GetAllFlows()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get flows", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, flows)
 }
 
 // ResetPassword godoc

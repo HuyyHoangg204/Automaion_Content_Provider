@@ -10,6 +10,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,11 +20,12 @@ import (
 )
 
 type AuthService struct {
-	userRepo         *repository.UserRepository
-	refreshTokenRepo *repository.RefreshTokenRepository
-	jwtSecret        []byte
-	accessTokenTTL   time.Duration
-	refreshTokenTTL  time.Duration
+	userRepo           *repository.UserRepository
+	refreshTokenRepo   *repository.RefreshTokenRepository
+	userProfileService *services.UserProfileService
+	jwtSecret          []byte
+	accessTokenTTL     time.Duration
+	refreshTokenTTL    time.Duration
 }
 
 func NewAuthService(db *gorm.DB) *AuthService {
@@ -49,12 +51,18 @@ func NewAuthService(db *gorm.DB) *AuthService {
 	logrus.Infof("Access token TTL: %f", accessTokenTTL.Hours())
 	logrus.Infof("Refresh token TTL: %f", refreshTokenTTL.Hours())
 
+	// Initialize UserProfileService
+	userProfileRepo := repository.NewUserProfileRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	userProfileService := services.NewUserProfileService(userProfileRepo, appRepo)
+
 	return &AuthService{
-		userRepo:         repository.NewUserRepository(db),
-		refreshTokenRepo: repository.NewRefreshTokenRepository(db),
-		jwtSecret:        jwtSecret,
-		accessTokenTTL:   accessTokenTTL,
-		refreshTokenTTL:  refreshTokenTTL,
+		userRepo:           repository.NewUserRepository(db),
+		refreshTokenRepo:   repository.NewRefreshTokenRepository(db),
+		userProfileService: userProfileService,
+		jwtSecret:          jwtSecret,
+		accessTokenTTL:     accessTokenTTL,
+		refreshTokenTTL:    refreshTokenTTL,
 	}
 }
 
@@ -88,6 +96,27 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthRespons
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
+
+	// Create UserProfile and deploy to all machines
+	// Use default profile name based on username
+	profileName := fmt.Sprintf("Profile_%s", user.Username)
+	// Note: Không lưu UserDataDir trong DB vì path khác nhau trên mỗi máy automation
+	// Automation backend tự resolve path: path.join(os.homedir(), 'AppData', 'Local', 'Automation_Profiles')
+
+	createProfileReq := &models.CreateUserProfileRequest{
+		Name:           profileName,
+		ProfileDirName: profileName, // Profile directory name (ví dụ: Profile_huyhoang2004)
+	}
+
+	// Create profile in background (don't block registration)
+	go func() {
+		_, err := s.userProfileService.CreateUserProfileAndDeploy(user.ID, createProfileReq)
+		if err != nil {
+			logrus.Errorf("Failed to create user profile for user %s: %v", user.ID, err)
+		} else {
+			logrus.Infof("Successfully created and deployed user profile for user %s", user.ID)
+		}
+	}()
 
 	// Generate tokens
 	return s.generateAuthResponse(user)

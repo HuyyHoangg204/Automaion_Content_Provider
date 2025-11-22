@@ -27,6 +27,11 @@ func GetFrpConfig() *FrpConfig {
 	}
 }
 
+// GetAutomationProfilesPath returns the Automation Profiles base directory path
+func GetAutomationProfilesPath() string {
+	return getEnv("AUTOMATION_PROFILES_PATH", "C:\\Users\\tranh\\AppData\\Local\\Automation_Profiles")
+}
+
 // getEnv gets environment variable with fallback default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {

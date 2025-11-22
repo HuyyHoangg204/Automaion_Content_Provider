@@ -63,8 +63,20 @@ func InitDB() (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
+	// Create public schema if it doesn't exist
+	err = db.Exec("CREATE SCHEMA IF NOT EXISTS public").Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to create public schema: %w", err)
+	}
+
+	// Set search_path to public
+	err = db.Exec("SET search_path TO public").Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to set search_path: %w", err)
+	}
+
 	// Enable UUID extension
-	err = db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error
+	err = db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\" SCHEMA public").Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to enable UUID extension: %w", err)
 	}
@@ -73,17 +85,39 @@ func InitDB() (*gorm.DB, error) {
 	err = db.AutoMigrate(
 		&models.User{},
 		&models.RefreshToken{},
-		&models.Campaign{},
-		&models.CampaignLog{},
 		&models.Box{},
 		&models.App{},
-		&models.Profile{},
-		&models.FlowGroup{},
-		&models.Flow{},
+		&models.UserProfile{},
+		&models.Topic{},
+		&models.ProcessLog{},
 		&models.APIKey{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	// Migration: Drop user_data_dir column from user_profiles table if it exists
+	// This column is no longer needed as automation backend resolves path automatically
+	var columnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'user_profiles' 
+			AND column_name = 'user_data_dir'
+		)
+	`).Scan(&columnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if user_data_dir column exists: %v", err)
+	} else if columnExists {
+		logrus.Info("Dropping user_data_dir column from user_profiles table...")
+		err = db.Exec("ALTER TABLE user_profiles DROP COLUMN IF EXISTS user_data_dir").Error
+		if err != nil {
+			logrus.Warnf("Failed to drop user_data_dir column: %v", err)
+		} else {
+			logrus.Info("Successfully dropped user_data_dir column")
+		}
 	}
 
 	// Set global DB instance

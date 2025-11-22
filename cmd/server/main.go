@@ -12,6 +12,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/docs"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database"
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/router"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
@@ -74,6 +75,18 @@ func main() {
 	} else {
 		logrus.Info("RabbitMQ service initialized")
 		defer rabbitMQService.Close()
+
+		// Initialize ProcessLogService and start RabbitMQ consumer
+		logRepo := repository.NewProcessLogRepository(db)
+		sseHub := services.NewSSEHub()
+		processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
+		
+		if err := processLogService.StartRabbitMQConsumer(); err != nil {
+			logrus.Warnf("Failed to start RabbitMQ log consumer: %v", err)
+		} else {
+			logrus.Info("RabbitMQ log consumer started")
+			defer processLogService.StopRabbitMQConsumer()
+		}
 	}
 
 	// Create admin user if not exists

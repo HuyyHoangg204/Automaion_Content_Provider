@@ -63,3 +63,43 @@ type SyncBoxProfilesResponse struct {
 	ProfilesSynced  int    `json:"profiles_synced"`
 	Message         string `json:"message"`
 }
+
+// RegisterMachineRequest represents the request to register a machine
+type RegisterMachineRequest struct {
+	MachineID string `json:"machine_id" binding:"required" example:"abc123def456..."`
+	Name      string `json:"name" binding:"required" example:"My Computer"`
+}
+
+// RegisterMachineResponse represents the response for machine registration
+type RegisterMachineResponse struct {
+	BoxID   string  `json:"box_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID  *string `json:"user_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440001"`
+	Message string  `json:"message" example:"Machine registered successfully"`
+}
+
+// UpdateTunnelURLRequest represents the request to update tunnel URL
+type UpdateTunnelURLRequest struct {
+	TunnelURL string `json:"tunnel_url" binding:"required" example:"http://machineid-automation-userid.agent-controller.onegreen.cloud/"`
+}
+
+// UpdateTunnelURLResponse represents the response for tunnel URL update
+type UpdateTunnelURLResponse struct {
+	Success bool   `json:"success" example:"true"`
+	AppID   string `json:"app_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	Message string `json:"message" example:"Tunnel URL updated successfully"`
+}
+
+// HeartbeatRequest represents the request for machine heartbeat
+type HeartbeatRequest struct {
+	TunnelURL       string `json:"tunnel_url" example:"http://machineid-automation-userid.agent-controller.onegreen.cloud/"`
+	TunnelConnected bool   `json:"tunnel_connected" example:"true"`
+	APIRunning      bool   `json:"api_running" example:"true"`
+	APIPort         int    `json:"api_port" example:"3000"`
+}
+
+// HeartbeatResponse represents the response for heartbeat
+type HeartbeatResponse struct {
+	Success  bool   `json:"success" example:"true"`
+	LastSeen string `json:"last_seen" example:"2025-01-21T10:30:00Z"`
+	Message  string `json:"message" example:"Heartbeat received"`
+}

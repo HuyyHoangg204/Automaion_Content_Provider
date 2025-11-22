@@ -19,10 +19,6 @@ definitions:
         type: string
       name:
         type: string
-      profiles:
-        items:
-          $ref: '#/definitions/models.Profile'
-        type: array
       tunnel_url:
         description: Optional tunnel URL
         type: string
@@ -78,122 +74,6 @@ definitions:
         type: string
       name:
         example: My Computer
-        type: string
-      updated_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      user_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
-    type: object
-  models.Campaign:
-    properties:
-      concurrent_profiles:
-        description: Campaign details
-        type: integer
-      created_at:
-        type: string
-      description:
-        type: string
-      flow_groups:
-        items:
-          $ref: '#/definitions/models.FlowGroup'
-        type: array
-      id:
-        type: string
-      is_active:
-        type: boolean
-      logs:
-        items:
-          $ref: '#/definitions/models.CampaignLog'
-        type: array
-      name:
-        type: string
-      profiles:
-        items:
-          $ref: '#/definitions/models.Profile'
-        type: array
-      schedule:
-        allOf:
-        - $ref: '#/definitions/models.JSON'
-        description: Scheduling
-      script_name:
-        type: string
-      script_variables:
-        $ref: '#/definitions/models.JSON'
-      status:
-        description: idle, running, failed, completed
-        type: string
-      updated_at:
-        type: string
-      user:
-        allOf:
-        - $ref: '#/definitions/models.User'
-        description: Relationships
-      user_id:
-        type: string
-    type: object
-  models.CampaignLog:
-    properties:
-      campaign_id:
-        type: string
-      created_at:
-        type: string
-      details:
-        $ref: '#/definitions/models.JSON'
-      executed_at:
-        type: string
-      id:
-        type: string
-      message:
-        type: string
-      status:
-        description: e.g., "started", "completed", "failed"
-        type: string
-      updated_at:
-        type: string
-      user:
-        $ref: '#/definitions/models.User'
-      user_id:
-        type: string
-    type: object
-  models.CampaignResponse:
-    properties:
-      concurrent_profiles:
-        example: 10
-        type: integer
-      created_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      description:
-        example: This is a campaign to increase views
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      is_active:
-        example: true
-        type: boolean
-      logs:
-        items:
-          $ref: '#/definitions/models.CampaignLog'
-        type: array
-      name:
-        example: Tăng view campaign
-        type: string
-      profiles:
-        items:
-          $ref: '#/definitions/models.ProfileWithBoxResponse'
-        type: array
-      schedule:
-        $ref: '#/definitions/models.JSON'
-      script_name:
-        example: increase_views.js
-        type: string
-      script_variables:
-        $ref: '#/definitions/models.JSON'
-      status:
-        example: idle
         type: string
       updated_at:
         example: "2025-01-09T10:30:00Z"
@@ -268,188 +148,53 @@ definitions:
     - machine_id
     - name
     type: object
-  models.CreateCampaignRequest:
+  models.CreateTopicRequest:
     properties:
-      concurrent_profiles:
-        example: 10
-        type: integer
       description:
-        example: This is a campaign to increase views
+        example: Chủ đề về lịch sử Việt Nam
         type: string
-      is_active:
-        example: true
-        type: boolean
-      name:
-        example: Tăng view campaign
+      instructions:
+        example: You are a history expert...
         type: string
-      profile_ids:
+      knowledge_files:
+        example:
+        - '["file1.pdf"'
+        - ' "file2.txt"]'
         items:
           type: string
         type: array
-      schedule:
-        $ref: '#/definitions/models.JSON'
-      script_name:
-        example: increase_views.js
+      name:
+        example: Lịch sử
         type: string
-      script_variables:
-        $ref: '#/definitions/models.JSON'
     required:
     - name
-    - profile_ids
-    - schedule
-    - script_name
     type: object
-  models.CreateFlowRequest:
+  models.HeartbeatRequest:
     properties:
-      flow_group_id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      profile_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
-      status:
-        enum:
-        - Started
-        - Running
-        - Completed
-        - Failed
-        - Stopped
-        example: Started
-        type: string
-    required:
-    - flow_group_id
-    - profile_id
-    - status
-    type: object
-  models.Flow:
-    properties:
-      created_at:
-        type: string
-      description:
-        type: string
-      flow_group_id:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      profile_id:
-        type: string
-      result:
-        $ref: '#/definitions/models.JSON'
-      script_name:
-        type: string
-      status:
-        type: string
-      updated_at:
-        type: string
-      user_id:
+      api_port:
+        example: 3000
+        type: integer
+      api_running:
+        example: true
+        type: boolean
+      tunnel_connected:
+        example: true
+        type: boolean
+      tunnel_url:
+        example: http://machineid-automation-userid.agent-controller.onegreen.cloud/
         type: string
     type: object
-  models.FlowGroup:
+  models.HeartbeatResponse:
     properties:
-      campaign_id:
+      last_seen:
+        example: "2025-01-21T10:30:00Z"
         type: string
-      created_at:
+      message:
+        example: Heartbeat received
         type: string
-      description:
-        type: string
-      execution_data:
-        allOf:
-        - $ref: '#/definitions/models.JSON'
-        description: Store execution metadata
-      flows:
-        items:
-          $ref: '#/definitions/models.Flow'
-        type: array
-      id:
-        type: string
-      name:
-        type: string
-      script_name:
-        type: string
-      status:
-        description: pending, running, completed, failed
-        type: string
-      updated_at:
-        type: string
-      user_id:
-        type: string
-    type: object
-  models.FlowGroupResponse:
-    properties:
-      campaign_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
-      created_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      finished_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      name:
-        example: 'Campaign Run #1'
-        type: string
-      started_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-      status:
-        example: running
-        type: string
-      updated_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-    type: object
-  models.FlowGroupStats:
-    properties:
-      duration:
-        example: 30m
-        type: string
-      finished_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      name:
-        example: 'Campaign Run #1'
-        type: string
-      started_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-      status:
-        example: completed
-        type: string
-      success_rate:
-        example: 80
-        type: number
-    type: object
-  models.FlowResponse:
-    properties:
-      created_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      finished_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      profile_id:
-        example: 550e8400-e29b-41d4-a716-446655440002
-        type: string
-      started_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-      status:
-        example: Started
-        type: string
-      updated_at:
-        example: "2025-01-09T10:30:00Z"
-        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   models.JSON:
     additionalProperties: true
@@ -467,76 +212,6 @@ definitions:
   models.LogoutRequest:
     properties:
       refresh_token:
-        type: string
-    type: object
-  models.Profile:
-    properties:
-      app:
-        allOf:
-        - $ref: '#/definitions/models.App'
-        description: Relationships
-      app_id:
-        type: string
-      campaigns:
-        items:
-          $ref: '#/definitions/models.Campaign'
-        type: array
-      created_at:
-        type: string
-      data:
-        allOf:
-        - $ref: '#/definitions/models.JSON'
-        description: Store complex profile data from anti-detect browsers
-      flows:
-        items:
-          $ref: '#/definitions/models.Flow'
-        type: array
-      id:
-        type: string
-      name:
-        type: string
-      updated_at:
-        type: string
-    type: object
-  models.ProfileResponse:
-    properties:
-      app_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
-      created_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-      data:
-        $ref: '#/definitions/models.JSON'
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      name:
-        example: My Profile
-        type: string
-      updated_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-    type: object
-  models.ProfileWithBoxResponse:
-    properties:
-      app_id:
-        example: 550e8400-e29b-41d4-a716-446655440001
-        type: string
-      box_name:
-        example: My Computer
-        type: string
-      created_at:
-        example: "2025-01-09T10:00:00Z"
-        type: string
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      name:
-        example: My Profile
-        type: string
-      updated_at:
-        example: "2025-01-09T10:00:00Z"
         type: string
     type: object
   models.RefreshToken:
@@ -607,6 +282,30 @@ definitions:
           @Example {"hidemium": "machineid-hidemium-userid"}
         type: object
     type: object
+  models.RegisterMachineRequest:
+    properties:
+      machine_id:
+        example: abc123def456...
+        type: string
+      name:
+        example: My Computer
+        type: string
+    required:
+    - machine_id
+    - name
+    type: object
+  models.RegisterMachineResponse:
+    properties:
+      box_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      message:
+        example: Machine registered successfully
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+    type: object
   models.RegisterRequest:
     properties:
       first_name:
@@ -632,31 +331,101 @@ definitions:
     required:
     - new_password
     type: object
-  models.SyncAppProfilesResponse:
+  models.Topic:
     properties:
-      message:
+      created_at:
+        description: Timestamps
         type: string
-      profiles_created:
-        type: integer
-      profiles_deleted:
-        type: integer
-      profiles_synced:
-        type: integer
-      profiles_updated:
-        type: integer
+      description:
+        description: Content
+        example: Chủ đề về lịch sử Việt Nam
+        type: string
+      gemini_gem_id:
+        description: Gemini Gem info
+        example: gemini-gem-123
+        type: string
+      gemini_gem_name:
+        example: My History Gem
+        type: string
+      id:
+        description: Primary key
+        type: string
+      instructions:
+        example: You are a history expert...
+        type: string
+      is_active:
+        description: Status & Tracking
+        type: boolean
+      knowledge_files:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: Array of file paths/IDs
+      last_synced_at:
+        example: "2025-01-21T10:30:00Z"
+        type: string
+      name:
+        description: Basic info
+        example: Lịch sử
+        type: string
+      sync_error:
+        example: API returned status 404
+        type: string
+      sync_status:
+        description: '"pending", "synced", "failed"'
+        example: synced
+        type: string
+      updated_at:
+        type: string
+      user_profile:
+        allOf:
+        - $ref: '#/definitions/models.UserProfile'
+        description: Relationships
+      user_profile_id:
+        type: string
     type: object
-  models.SyncBoxProfilesResponse:
+  models.TopicResponse:
     properties:
-      message:
+      created_at:
+        example: "2025-01-21T10:00:00Z"
         type: string
-      profiles_created:
-        type: integer
-      profiles_deleted:
-        type: integer
-      profiles_synced:
-        type: integer
-      profiles_updated:
-        type: integer
+      description:
+        example: Chủ đề về lịch sử Việt Nam
+        type: string
+      gemini_gem_id:
+        example: gemini-gem-123
+        type: string
+      gemini_gem_name:
+        example: My History Gem
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      instructions:
+        example: You are a history expert...
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      knowledge_files:
+        $ref: '#/definitions/models.JSON'
+      last_synced_at:
+        example: "2025-01-21T10:30:00Z"
+        type: string
+      name:
+        example: Lịch sử
+        type: string
+      sync_error:
+        example: ""
+        type: string
+      sync_status:
+        example: synced
+        type: string
+      updated_at:
+        example: "2025-01-21T10:00:00Z"
+        type: string
+      user_profile_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
     type: object
   models.UpdateAppRequest:
     properties:
@@ -677,60 +446,53 @@ definitions:
     required:
     - name
     type: object
-  models.UpdateCampaignRequest:
+  models.UpdateTopicRequest:
     properties:
-      concurrent_profiles:
-        example: 20
-        type: integer
       description:
-        example: This is an updated campaign
+        example: Updated description
+        type: string
+      instructions:
+        example: Updated instructions
         type: string
       is_active:
-        example: false
+        example: true
         type: boolean
-      name:
-        example: Updated Campaign Name
-        type: string
-      profile_ids:
+      knowledge_files:
+        example:
+        - '["file1.pdf"'
+        - ' "file2.txt"]'
         items:
           type: string
         type: array
-      schedule:
-        $ref: '#/definitions/models.JSON'
-      script_name:
-        example: updated_script.js
+      name:
+        example: Lịch sử Việt Nam
         type: string
-      script_variables:
-        $ref: '#/definitions/models.JSON'
-    required:
-    - name
-    - profile_ids
-    - schedule
-    - script_name
     type: object
-  models.UpdateFlowRequest:
+  models.UpdateTunnelURLRequest:
     properties:
-      status:
-        enum:
-        - Started
-        - Running
-        - Completed
-        - Failed
-        - Stopped
-        example: Completed
+      tunnel_url:
+        example: http://machineid-automation-userid.agent-controller.onegreen.cloud/
         type: string
     required:
-    - status
+    - tunnel_url
+    type: object
+  models.UpdateTunnelURLResponse:
+    properties:
+      app_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      message:
+        example: Tunnel URL updated successfully
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   models.User:
     properties:
       boxes:
         items:
           $ref: '#/definitions/models.Box'
-        type: array
-      campaigns:
-        items:
-          $ref: '#/definitions/models.Campaign'
         type: array
       created_at:
         type: string
@@ -755,7 +517,72 @@ definitions:
         type: integer
       updated_at:
         type: string
+      user_profile:
+        $ref: '#/definitions/models.UserProfile'
       username:
+        type: string
+    type: object
+  models.UserProfile:
+    properties:
+      config:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: Configuration
+      created_at:
+        description: Timestamps
+        type: string
+      current_app_id:
+        description: AppID đang chạy
+        type: string
+      current_machine_id:
+        description: Machine đang chạy
+        type: string
+      deployed_machines:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: Distribution & Load balancing
+      id:
+        description: Primary key
+        type: string
+      last_modified_at:
+        type: string
+      last_run_ended_at:
+        type: string
+      last_run_started_at:
+        description: Run tracking
+        type: string
+      machine_sync_status:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: '⭐ QUAN TRỌNG: Track sync status trên từng machine'
+      name:
+        description: Basic info
+        type: string
+      profile_dir_name:
+        type: string
+      profile_path:
+        type: string
+      profile_version:
+        description: Version tracking
+        type: integer
+      settings:
+        allOf:
+        - $ref: '#/definitions/models.JSON'
+        description: User preferences
+      topics:
+        items:
+          $ref: '#/definitions/models.Topic'
+        type: array
+      updated_at:
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/models.User'
+        description: Relationships
+      user_data_dir:
+        description: Paths & Directories
+        type: string
+      user_id:
         type: string
     type: object
 info:
@@ -837,108 +664,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get all boxes (Admin only)
-      tags:
-      - admin
-  /api/v1/admin/campaigns:
-    get:
-      consumes:
-      - application/json
-      description: Get all campaigns in the system (Admin privileges required)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.CampaignResponse'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get all campaigns (Admin only)
-      tags:
-      - admin
-  /api/v1/admin/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows in the system (Admin privileges required)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.FlowResponse'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get all flows (Admin only)
-      tags:
-      - admin
-  /api/v1/admin/profiles:
-    get:
-      consumes:
-      - application/json
-      description: Get all profiles in the system (Admin privileges required)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.ProfileResponse'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get all profiles (Admin only)
       tags:
       - admin
   /api/v1/admin/register:
@@ -1775,100 +1500,6 @@ paths:
       summary: Update app
       tags:
       - apps
-  /api/v1/apps/{id}/profiles:
-    get:
-      consumes:
-      - application/json
-      description: Get all profiles for a specific app (user must own the app) with
-        pagination
-      parameters:
-      - description: App ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get profiles by app
-      tags:
-      - profiles
-  /api/v1/apps/{id}/sync-profiles:
-    post:
-      consumes:
-      - application/json
-      description: Sync all profiles from a specific app
-      parameters:
-      - description: App ID to sync profiles from
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SyncAppProfilesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync profiles from a specific app
-      tags:
-      - apps
   /api/v1/apps/check-tunnel:
     get:
       consumes:
@@ -1950,43 +1581,6 @@ paths:
       security:
       - BearerAuth: []
       summary: Get subdomain and FRP configuration for app registration
-      tags:
-      - apps
-  /api/v1/apps/sync-profiles-all-apps:
-    post:
-      consumes:
-      - application/json
-      description: Sync all profiles from all apps owned by the user
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.SyncAppProfilesResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync all profiles from all apps owned by the user
       tags:
       - apps
   /api/v1/auth/change-password:
@@ -2425,15 +2019,15 @@ paths:
       summary: Get apps by box
       tags:
       - boxes
-  /api/v1/boxes/{id}/sync-profiles:
-    post:
+  /api/v1/machines/{machine_id}/frp-config:
+    get:
       consumes:
       - application/json
-      description: Sync all profiles from all apps in a specific box
+      description: Get FRP configuration and subdomain for a specific machine by machine_id
       parameters:
-      - description: Box ID to sync profiles from
+      - description: Machine ID
         in: path
-        name: id
+        name: machine_id
         required: true
         type: string
       produces:
@@ -2442,14 +2036,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.SyncBoxProfilesResponse'
+            $ref: '#/definitions/models.RegisterAppResponse'
         "400":
           description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
           schema:
             additionalProperties: true
             type: object
@@ -2463,16 +2052,135 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      security:
-      - BearerAuth: []
-      summary: Sync all profiles from all apps in a box
+      summary: Get FRP configuration for a machine
       tags:
-      - boxes
-  /api/v1/campaigns:
+      - machines
+  /api/v1/machines/{machine_id}/heartbeat:
+    post:
+      consumes:
+      - application/json
+      description: Send heartbeat to update machine status and last seen time
+      parameters:
+      - description: Machine ID
+        in: path
+        name: machine_id
+        required: true
+        type: string
+      - description: Heartbeat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.HeartbeatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.HeartbeatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Send machine heartbeat
+      tags:
+      - machines
+  /api/v1/machines/{machine_id}/tunnel-url:
+    put:
+      consumes:
+      - application/json
+      description: Update tunnel URL for the machine's Automation app
+      parameters:
+      - description: Machine ID
+        in: path
+        name: machine_id
+        required: true
+        type: string
+      - description: Tunnel URL update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTunnelURLRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UpdateTunnelURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update tunnel URL for a machine
+      tags:
+      - machines
+  /api/v1/machines/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new machine or return existing machine info. This is
+        a public endpoint for machines to self-register.
+      parameters:
+      - description: Machine registration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterMachineRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RegisterMachineResponse'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.RegisterMachineResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register a machine
+      tags:
+      - machines
+  /api/v1/topics:
     get:
       consumes:
       - application/json
-      description: Get all campaigns belonging to the authenticated user
+      description: Get all topics belonging to the authenticated user
       produces:
       - application/json
       responses:
@@ -2480,13 +2188,8 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.CampaignResponse'
+              $ref: '#/definitions/models.TopicResponse'
             type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -2494,39 +2197,29 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get user's campaigns
+      summary: Get all topics for the current user
       tags:
-      - campaigns
+      - topics
     post:
       consumes:
       - application/json
-      description: Create a new campaign for the authenticated user
+      description: Create a new topic and automatically create a Gem on Gemini
       parameters:
-      - description: Create campaign request
+      - description: Topic creation request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.CreateCampaignRequest'
+          $ref: '#/definitions/models.CreateTopicRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.CampaignResponse'
+            $ref: '#/definitions/models.TopicResponse'
         "400":
           description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Conflict
           schema:
             additionalProperties: true
             type: object
@@ -2537,56 +2230,16 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Create a new campaign
+      summary: Create a new topic
       tags:
-      - campaigns
-  /api/v1/campaigns/{id}:
+      - topics
+  /api/v1/topics/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a campaign (user must own it)
+      description: Delete a topic by its ID
       parameters:
-      - description: Campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete campaign
-      tags:
-      - campaigns
-    get:
-      consumes:
-      - application/json
-      description: Get a specific campaign by ID (user must own it)
-      parameters:
-      - description: Campaign ID
+      - description: Topic ID
         in: path
         name: id
         required: true
@@ -2597,15 +2250,6 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.CampaignResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
             additionalProperties: true
             type: object
         "404":
@@ -2620,174 +2264,66 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get campaign by ID
+      summary: Delete a topic
       tags:
-      - campaigns
+      - topics
+    get:
+      consumes:
+      - application/json
+      description: Get a specific topic by its ID
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TopicResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a topic by ID
+      tags:
+      - topics
     put:
       consumes:
       - application/json
-      description: Update a campaign (user must own it)
+      description: Update a topic's information
       parameters:
-      - description: Campaign ID
+      - description: Topic ID
         in: path
         name: id
         required: true
         type: string
-      - description: Update campaign request
+      - description: Topic update request
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.UpdateCampaignRequest'
+          $ref: '#/definitions/models.UpdateTopicRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.CampaignResponse'
+            $ref: '#/definitions/models.TopicResponse'
         "400":
           description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Conflict
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update campaign
-      tags:
-      - campaigns
-  /api/v1/campaigns/{id}/flow-groups:
-    get:
-      consumes:
-      - application/json
-      description: Get all group campaigns for a specific campaign
-      parameters:
-      - description: Campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.FlowGroupResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get all group campaigns for a campaign
-      tags:
-      - flow-groups
-  /api/v1/campaigns/{id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific campaign (user must own the campaign)
-        with pagination
-      parameters:
-      - description: Campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by campaign
-      tags:
-      - flows
-  /api/v1/campaigns/{id}/run:
-    post:
-      consumes:
-      - application/json
-      description: Execute a campaign by sending execution request to queue
-      parameters:
-      - description: Campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
           schema:
             additionalProperties: true
             type: object
@@ -2803,610 +2339,9 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Run a campaign
+      summary: Update a topic
       tags:
-      - campaigns
-  /api/v1/excel/download/{filename}:
-    get:
-      consumes:
-      - application/json
-      description: Download a previously exported Excel file
-      parameters:
-      - description: Excel filename
-        in: path
-        name: filename
-        required: true
-        type: string
-      produces:
-      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-      responses:
-        "200":
-          description: Excel file
-          schema:
-            type: file
-        "404":
-          description: 'success: false, error: error message'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 'success: false, error: error message'
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Download Excel file
-      tags:
-      - excel
-  /api/v1/excel/export/flow-groups/{flowgroupid}:
-    get:
-      consumes:
-      - application/json
-      description: Export a specific flow group and its flows to an Excel file
-      parameters:
-      - description: Flow Group ID
-        in: path
-        name: flowgroupid
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "302":
-          description: Redirect to download URL
-          schema:
-            type: string
-        "404":
-          description: 'success: false, error: error message'
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: 'success: false, error: error message'
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Export flow group to Excel
-      tags:
-      - excel
-  /api/v1/flow-groups/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific group campaign by its ID
-      parameters:
-      - description: Group campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.FlowGroupResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get a group campaign by ID
-      tags:
-      - flow-groups
-  /api/v1/flow-groups/{id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific group campaign (user must own the
-        campaign) with pagination
-      parameters:
-      - description: Group Campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by group campaign
-      tags:
-      - flows
-  /api/v1/flow-groups/{id}/stats:
-    get:
-      consumes:
-      - application/json
-      description: Get statistics for a specific group campaign
-      parameters:
-      - description: Group campaign ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.FlowGroupStats'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get group campaign statistics
-      tags:
-      - flow-groups
-  /api/v1/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows belonging to the authenticated user with pagination
-      parameters:
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user's flows
-      tags:
-      - flows
-    post:
-      consumes:
-      - application/json
-      description: Create a new flow for the authenticated user
-      parameters:
-      - description: Create flow request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.CreateFlowRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.FlowResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create a new flow
-      tags:
-      - flows
-  /api/v1/flows/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a flow (user must own it)
-      parameters:
-      - description: Flow ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete flow
-      tags:
-      - flows
-    get:
-      consumes:
-      - application/json
-      description: Get a specific flow by ID (user must own it)
-      parameters:
-      - description: Flow ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.FlowResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flow by ID
-      tags:
-      - flows
-    put:
-      consumes:
-      - application/json
-      description: Update a flow (user must own it)
-      parameters:
-      - description: Flow ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update flow request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateFlowRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.FlowResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update flow
-      tags:
-      - flows
-  /api/v1/flows/status/{status}:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific status (user must own them) with pagination
-      parameters:
-      - description: Flow Status
-        enum:
-        - Started
-        - Running
-        - Completed
-        - Failed
-        - Stopped
-        in: path
-        name: status
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by status
-      tags:
-      - flows
-  /api/v1/profiles:
-    get:
-      consumes:
-      - application/json
-      description: Get all profiles for a specific box (user must own the box) with
-        pagination
-      parameters:
-      - description: Box ID
-        in: query
-        name: box_id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user's profiles
-      tags:
-      - profiles
-  /api/v1/profiles/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific profile by ID (user must own it)
-      parameters:
-      - description: Profile ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.ProfileResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get profile by ID
-      tags:
-      - profiles
-  /api/v1/profiles/{id}/flows:
-    get:
-      consumes:
-      - application/json
-      description: Get all flows for a specific profile (user must own the profile)
-        with pagination
-      parameters:
-      - description: Profile ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 'Page number (default: 1)'
-        in: query
-        minimum: 1
-        name: page
-        type: integer
-      - description: 'Number of items per page (default: 20, max: 100)'
-        in: query
-        maximum: 100
-        minimum: 1
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get flows by profile
-      tags:
-      - flows
+      - topics
 securityDefinitions:
   BearerAuth:
     description: Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")

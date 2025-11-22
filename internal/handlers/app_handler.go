@@ -20,9 +20,8 @@ func NewAppHandler(db *gorm.DB) *AppHandler {
 	userRepo := repository.NewUserRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
 
-	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
+	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	return &AppHandler{
 		appService: appService,
 	}
@@ -278,73 +277,3 @@ func (h *AppHandler) CheckTunnelURL(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// SyncAppProfiles syncs profiles from a specific app
-// @Summary Sync profiles from a specific app
-// @Description Sync all profiles from a specific app
-// @Tags apps
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "App ID to sync profiles from"
-// @Success 200 {object} models.SyncAppProfilesResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/{id}/sync-profiles [post]
-func (h *AppHandler) SyncAppProfiles(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-	appID := c.Param("id")
-
-	// Verify user has access to the app
-	if _, err := h.appService.GetAppByUserIDAndID(userID, appID); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "App not found"})
-		return
-	}
-
-	// Sync profiles from the app
-	response, err := h.appService.SyncProfilesByAppID(appID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync profiles", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-// SyncAllUserApps syncs all apps owned by the user
-// @Summary Sync all profiles from all apps owned by the user
-// @Description Sync all profiles from all apps owned by the user
-// @Tags apps
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Success 200 {object} models.SyncAppProfilesResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/apps/sync-profiles-all-apps [post]
-func (h *AppHandler) SyncAllUserApps(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-
-	// Get all apps for the user
-	apps, err := h.appService.GetAppsByUserID(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user apps"})
-		return
-	}
-	if len(apps) == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "No apps found for user"})
-		return
-	}
-
-	// Sync all user apps
-	response, err := h.appService.SyncProfilesByApps(apps)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to sync profiles", "details": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}

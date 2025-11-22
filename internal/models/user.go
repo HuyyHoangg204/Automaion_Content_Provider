@@ -19,8 +19,8 @@ type User struct {
 	LastLoginAt  *time.Time `json:"last_login_at"`
 	// Relationships
 	RefreshTokens []RefreshToken `json:"refresh_tokens,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	Campaigns     []Campaign     `json:"campaigns,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Boxes         []Box          `json:"boxes,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	UserProfile   *UserProfile   `json:"user_profile,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 }
 
 // TableName specifies the table name for the User model

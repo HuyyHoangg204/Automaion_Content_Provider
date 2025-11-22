@@ -49,6 +49,13 @@ func (r *AppRepository) GetByUserIDAndBoxID(userID, boxID string) ([]*models.App
 	return apps, err
 }
 
+// GetByBoxID retrieves all apps for a specific box
+func (r *AppRepository) GetByBoxID(boxID string) ([]*models.App, error) {
+	var apps []*models.App
+	err := r.db.Where("box_id = ?", boxID).Find(&apps).Error
+	return apps, err
+}
+
 // GetByUserIDAndID retrieves an app by user ID and app ID
 func (r *AppRepository) GetByUserIDAndID(userID, appID string) (*models.App, error) {
 	var app models.App

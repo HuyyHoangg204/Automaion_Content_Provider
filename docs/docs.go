@@ -128,162 +128,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/admin/campaigns": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all campaigns in the system (Admin privileges required)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Get all campaigns (Admin only)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.CampaignResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/admin/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows in the system (Admin privileges required)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Get all flows (Admin only)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/admin/profiles": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all profiles in the system (Admin privileges required)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "Get all profiles (Admin only)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.ProfileResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/admin/register": {
             "post": {
                 "security": [
@@ -1452,62 +1296,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/apps/sync-profiles-all-apps": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from all apps owned by the user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "apps"
-                ],
-                "summary": "Sync all profiles from all apps owned by the user",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SyncAppProfilesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/apps/{id}": {
             "get": {
                 "security": [
@@ -1680,145 +1468,6 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/apps/{id}/profiles": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all profiles for a specific app (user must own the app) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Get profiles by app",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "App ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/apps/{id}/sync-profiles": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from a specific app",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "apps"
-                ],
-                "summary": "Sync profiles from a specific app",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "App ID to sync profiles from",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.SyncAppProfilesResponse"
-                        }
                     },
                     "400": {
                         "description": "Bad Request",
@@ -2508,14 +2157,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/boxes/{id}/sync-profiles": {
+        "/api/v1/machines/register": {
             "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Sync all profiles from all apps in a specific box",
+                "description": "Register a new machine or return existing machine info. This is a public endpoint for machines to self-register.",
                 "consumes": [
                     "application/json"
                 ],
@@ -2523,23 +2167,31 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "boxes"
+                    "machines"
                 ],
-                "summary": "Sync all profiles from all apps in a box",
+                "summary": "Register a machine",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Box ID to sync profiles from",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Machine registration request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterMachineRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.SyncBoxProfilesResponse"
+                            "$ref": "#/definitions/models.RegisterMachineResponse"
+                        }
+                    },
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterMachineResponse"
                         }
                     },
                     "400": {
@@ -2549,8 +2201,47 @@ const docTemplate = `{
                             "additionalProperties": true
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/machines/{machine_id}/frp-config": {
+            "get": {
+                "description": "Get FRP configuration and subdomain for a specific machine by machine_id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "machines"
+                ],
+                "summary": "Get FRP configuration for a machine",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "machine_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterAppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2573,14 +2264,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/campaigns": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all campaigns belonging to the authenticated user",
+        "/api/v1/machines/{machine_id}/heartbeat": {
+            "post": {
+                "description": "Send heartbeat to update machine status and last seen time",
                 "consumes": [
                     "application/json"
                 ],
@@ -2588,24 +2274,146 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "campaigns"
+                    "machines"
                 ],
-                "summary": "Get user's campaigns",
+                "summary": "Send machine heartbeat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "machine_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Heartbeat request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.HeartbeatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.HeartbeatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/machines/{machine_id}/tunnel-url": {
+            "put": {
+                "description": "Update tunnel URL for the machine's Automation app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "machines"
+                ],
+                "summary": "Update tunnel URL for a machine",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "machine_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Tunnel URL update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateTunnelURLRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateTunnelURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/topics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all topics belonging to the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "topics"
+                ],
+                "summary": "Get all topics for the current user",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.CampaignResponse"
+                                "$ref": "#/definitions/models.TopicResponse"
                             }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -2623,7 +2431,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Create a new campaign for the authenticated user",
+                "description": "Create a new topic and automatically create a Gem on Gemini",
                 "consumes": [
                     "application/json"
                 ],
@@ -2631,17 +2439,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "campaigns"
+                    "topics"
                 ],
-                "summary": "Create a new campaign",
+                "summary": "Create a new topic",
                 "parameters": [
                     {
-                        "description": "Create campaign request",
+                        "description": "Topic creation request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CreateCampaignRequest"
+                            "$ref": "#/definitions/models.CreateTopicRequest"
                         }
                     }
                 ],
@@ -2649,25 +2457,11 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.CampaignResponse"
+                            "$ref": "#/definitions/models.TopicResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2683,14 +2477,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/campaigns/{id}": {
+        "/api/v1/topics/{id}": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get a specific campaign by ID (user must own it)",
+                "description": "Get a specific topic by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -2698,13 +2492,13 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "campaigns"
+                    "topics"
                 ],
-                "summary": "Get campaign by ID",
+                "summary": "Get a topic by ID",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Campaign ID",
+                        "description": "Topic ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -2714,21 +2508,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CampaignResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/models.TopicResponse"
                         }
                     },
                     "404": {
@@ -2753,7 +2533,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update a campaign (user must own it)",
+                "description": "Update a topic's information",
                 "consumes": [
                     "application/json"
                 ],
@@ -2761,24 +2541,24 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "campaigns"
+                    "topics"
                 ],
-                "summary": "Update campaign",
+                "summary": "Update a topic",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Campaign ID",
+                        "description": "Topic ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Update campaign request",
+                        "description": "Topic update request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.UpdateCampaignRequest"
+                            "$ref": "#/definitions/models.UpdateTopicRequest"
                         }
                     }
                 ],
@@ -2786,902 +2566,11 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CampaignResponse"
+                            "$ref": "#/definitions/models.TopicResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a campaign (user must own it)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "campaigns"
-                ],
-                "summary": "Delete campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/campaigns/{id}/flow-groups": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all group campaigns for a specific campaign",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flow-groups"
-                ],
-                "summary": "Get all group campaigns for a campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/models.FlowGroupResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/campaigns/{id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific campaign (user must own the campaign) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/campaigns/{id}/run": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Execute a campaign by sending execution request to queue",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "campaigns"
-                ],
-                "summary": "Run a campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/excel/download/{filename}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Download a previously exported Excel file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                ],
-                "tags": [
-                    "excel"
-                ],
-                "summary": "Download Excel file",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Excel filename",
-                        "name": "filename",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Excel file",
-                        "schema": {
-                            "type": "file"
-                        }
-                    },
-                    "404": {
-                        "description": "success: false, error: error message",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "success: false, error: error message",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/excel/export/flow-groups/{flowgroupid}": {
-            "get": {
-                "description": "Export a specific flow group and its flows to an Excel file",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "excel"
-                ],
-                "summary": "Export flow group to Excel",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Flow Group ID",
-                        "name": "flowgroupid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Redirect to download URL",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "404": {
-                        "description": "success: false, error: error message",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "success: false, error: error message",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flow-groups/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a specific group campaign by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flow-groups"
-                ],
-                "summary": "Get a group campaign by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.FlowGroupResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flow-groups/{id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific group campaign (user must own the campaign) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by group campaign",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group Campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flow-groups/{id}/stats": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get statistics for a specific group campaign",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flow-groups"
-                ],
-                "summary": "Get group campaign statistics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Group campaign ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.FlowGroupStats"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows belonging to the authenticated user with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get user's flows",
-                "parameters": [
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new flow for the authenticated user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Create a new flow",
-                "parameters": [
-                    {
-                        "description": "Create flow request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.CreateFlowRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.FlowResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flows/status/{status}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific status (user must own them) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by status",
-                "parameters": [
-                    {
-                        "enum": [
-                            "Started",
-                            "Running",
-                            "Completed",
-                            "Failed",
-                            "Stopped"
-                        ],
-                        "type": "string",
-                        "description": "Flow Status",
-                        "name": "status",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/flows/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a specific flow by ID (user must own it)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flow by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Flow ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.FlowResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update a flow (user must own it)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Update flow",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Flow ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Update flow request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.UpdateFlowRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.FlowResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3709,7 +2598,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Delete a flow (user must own it)",
+                "description": "Delete a topic by its ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -3717,31 +2606,21 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "flows"
+                    "topics"
                 ],
-                "summary": "Delete flow",
+                "summary": "Delete a topic",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Flow ID",
+                        "description": "Topic ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -3749,219 +2628,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/profiles": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all profiles for a specific box (user must own the box) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Get user's profiles",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Box ID",
-                        "name": "box_id",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/profiles/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a specific profile by ID (user must own it)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "profiles"
-                ],
-                "summary": "Get profile by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.ProfileResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/profiles/{id}/flows": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all flows for a specific profile (user must own the profile) with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "flows"
-                ],
-                "summary": "Get flows by profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Profile ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Page number (default: 1)",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 100,
-                        "minimum": 1,
-                        "type": "integer",
-                        "description": "Number of items per page (default: 20, max: 100)",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4009,12 +2675,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Profile"
-                    }
                 },
                 "tunnel_url": {
                     "description": "Optional tunnel URL",
@@ -4111,179 +2771,6 @@ const docTemplate = `{
                 }
             }
         },
-        "models.Campaign": {
-            "type": "object",
-            "properties": {
-                "concurrent_profiles": {
-                    "description": "Campaign details",
-                    "type": "integer"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "flow_groups": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.FlowGroup"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "logs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.CampaignLog"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Profile"
-                    }
-                },
-                "schedule": {
-                    "description": "Scheduling",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.JSON"
-                        }
-                    ]
-                },
-                "script_name": {
-                    "type": "string"
-                },
-                "script_variables": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "status": {
-                    "description": "idle, running, failed, completed",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "description": "Relationships",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    ]
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.CampaignLog": {
-            "type": "object",
-            "properties": {
-                "campaign_id": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "details": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "executed_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "message": {
-                    "type": "string"
-                },
-                "status": {
-                    "description": "e.g., \"started\", \"completed\", \"failed\"",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.CampaignResponse": {
-            "type": "object",
-            "properties": {
-                "concurrent_profiles": {
-                    "type": "integer",
-                    "example": 10
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                },
-                "description": {
-                    "type": "string",
-                    "example": "This is a campaign to increase views"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "is_active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "logs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.CampaignLog"
-                    }
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Tăng view campaign"
-                },
-                "profiles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.ProfileWithBoxResponse"
-                    }
-                },
-                "schedule": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "script_name": {
-                    "type": "string",
-                    "example": "increase_views.js"
-                },
-                "script_variables": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "idle"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                },
-                "user_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
-                }
-            }
-        },
         "models.ChangePasswordRequest": {
             "type": "object",
             "required": [
@@ -4363,263 +2850,71 @@ const docTemplate = `{
                 }
             }
         },
-        "models.CreateCampaignRequest": {
+        "models.CreateTopicRequest": {
             "type": "object",
             "required": [
-                "name",
-                "profile_ids",
-                "schedule",
-                "script_name"
+                "name"
             ],
             "properties": {
-                "concurrent_profiles": {
-                    "type": "integer",
-                    "example": 10
-                },
                 "description": {
                     "type": "string",
-                    "example": "This is a campaign to increase views"
+                    "example": "Chủ đề về lịch sử Việt Nam"
                 },
-                "is_active": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "name": {
+                "instructions": {
                     "type": "string",
-                    "example": "Tăng view campaign"
+                    "example": "You are a history expert..."
                 },
-                "profile_ids": {
+                "knowledge_files": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
-                },
-                "schedule": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "script_name": {
-                    "type": "string",
-                    "example": "increase_views.js"
-                },
-                "script_variables": {
-                    "$ref": "#/definitions/models.JSON"
-                }
-            }
-        },
-        "models.CreateFlowRequest": {
-            "type": "object",
-            "required": [
-                "flow_group_id",
-                "profile_id",
-                "status"
-            ],
-            "properties": {
-                "flow_group_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "profile_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "Started",
-                        "Running",
-                        "Completed",
-                        "Failed",
-                        "Stopped"
-                    ],
-                    "example": "Started"
-                }
-            }
-        },
-        "models.Flow": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "flow_group_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "profile_id": {
-                    "type": "string"
-                },
-                "result": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "script_name": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.FlowGroup": {
-            "type": "object",
-            "properties": {
-                "campaign_id": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "execution_data": {
-                    "description": "Store execution metadata",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.JSON"
-                        }
+                    },
+                    "example": [
+                        "[\"file1.pdf\"",
+                        " \"file2.txt\"]"
                     ]
                 },
-                "flows": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Flow"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
                 "name": {
-                    "type": "string"
-                },
-                "script_name": {
-                    "type": "string"
-                },
-                "status": {
-                    "description": "pending, running, completed, failed",
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Lịch sử"
                 }
             }
         },
-        "models.FlowGroupResponse": {
+        "models.HeartbeatRequest": {
             "type": "object",
             "properties": {
-                "campaign_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                "api_port": {
+                    "type": "integer",
+                    "example": 3000
                 },
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
+                "api_running": {
+                    "type": "boolean",
+                    "example": true
                 },
-                "finished_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
+                "tunnel_connected": {
+                    "type": "boolean",
+                    "example": true
                 },
-                "id": {
+                "tunnel_url": {
                     "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Campaign Run #1"
-                },
-                "started_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "running"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
+                    "example": "http://machineid-automation-userid.agent-controller.onegreen.cloud/"
                 }
             }
         },
-        "models.FlowGroupStats": {
+        "models.HeartbeatResponse": {
             "type": "object",
             "properties": {
-                "duration": {
+                "last_seen": {
                     "type": "string",
-                    "example": "30m"
+                    "example": "2025-01-21T10:30:00Z"
                 },
-                "finished_at": {
+                "message": {
                     "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
+                    "example": "Heartbeat received"
                 },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Campaign Run #1"
-                },
-                "started_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "completed"
-                },
-                "success_rate": {
-                    "type": "number",
-                    "example": 80
-                }
-            }
-        },
-        "models.FlowResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                },
-                "finished_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "profile_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440002"
-                },
-                "started_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                },
-                "status": {
-                    "type": "string",
-                    "example": "Started"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:30:00Z"
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -4647,111 +2942,6 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string"
-                }
-            }
-        },
-        "models.Profile": {
-            "type": "object",
-            "properties": {
-                "app": {
-                    "description": "Relationships",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.App"
-                        }
-                    ]
-                },
-                "app_id": {
-                    "type": "string"
-                },
-                "campaigns": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Campaign"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "data": {
-                    "description": "Store complex profile data from anti-detect browsers",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/models.JSON"
-                        }
-                    ]
-                },
-                "flows": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Flow"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ProfileResponse": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                },
-                "data": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "My Profile"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                }
-            }
-        },
-        "models.ProfileWithBoxResponse": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440001"
-                },
-                "box_name": {
-                    "type": "string",
-                    "example": "My Computer"
-                },
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "My Profile"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-01-09T10:00:00Z"
                 }
             }
         },
@@ -4839,6 +3029,40 @@ const docTemplate = `{
                 }
             }
         },
+        "models.RegisterMachineRequest": {
+            "type": "object",
+            "required": [
+                "machine_id",
+                "name"
+            ],
+            "properties": {
+                "machine_id": {
+                    "type": "string",
+                    "example": "abc123def456..."
+                },
+                "name": {
+                    "type": "string",
+                    "example": "My Computer"
+                }
+            }
+        },
+        "models.RegisterMachineResponse": {
+            "type": "object",
+            "properties": {
+                "box_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Machine registered successfully"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                }
+            }
+        },
         "models.RegisterRequest": {
             "type": "object",
             "required": [
@@ -4875,43 +3099,138 @@ const docTemplate = `{
                 }
             }
         },
-        "models.SyncAppProfilesResponse": {
+        "models.Topic": {
             "type": "object",
             "properties": {
-                "message": {
+                "created_at": {
+                    "description": "Timestamps",
                     "type": "string"
                 },
-                "profiles_created": {
-                    "type": "integer"
+                "description": {
+                    "description": "Content",
+                    "type": "string",
+                    "example": "Chủ đề về lịch sử Việt Nam"
                 },
-                "profiles_deleted": {
-                    "type": "integer"
+                "gemini_gem_id": {
+                    "description": "Gemini Gem info",
+                    "type": "string",
+                    "example": "gemini-gem-123"
                 },
-                "profiles_synced": {
-                    "type": "integer"
+                "gemini_gem_name": {
+                    "type": "string",
+                    "example": "My History Gem"
                 },
-                "profiles_updated": {
-                    "type": "integer"
+                "id": {
+                    "description": "Primary key",
+                    "type": "string"
+                },
+                "instructions": {
+                    "type": "string",
+                    "example": "You are a history expert..."
+                },
+                "is_active": {
+                    "description": "Status \u0026 Tracking",
+                    "type": "boolean"
+                },
+                "knowledge_files": {
+                    "description": "Array of file paths/IDs",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
+                },
+                "last_synced_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:30:00Z"
+                },
+                "name": {
+                    "description": "Basic info",
+                    "type": "string",
+                    "example": "Lịch sử"
+                },
+                "sync_error": {
+                    "type": "string",
+                    "example": "API returned status 404"
+                },
+                "sync_status": {
+                    "description": "\"pending\", \"synced\", \"failed\"",
+                    "type": "string",
+                    "example": "synced"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_profile": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.UserProfile"
+                        }
+                    ]
+                },
+                "user_profile_id": {
+                    "type": "string"
                 }
             }
         },
-        "models.SyncBoxProfilesResponse": {
+        "models.TopicResponse": {
             "type": "object",
             "properties": {
-                "message": {
-                    "type": "string"
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
                 },
-                "profiles_created": {
-                    "type": "integer"
+                "description": {
+                    "type": "string",
+                    "example": "Chủ đề về lịch sử Việt Nam"
                 },
-                "profiles_deleted": {
-                    "type": "integer"
+                "gemini_gem_id": {
+                    "type": "string",
+                    "example": "gemini-gem-123"
                 },
-                "profiles_synced": {
-                    "type": "integer"
+                "gemini_gem_name": {
+                    "type": "string",
+                    "example": "My History Gem"
                 },
-                "profiles_updated": {
-                    "type": "integer"
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "instructions": {
+                    "type": "string",
+                    "example": "You are a history expert..."
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "knowledge_files": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "last_synced_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:30:00Z"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Lịch sử"
+                },
+                "sync_error": {
+                    "type": "string",
+                    "example": ""
+                },
+                "sync_status": {
+                    "type": "string",
+                    "example": "synced"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
+                },
+                "user_profile_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },
@@ -4943,65 +3262,63 @@ const docTemplate = `{
                 }
             }
         },
-        "models.UpdateCampaignRequest": {
+        "models.UpdateTopicRequest": {
             "type": "object",
-            "required": [
-                "name",
-                "profile_ids",
-                "schedule",
-                "script_name"
-            ],
             "properties": {
-                "concurrent_profiles": {
-                    "type": "integer",
-                    "example": 20
-                },
                 "description": {
                     "type": "string",
-                    "example": "This is an updated campaign"
+                    "example": "Updated description"
+                },
+                "instructions": {
+                    "type": "string",
+                    "example": "Updated instructions"
                 },
                 "is_active": {
                     "type": "boolean",
-                    "example": false
+                    "example": true
                 },
-                "name": {
-                    "type": "string",
-                    "example": "Updated Campaign Name"
-                },
-                "profile_ids": {
+                "knowledge_files": {
                     "type": "array",
                     "items": {
                         "type": "string"
-                    }
+                    },
+                    "example": [
+                        "[\"file1.pdf\"",
+                        " \"file2.txt\"]"
+                    ]
                 },
-                "schedule": {
-                    "$ref": "#/definitions/models.JSON"
-                },
-                "script_name": {
+                "name": {
                     "type": "string",
-                    "example": "updated_script.js"
-                },
-                "script_variables": {
-                    "$ref": "#/definitions/models.JSON"
+                    "example": "Lịch sử Việt Nam"
                 }
             }
         },
-        "models.UpdateFlowRequest": {
+        "models.UpdateTunnelURLRequest": {
             "type": "object",
             "required": [
-                "status"
+                "tunnel_url"
             ],
             "properties": {
-                "status": {
+                "tunnel_url": {
                     "type": "string",
-                    "enum": [
-                        "Started",
-                        "Running",
-                        "Completed",
-                        "Failed",
-                        "Stopped"
-                    ],
-                    "example": "Completed"
+                    "example": "http://machineid-automation-userid.agent-controller.onegreen.cloud/"
+                }
+            }
+        },
+        "models.UpdateTunnelURLResponse": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Tunnel URL updated successfully"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -5012,12 +3329,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Box"
-                    }
-                },
-                "campaigns": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/models.Campaign"
                     }
                 },
                 "created_at": {
@@ -5054,7 +3365,111 @@ const docTemplate = `{
                 "updated_at": {
                     "type": "string"
                 },
+                "user_profile": {
+                    "$ref": "#/definitions/models.UserProfile"
+                },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UserProfile": {
+            "type": "object",
+            "properties": {
+                "config": {
+                    "description": "Configuration",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
+                },
+                "created_at": {
+                    "description": "Timestamps",
+                    "type": "string"
+                },
+                "current_app_id": {
+                    "description": "AppID đang chạy",
+                    "type": "string"
+                },
+                "current_machine_id": {
+                    "description": "Machine đang chạy",
+                    "type": "string"
+                },
+                "deployed_machines": {
+                    "description": "Distribution \u0026 Load balancing",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
+                },
+                "id": {
+                    "description": "Primary key",
+                    "type": "string"
+                },
+                "last_modified_at": {
+                    "type": "string"
+                },
+                "last_run_ended_at": {
+                    "type": "string"
+                },
+                "last_run_started_at": {
+                    "description": "Run tracking",
+                    "type": "string"
+                },
+                "machine_sync_status": {
+                    "description": "⭐ QUAN TRỌNG: Track sync status trên từng machine",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
+                },
+                "name": {
+                    "description": "Basic info",
+                    "type": "string"
+                },
+                "profile_dir_name": {
+                    "type": "string"
+                },
+                "profile_path": {
+                    "type": "string"
+                },
+                "profile_version": {
+                    "description": "Version tracking",
+                    "type": "integer"
+                },
+                "settings": {
+                    "description": "User preferences",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JSON"
+                        }
+                    ]
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Topic"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    ]
+                },
+                "user_data_dir": {
+                    "description": "Paths \u0026 Directories",
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }

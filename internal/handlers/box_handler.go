@@ -22,11 +22,10 @@ func NewBoxHandler(db *gorm.DB) *BoxHandler {
 	userRepo := repository.NewUserRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
-	profileRepo := repository.NewProfileRepository(db)
 
 	// Create service
-	boxService := services.NewBoxService(boxRepo, userRepo, profileRepo)
-	appService := services.NewAppService(appRepo, profileRepo, boxRepo, userRepo)
+	boxService := services.NewBoxService(boxRepo, userRepo)
+	appService := services.NewAppService(appRepo, boxRepo, userRepo)
 	return &BoxHandler{
 		boxService: boxService,
 		appService: appService,
@@ -221,34 +220,6 @@ func (h *BoxHandler) DeleteBox(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
-}
-
-// SyncAllProfilesInBox syncs all profiles from all apps in a specific box
-// @Summary Sync all profiles from all apps in a box
-// @Description Sync all profiles from all apps in a specific box
-// @Tags boxes
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Box ID to sync profiles from"
-// @Success 200 {object} models.SyncBoxProfilesResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/boxes/{id}/sync-profiles [post]
-func (h *BoxHandler) SyncAllProfilesInBox(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-	boxID := c.Param("id")
-
-	// Sync all profiles from all apps in the box
-	syncResult, err := h.appService.SyncAllAppsInBox(userID, boxID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, syncResult)
 }
 
 // GetAppsByBox godoc

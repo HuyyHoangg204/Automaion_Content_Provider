@@ -11,7 +11,6 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
-	"github.com/onegreenvn/green-provider-services-backend/internal/services/platform_service"
 	"gorm.io/gorm"
 )
 
@@ -26,20 +25,16 @@ func (e *AppAlreadyExistsError) Error() string {
 }
 
 type AppService struct {
-	appRepo            *repository.AppRepository
-	boxRepo            *repository.BoxRepository
-	userRepo           *repository.UserRepository
-	profileSyncService *platform_service.ProfileSyncService
-	hidemiumService    *platform_service.HidemiumService
+	appRepo  *repository.AppRepository
+	boxRepo  *repository.BoxRepository
+	userRepo *repository.UserRepository
 }
 
-func NewAppService(appRepo *repository.AppRepository, profileRepo *repository.ProfileRepository, boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *AppService {
+func NewAppService(appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *AppService {
 	return &AppService{
-		appRepo:            appRepo,
-		boxRepo:            boxRepo,
-		userRepo:           userRepo,
-		profileSyncService: platform_service.NewProfileSyncService(profileRepo, appRepo),
-		hidemiumService:    platform_service.NewHidemiumService(),
+		appRepo:  appRepo,
+		boxRepo:  boxRepo,
+		userRepo: userRepo,
 	}
 }
 
@@ -322,100 +317,3 @@ func (s *AppService) CheckTunnelURL(tunnelURL string) (*models.CheckTunnelRespon
 	}, nil
 }
 
-func (s *AppService) SyncProfilesByAppID(appID string) (*models.SyncAppProfilesResponse, error) {
-	app, err := s.appRepo.GetByID(appID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get app: %w", err)
-	}
-
-	syncResult, err := s.syncApp(app)
-	if err != nil {
-		return nil, err
-	}
-
-	return &models.SyncAppProfilesResponse{
-		ProfilesCreated: syncResult.ProfilesCreated,
-		ProfilesUpdated: syncResult.ProfilesUpdated,
-		ProfilesDeleted: syncResult.ProfilesDeleted,
-		ProfilesSynced:  syncResult.ProfilesSynced,
-		Message:         syncResult.Message,
-	}, nil
-}
-
-func (s *AppService) SyncProfilesByApps(apps []*models.App) (*models.SyncAppProfilesResponse, error) {
-	var totalProfilesCreated, totalProfilesUpdated, totalProfilesDeleted, totalProfilesSynced int
-	var unsupportedPlatforms []string
-
-	for _, app := range apps {
-		syncResult, err := s.syncApp(app)
-		if err != nil {
-			unsupportedPlatforms = append(unsupportedPlatforms, app.Name)
-			fmt.Printf("Warning: Failed to sync profiles for app %s: %v\n", app.Name, err)
-			continue
-		}
-
-		totalProfilesCreated += syncResult.ProfilesCreated
-		totalProfilesUpdated += syncResult.ProfilesUpdated
-		totalProfilesDeleted += syncResult.ProfilesDeleted
-		totalProfilesSynced += syncResult.ProfilesSynced
-	}
-
-	response := &models.SyncAppProfilesResponse{
-		ProfilesCreated: totalProfilesCreated,
-		ProfilesUpdated: totalProfilesUpdated,
-		ProfilesDeleted: totalProfilesDeleted,
-		ProfilesSynced:  totalProfilesSynced,
-	}
-
-	numAppsSynced := len(apps) - len(unsupportedPlatforms)
-	response.Message = fmt.Sprintf("Sync completed: %d/%d apps synced, %d profiles processed", numAppsSynced, len(apps), response.ProfilesSynced)
-	if len(unsupportedPlatforms) > 0 {
-		response.Message += fmt.Sprintf(". Unsupported platforms: %s", strings.Join(unsupportedPlatforms, ", "))
-	}
-
-	return response, nil
-}
-
-func (s *AppService) syncApp(app *models.App) (*models.SyncBoxProfilesResponse, error) {
-	var profiles []map[string]interface{}
-	var err error
-
-	switch app.Name {
-	case "Hidemium":
-		profiles, err = s.hidemiumService.FetchAllProfilesWithPagination(*app.TunnelURL)
-	default:
-		return nil, fmt.Errorf("unsupported platform for app %s", app.Name)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to get profiles from %s for app %s: %w", app.Name, app.Name, err)
-	}
-
-	return s.profileSyncService.UpdateProfilesAfterSync(app, profiles)
-}
-
-// SyncAllAppsInBox syncs profiles from all apps in a box
-func (s *AppService) SyncAllAppsInBox(userID string, boxID string) (*models.SyncBoxProfilesResponse, error) {
-	// Get all apps for this box
-	apps, err := s.appRepo.GetByUserIDAndBoxID(userID, boxID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get apps for box %s: %w", boxID, err)
-	}
-
-	if len(apps) == 0 {
-		return nil, errors.New("no apps found for this box")
-	}
-
-	syncResult, err := s.SyncProfilesByApps(apps)
-	if err != nil {
-		return nil, err
-	}
-	// Set message based on results
-	return &models.SyncBoxProfilesResponse{
-		ProfilesCreated: syncResult.ProfilesCreated,
-		ProfilesUpdated: syncResult.ProfilesUpdated,
-		ProfilesDeleted: syncResult.ProfilesDeleted,
-		ProfilesSynced:  syncResult.ProfilesSynced,
-		Message:         syncResult.Message,
-	}, nil
-}

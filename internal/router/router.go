@@ -1,7 +1,6 @@
 package router
 
 import (
-	"path/filepath"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
@@ -39,10 +38,6 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
-	// Define export and temp directories
-	exportsDir := filepath.Join("/app", "exports", "excel")
-	tempDir := filepath.Join("/app", "temp", "excel")
-
 	// Create auth middleware
 	// Create services
 	authService := auth.NewAuthService(db)
@@ -52,17 +47,18 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
+	// Create SSE Hub for real-time log streaming
+	sseHub := services.NewSSEHub()
+
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService)
 	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
-	profileHandler := handlers.NewProfileHandler(db)
-	campaignHandler := handlers.NewCampaignHandler(db, rabbitMQService)
-	flowGroupHandler := handlers.NewFlowGroupHandler(db)
-	flowHandler := handlers.NewFlowHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
-	excelHandler := handlers.NewExcelHandler(db, exportsDir, tempDir, basePath)
 	apiKeyHandler := handlers.NewAPIKeyHandler(db)
+	machineHandler := handlers.NewMachineHandler(db)
+	topicHandler := handlers.NewTopicHandler(db, sseHub, rabbitMQService)
+	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db)
@@ -86,6 +82,15 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.RefreshToken)
+		}
+
+		// Machine routes (public - for machine self-registration)
+		machines := api.Group("/machines")
+		{
+			machines.POST("/register", machineHandler.RegisterMachine)
+			machines.GET("/:machine_id/frp-config", machineHandler.GetFrpConfigByMachineID)
+			machines.PUT("/:machine_id/tunnel-url", machineHandler.UpdateTunnelURLByMachineID)
+			machines.POST("/:machine_id/heartbeat", machineHandler.SendHeartbeat)
 		}
 
 		// Protected routes
@@ -118,7 +123,6 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				boxes.PUT("/:id", boxHandler.UpdateBox)
 				boxes.DELETE("/:id", boxHandler.DeleteBox)
 				boxes.GET("/:id/apps", boxHandler.GetAppsByBox)
-				boxes.POST("/:id/sync-profiles", boxHandler.SyncAllProfilesInBox)
 			}
 
 			// App Proxy routes - for direct platform operations
@@ -132,54 +136,38 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 			{
 				apps.POST("", appHandler.CreateApp)
 				apps.GET("", appHandler.GetMyApps)
-				apps.GET("/:id/profiles", profileHandler.GetProfilesByApp)
 				apps.GET("/:id", appHandler.GetAppByID)
 				apps.PUT("/:id", appHandler.UpdateApp)
 				apps.DELETE("/:id", appHandler.DeleteApp)
 				apps.GET("/register-app", appHandler.GetRegisterAppDomains)
 				apps.GET("/check-tunnel", appHandler.CheckTunnelURL)
-				apps.POST("/:id/sync-profiles", appHandler.SyncAppProfiles)
-				apps.POST("/sync-profiles-all-apps", appHandler.SyncAllUserApps)
 			}
 
-			// Campaign routes
-			campaigns := protected.Group("/campaigns")
+			// Topic routes
+			topics := protected.Group("/topics")
 			{
-				campaigns.POST("", campaignHandler.CreateCampaign)
-				campaigns.GET("", campaignHandler.GetMyCampaigns)
-				campaigns.GET("/:id", campaignHandler.GetCampaignByID)
-				campaigns.PUT("/:id", campaignHandler.UpdateCampaign)
-				campaigns.DELETE("/:id", campaignHandler.DeleteCampaign)
-				campaigns.POST("/:id/run", campaignHandler.RunCampaign)
-				campaigns.GET("/:id/flow-groups", flowGroupHandler.GetFlowGroupsByCampaign)
-				campaigns.GET("/:id/flows", flowHandler.GetFlowsByCampaign)
+				topics.POST("", topicHandler.CreateTopic)
+				topics.GET("", topicHandler.GetAllTopics)
+				topics.GET("/:id", topicHandler.GetTopicByID)
+				topics.PUT("/:id", topicHandler.UpdateTopic)
+				topics.DELETE("/:id", topicHandler.DeleteTopic)
+				// topics.POST("/:id/sync", topicHandler.SyncTopicWithGemini) // TODO: Implement later
 			}
 
-			// Flow Group routes
-			flowGroups := protected.Group("/flow-groups")
+			// Process Log routes
+			processLogs := api.Group("/process-logs")
 			{
-				flowGroups.GET("/:id", flowGroupHandler.GetFlowGroupByID)
-				flowGroups.GET("/:id/stats", flowGroupHandler.GetFlowGroupStats)
-				flowGroups.GET("/:id/flows", flowHandler.GetFlowsByFlowGroup)
-			}
+				// Public endpoint for automation backend to send logs
+				processLogs.POST("", processLogHandler.CreateLog)
 
-			// Profile routes
-			profiles := protected.Group("/profiles")
-			{
-				profiles.GET("", profileHandler.GetMyProfiles)
-				profiles.GET("/:id", profileHandler.GetProfileByID)
-				profiles.GET("/:id/flows", flowHandler.GetFlowsByProfile)
-			}
-
-			// Flow routes
-			flows := protected.Group("/flows")
-			{
-				flows.POST("", flowHandler.CreateFlow)
-				flows.GET("", flowHandler.GetMyFlows)
-				flows.GET("/:id", flowHandler.GetFlowByID)
-				flows.PUT("/:id", flowHandler.UpdateFlow)
-				flows.DELETE("/:id", flowHandler.DeleteFlow)
-				flows.GET("/status/:status", flowHandler.GetFlowsByStatus)
+				// Protected routes
+				processLogsProtected := processLogs.Group("")
+				processLogsProtected.Use(apiKeyMiddleware.APIKeyAuthMiddleware(), bearerTokenMiddleware.BearerTokenAuthMiddleware())
+				{
+					processLogsProtected.GET("", processLogHandler.GetLogsByUser)
+					processLogsProtected.GET("/:entity_type/:entity_id", processLogHandler.GetLogsByEntity)
+					processLogsProtected.GET("/:entity_type/:entity_id/stream", processLogHandler.StreamLogsSSE)
+				}
 			}
 
 			// Admin routes (requires admin privileges)
@@ -191,18 +179,9 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				admin.POST("/users/:id/reset-password", adminHandler.ResetPassword)
 				admin.GET("/boxes", adminHandler.AdminGetAllBoxes)
 				admin.GET("/apps", adminHandler.AdminGetAllApps)
-				admin.GET("/profiles", adminHandler.AdminGetAllProfiles)
-				admin.GET("/campaigns", adminHandler.AdminGetAllCampaigns)
-				admin.GET("/flows", adminHandler.AdminGetAllFlows)
 			}
 		}
 
-		unProtected := api.Group("")
-		{
-			excel := unProtected.Group("/excel")
-			excel.GET("/export/flow-groups/:flowgroupid", excelHandler.ExportFlowGroups)
-			excel.GET("/download/:filename", excelHandler.DownloadExcelFile)
-		}
 	}
 
 	return r

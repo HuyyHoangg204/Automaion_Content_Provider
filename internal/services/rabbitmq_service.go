@@ -15,6 +15,11 @@ type RabbitMQService struct {
 	channel *amqp.Channel
 }
 
+// GetChannel returns the RabbitMQ channel (for use by other services)
+func (s *RabbitMQService) GetChannel() *amqp.Channel {
+	return s.channel
+}
+
 func NewRabbitMQService() (*RabbitMQService, error) {
 	// Get RabbitMQ connection details from environment
 	host := getEnv("RABBITMQ_HOST", "localhost")

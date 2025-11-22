@@ -10,17 +10,15 @@ import (
 )
 
 type BoxService struct {
-	boxRepo     *repository.BoxRepository
-	userRepo    *repository.UserRepository
-	profileRepo *repository.ProfileRepository
+	boxRepo  *repository.BoxRepository
+	userRepo *repository.UserRepository
 }
 
 // NewBoxService creates a new box service
-func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserRepository, profileRepo *repository.ProfileRepository) *BoxService {
+func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserRepository) *BoxService {
 	return &BoxService{
-		boxRepo:     boxRepo,
-		userRepo:    userRepo,
-		profileRepo: profileRepo,
+		boxRepo:  boxRepo,
+		userRepo: userRepo,
 	}
 }
 
