@@ -39,18 +39,25 @@ func (m *BearerTokenMiddleware) BearerTokenAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Get Authorization header
-		authHeader := c.GetHeader("Authorization")
+		// Get token from Authorization header or query parameter
+		// EventSource doesn't support custom headers, so we need to support token in query param
+		var tokenString string
 
-		// Check if it's Bearer token
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
+		// First, try to get from Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+		} else {
+			// Fallback to query parameter (for SSE/EventSource)
+			tokenString = c.Query("token")
+		}
+
+		// If no token found, return error
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required (Bearer token in header or 'token' query parameter)"})
 			c.Abort()
 			return
 		}
-
-		// Extract token
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// Validate token
 		tokenInfo, err := m.authService.ValidateToken(tokenString)

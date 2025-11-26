@@ -14,15 +14,17 @@ import (
 )
 
 type FileHandler struct {
-	fileService *services.FileService
+	fileService  *services.FileService
+	topicService *services.TopicService // Để cache file IDs sau khi upload
 }
 
-func NewFileHandler(db *gorm.DB, baseURL string) *FileHandler {
+func NewFileHandler(db *gorm.DB, baseURL string, topicService *services.TopicService) *FileHandler {
 	fileRepo := repository.NewFileRepository(db)
 	fileService := services.NewFileService(fileRepo, baseURL)
 
 	return &FileHandler{
-		fileService: fileService,
+		fileService:  fileService,
+		topicService: topicService,
 	}
 }
 
@@ -103,6 +105,11 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 			return
 		}
 
+		// Cache file ID để dùng khi tạo topic
+		if h.topicService != nil {
+			h.topicService.AddUploadedFiles(userID, []string{file.ID})
+		}
+
 		response := h.fileService.FileToResponse(file)
 		c.JSON(http.StatusCreated, gin.H{"file": response})
 		return
@@ -110,6 +117,7 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 
 	// Multiple files upload
 	uploadedFiles := make([]models.FileResponse, 0, len(files))
+	uploadedFileIDs := make([]string, 0, len(files)) // Lưu file IDs để cache
 	var uploadErrors []string
 
 	for _, fileHeader := range files {
@@ -119,6 +127,7 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 			continue
 		}
 
+		uploadedFileIDs = append(uploadedFileIDs, file.ID)
 		response := h.fileService.FileToResponse(file)
 		uploadedFiles = append(uploadedFiles, response)
 	}
@@ -129,6 +138,11 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 			"details": uploadErrors,
 		})
 		return
+	}
+
+	// Cache file IDs để dùng khi tạo topic
+	if h.topicService != nil && len(uploadedFileIDs) > 0 {
+		h.topicService.AddUploadedFiles(userID, uploadedFileIDs)
 	}
 
 	// Return results - include errors if some files failed
@@ -148,36 +162,39 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 
 // DownloadFile godoc
 // @Summary Download a file
-// @Description Download a file by ID. Files can only be downloaded by the owner.
+// @Description Download a file by ID. Supports two methods:
+// @Description 1. Authenticated: Requires Bearer token (owner only)
+// @Description 2. Token-based: Use ?token=xxx query param (for automation backend)
 // @Tags files
 // @Produce application/octet-stream
 // @Security BearerAuth
 // @Param id path string true "File ID"
+// @Param token query string false "Signed download token (for automation backend)"
 // @Success 200 {file} file
 // @Failure 404 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/files/{id}/download [get]
 func (h *FileHandler) DownloadFile(c *gin.Context) {
-	userID := c.GetString("user_id")
 	fileID := c.Param("id")
 
-	// Get file and open it
-	file, f, err := h.fileService.DownloadFile(fileID, userID)
+	// Public download - no authentication required
+	// Just get file by ID and download
+	file, f, err := h.fileService.DownloadFileByToken(fileID)
 	if err != nil {
 		if os.IsNotExist(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
 		} else {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
 	defer f.Close()
 
 	// Set headers for download
-	c.Header("Content-Disposition", `attachment; filename="`+file.OriginalName+`"`)
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, file.OriginalName))
 	c.Header("Content-Type", file.MimeType)
-	c.Header("Content-Length", string(rune(file.FileSize)))
+	c.Header("Content-Length", fmt.Sprintf("%d", file.FileSize))
 
 	// Stream file to response
 	c.DataFromReader(http.StatusOK, file.FileSize, file.MimeType, f, nil)

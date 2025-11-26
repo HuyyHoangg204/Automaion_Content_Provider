@@ -135,11 +135,28 @@ func (s *FileService) GetFile(fileID string, userID string) (*models.File, error
 	return file, nil
 }
 
-// DownloadFile returns the file content for download
+// DownloadFile returns the file content for download (requires user authentication)
 func (s *FileService) DownloadFile(fileID string, userID string) (*models.File, *os.File, error) {
 	file, err := s.GetFile(fileID, userID)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// Open file from storage
+	f, err := os.Open(file.FilePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to open file: %w", err)
+	}
+
+	return file, f, nil
+}
+
+// DownloadFileByToken returns the file content for download using token (no user check)
+func (s *FileService) DownloadFileByToken(fileID string) (*models.File, *os.File, error) {
+	// Get file without user check (token already validated)
+	file, err := s.fileRepo.GetByID(fileID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("file not found: %w", err)
 	}
 
 	// Open file from storage

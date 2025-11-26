@@ -4,28 +4,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
-	"gorm.io/gorm"
+	"github.com/sirupsen/logrus"
 )
 
 type TopicHandler struct {
 	topicService *services.TopicService
 }
 
-func NewTopicHandler(db *gorm.DB, sseHub *services.SSEHub, rabbitMQ *services.RabbitMQService) *TopicHandler {
-	topicRepo := repository.NewTopicRepository(db)
-	userProfileRepo := repository.NewUserProfileRepository(db)
-	appRepo := repository.NewAppRepository(db)
-	chromeProfileService := services.NewChromeProfileService(userProfileRepo, appRepo)
-	
-	// Create ProcessLogService
-	logRepo := repository.NewProcessLogRepository(db)
-	processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQ, db)
-	
-	topicService := services.NewTopicService(topicRepo, userProfileRepo, appRepo, chromeProfileService, processLogService)
-
+func NewTopicHandler(topicService *services.TopicService) *TopicHandler {
 	return &TopicHandler{
 		topicService: topicService,
 	}
@@ -51,6 +39,9 @@ func (h *TopicHandler) CreateTopic(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
 		return
 	}
+
+	// Log để debug - xem request có knowledge_files không
+	logrus.Infof("CreateTopic request - KnowledgeFiles received: %v (length: %d)", req.KnowledgeFiles, len(req.KnowledgeFiles))
 
 	topic, err := h.topicService.CreateTopic(userID, &req)
 	if err != nil {
@@ -180,19 +171,19 @@ func (h *TopicHandler) DeleteTopic(c *gin.Context) {
 // topicToResponse converts a Topic model to TopicResponse
 func (h *TopicHandler) topicToResponse(topic *models.Topic) models.TopicResponse {
 	response := models.TopicResponse{
-		ID:            topic.ID,
-		UserProfileID: topic.UserProfileID,
-		Name:          topic.Name,
-		GeminiGemID:   topic.GeminiGemID,
-		GeminiGemName: topic.GeminiGemName,
-		Description:   topic.Description,
-		Instructions:  topic.Instructions,
+		ID:             topic.ID,
+		UserProfileID:  topic.UserProfileID,
+		Name:           topic.Name,
+		GeminiGemID:    topic.GeminiGemID,
+		GeminiGemName:  topic.GeminiGemName,
+		Description:    topic.Description,
+		Instructions:   topic.Instructions,
 		KnowledgeFiles: topic.KnowledgeFiles,
-		IsActive:      topic.IsActive,
-		SyncStatus:    topic.SyncStatus,
-		SyncError:     topic.SyncError,
-		CreatedAt:     topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:     topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		IsActive:       topic.IsActive,
+		SyncStatus:     topic.SyncStatus,
+		SyncError:      topic.SyncError,
+		CreatedAt:      topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:      topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	if topic.LastSyncedAt != nil {
@@ -202,4 +193,3 @@ func (h *TopicHandler) topicToResponse(topic *models.Topic) models.TopicResponse
 
 	return response
 }
-
