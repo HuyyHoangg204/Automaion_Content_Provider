@@ -25,12 +25,11 @@ func (m *APIKeyMiddleware) APIKeyAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get API key from header
 		authHeader := c.GetHeader("Authorization")
+
+		// If no Authorization header, let other middleware (BearerToken) handle it
+		// BearerToken middleware can handle token from query parameter for SSE
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"success": false,
-				"error":   "Authorization header is required",
-			})
-			c.Abort()
+			c.Next()
 			return
 		}
 

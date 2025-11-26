@@ -1,8 +1,11 @@
 package router
 
 import (
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/handlers"
 	"github.com/onegreenvn/green-provider-services-backend/internal/middleware"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
@@ -17,13 +20,24 @@ import (
 	"gorm.io/gorm"
 )
 
+// getEnv gets environment variable or returns default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 // SetupRouter configures the Gin router with user authentication routes
-func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePath string) *gin.Engine {
+func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub *services.SSEHub, basePath string) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 
 	// Create a new router
 	r := gin.New()
+
+	// Set max memory for multipart form (32MB for file uploads)
+	r.MaxMultipartMemory = 32 << 20 // 32 MB
 
 	// Use middleware
 	r.Use(gin.Recovery())
@@ -47,8 +61,26 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	bearerTokenMiddleware := middleware.NewBearerTokenMiddleware(authService, db)
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
-	// Create SSE Hub for real-time log streaming
-	sseHub := services.NewSSEHub()
+	// Get base URL from environment
+	baseURL := getEnv("BASE_URL", "")
+	if baseURL == "" {
+		port := getEnv("PORT", "8080")
+		baseURL = fmt.Sprintf("http://localhost:%s", port)
+		logrus.Warnf("BASE_URL not set, using default: %s", baseURL)
+	}
+
+	// Create FileService first (needed by TopicService)
+	fileRepo := repository.NewFileRepository(db)
+	fileService := services.NewFileService(fileRepo, baseURL)
+
+	// Create TopicService (needed by FileHandler để cache file IDs và TopicHandler)
+	topicRepo := repository.NewTopicRepository(db)
+	userProfileRepo := repository.NewUserProfileRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	chromeProfileService := services.NewChromeProfileService(userProfileRepo, appRepo)
+	logRepo := repository.NewProcessLogRepository(db)
+	processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
+	topicService := services.NewTopicService(topicRepo, userProfileRepo, appRepo, chromeProfileService, processLogService, fileService)
 
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService)
@@ -57,8 +89,9 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 	appProxyHandler := handlers.NewAppProxyHandler(db)
 	apiKeyHandler := handlers.NewAPIKeyHandler(db)
 	machineHandler := handlers.NewMachineHandler(db)
-	topicHandler := handlers.NewTopicHandler(db, sseHub, rabbitMQService)
+	topicHandler := handlers.NewTopicHandler(topicService)
 	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
+	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db)
@@ -92,6 +125,9 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 			machines.PUT("/:machine_id/tunnel-url", machineHandler.UpdateTunnelURLByMachineID)
 			machines.POST("/:machine_id/heartbeat", machineHandler.SendHeartbeat)
 		}
+
+		// File download route (public - supports token in query param)
+		api.GET("/files/:id/download", fileHandler.DownloadFile)
 
 		// Protected routes
 		protected := api.Group("")
@@ -152,6 +188,14 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, basePat
 				topics.PUT("/:id", topicHandler.UpdateTopic)
 				topics.DELETE("/:id", topicHandler.DeleteTopic)
 				// topics.POST("/:id/sync", topicHandler.SyncTopicWithGemini) // TODO: Implement later
+			}
+
+			// File routes (upload and list require auth)
+			files := protected.Group("/files")
+			{
+				files.POST("/upload", fileHandler.UploadFile)
+				files.GET("", fileHandler.GetMyFiles)
+				// Download endpoint moved to public routes (supports token in query param)
 			}
 
 			// Process Log routes

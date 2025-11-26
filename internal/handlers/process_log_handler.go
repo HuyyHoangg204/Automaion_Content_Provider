@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -47,6 +49,7 @@ func (h *ProcessLogHandler) CreateLog(c *gin.Context) {
 
 	log, err := h.processLogService.CreateLog(&req)
 	if err != nil {
+		logrus.Errorf("Failed to create log: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create log", "details": err.Error()})
 		return
 	}
@@ -128,7 +131,24 @@ func (h *ProcessLogHandler) StreamLogsSSE(c *gin.Context) {
 	})
 	c.Writer.Flush()
 
-	// Send logs as they arrive
+	// Send existing logs from database (so client can see logs that were created before connection)
+	existingLogs, err := h.processLogService.GetLogsByEntity(entityType, entityID, 100, 0)
+	if err == nil {
+		for _, log := range existingLogs {
+			// Format log as SSE message with event type
+			logJSON, err := json.Marshal(log)
+			if err != nil {
+				continue
+			}
+			message := fmt.Sprintf("event: log\ndata: %s\n\n", string(logJSON))
+			if _, err := c.Writer.Write([]byte(message)); err != nil {
+				return
+			}
+			c.Writer.Flush()
+		}
+	}
+
+	// Send logs as they arrive (new logs)
 	for {
 		select {
 		case <-c.Request.Context().Done():
@@ -199,6 +219,3 @@ func (h *ProcessLogHandler) logToResponse(log *models.ProcessLog) models.Process
 		CreatedAt:  log.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 }
-
-
-

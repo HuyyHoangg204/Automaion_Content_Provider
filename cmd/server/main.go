@@ -68,6 +68,9 @@ func main() {
 	// Initialize auth service
 	authService := auth.NewAuthService(db)
 
+	// Create SSE Hub (shared instance for both ProcessLogService and ProcessLogHandler)
+	sseHub := services.NewSSEHub()
+
 	// Initialize RabbitMQ service
 	rabbitMQService, err := services.NewRabbitMQService()
 	if err != nil {
@@ -78,9 +81,8 @@ func main() {
 
 		// Initialize ProcessLogService and start RabbitMQ consumer
 		logRepo := repository.NewProcessLogRepository(db)
-		sseHub := services.NewSSEHub()
 		processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
-		
+
 		if err := processLogService.StartRabbitMQConsumer(); err != nil {
 			logrus.Warnf("Failed to start RabbitMQ log consumer: %v", err)
 		} else {
@@ -101,8 +103,8 @@ func main() {
 	tokenCleanupService.Start()
 	defer tokenCleanupService.Stop()
 
-	// Initialize router with RabbitMQ service
-	r := router.SetupRouter(db, rabbitMQService, basePath)
+	// Initialize router with RabbitMQ service and SSE Hub
+	r := router.SetupRouter(db, rabbitMQService, sseHub, basePath)
 
 	// Configure HTTP server
 	port := getEnv("PORT", "8080")

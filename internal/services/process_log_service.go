@@ -12,20 +12,22 @@ import (
 )
 
 type ProcessLogService struct {
-	logRepo  *repository.ProcessLogRepository
-	sseHub   *SSEHub
-	rabbitMQ *RabbitMQService
-	db       *gorm.DB
-	stopChan chan bool
+	logRepo   *repository.ProcessLogRepository
+	topicRepo *repository.TopicRepository
+	sseHub    *SSEHub
+	rabbitMQ  *RabbitMQService
+	db        *gorm.DB
+	stopChan  chan bool
 }
 
 func NewProcessLogService(logRepo *repository.ProcessLogRepository, sseHub *SSEHub, rabbitMQ *RabbitMQService, db *gorm.DB) *ProcessLogService {
 	return &ProcessLogService{
-		logRepo:  logRepo,
-		sseHub:   sseHub,
-		rabbitMQ: rabbitMQ,
-		db:       db,
-		stopChan: make(chan bool),
+		logRepo:   logRepo,
+		topicRepo: repository.NewTopicRepository(db),
+		sseHub:    sseHub,
+		rabbitMQ:  rabbitMQ,
+		db:        db,
+		stopChan:  make(chan bool),
 	}
 }
 
@@ -131,7 +133,13 @@ func (s *ProcessLogService) processLogMessage(body []byte) error {
 	// Broadcast via SSE
 	s.sseHub.BroadcastLog(log)
 
-	logrus.Debugf("Processed log: %s/%s - %s", req.EntityType, req.EntityID, req.Stage)
+	// Nếu là log "completed" hoặc "create_gem_completed" cho topic → tự động update topic SyncStatus
+	if req.EntityType == "topic" && req.Status == "success" {
+		if req.Stage == "completed" || req.Stage == "create_gem_completed" {
+			s.updateTopicOnCompletion(req.EntityID, req.Metadata)
+		}
+	}
+
 	return nil
 }
 
@@ -165,7 +173,44 @@ func (s *ProcessLogService) CreateLog(req *models.ProcessLogRequest) (*models.Pr
 	// Broadcast via SSE
 	s.sseHub.BroadcastLog(log)
 
+	// Nếu là log "completed" hoặc "create_gem_completed" cho topic → tự động update topic SyncStatus
+	if req.EntityType == "topic" && req.Status == "success" {
+		if req.Stage == "completed" || req.Stage == "create_gem_completed" {
+			s.updateTopicOnCompletion(req.EntityID, req.Metadata)
+		}
+	}
+
 	return log, nil
+}
+
+// updateTopicOnCompletion updates topic when automation backend reports completion
+func (s *ProcessLogService) updateTopicOnCompletion(topicID string, metadata map[string]interface{}) {
+	// Get topic
+	topic, err := s.topicRepo.GetByID(topicID)
+	if err != nil {
+		logrus.Errorf("Failed to get topic %s for completion update: %v", topicID, err)
+		return
+	}
+
+	// Update SyncStatus
+	topic.SyncStatus = "synced"
+	now := time.Now()
+	topic.LastSyncedAt = &now
+	topic.SyncError = ""
+
+	// Update GeminiGemName từ metadata nếu có
+	if metadata != nil {
+		if gemName, ok := metadata["gem_name"].(string); ok && gemName != "" {
+			topic.GeminiGemName = gemName
+		}
+	}
+
+	// Save to database
+	if err := s.topicRepo.Update(topic); err != nil {
+		logrus.Errorf("Failed to update topic %s on completion: %v", topicID, err)
+	} else {
+		logrus.Infof("Topic %s marked as synced after receiving completion log from automation backend", topicID)
+	}
 }
 
 // GetLogsByEntity retrieves logs for a specific entity

@@ -68,17 +68,24 @@ func (h *SSEHub) BroadcastLog(log *models.ProcessLog) {
 
 	// Broadcast to entity-specific clients
 	entityKey := fmt.Sprintf("%s:%s", log.EntityType, log.EntityID)
-	h.broadcastToKey(entityKey, log)
+	clientsMap, exists := h.clients[entityKey]
+	if !exists {
+		clientsMap = nil
+	}
+	h.broadcastToKeyLocked(entityKey, log, clientsMap)
 
 	// Broadcast to user-specific clients
 	userKey := fmt.Sprintf("user:%s", log.UserID)
-	h.broadcastToKey(userKey, log)
+	userClientsMap, userExists := h.clients[userKey]
+	if !userExists {
+		userClientsMap = nil
+	}
+	h.broadcastToKeyLocked(userKey, log, userClientsMap)
 }
 
-// broadcastToKey broadcasts log to all clients for a specific key
-func (h *SSEHub) broadcastToKey(key string, log *models.ProcessLog) {
-	clients, exists := h.clients[key]
-	if !exists {
+// broadcastToKeyLocked broadcasts log to clients (assumes lock is already held)
+func (h *SSEHub) broadcastToKeyLocked(key string, log *models.ProcessLog, clients map[chan []byte]bool) {
+	if len(clients) == 0 {
 		return
 	}
 
@@ -89,8 +96,9 @@ func (h *SSEHub) broadcastToKey(key string, log *models.ProcessLog) {
 		return
 	}
 
-	// Format as SSE message
-	message := fmt.Sprintf("data: %s\n\n", string(logJSON))
+	// Format as SSE message with event type
+	// Frontend EventSource cần event type để xử lý
+	message := fmt.Sprintf("event: log\ndata: %s\n\n", string(logJSON))
 
 	// Send to all clients (non-blocking)
 	for clientChan := range clients {
@@ -135,6 +143,3 @@ func (h *SSEHub) SendHeartbeat(entityType, entityID string) {
 		}
 	}
 }
-
-
-
