@@ -100,18 +100,22 @@ func (h *ProcessLogHandler) GetLogsByEntity(c *gin.Context) {
 
 // StreamLogsSSE godoc
 // @Summary Stream logs via Server-Sent Events (SSE)
-// @Description Stream real-time logs for a specific entity via SSE
+// @Description Stream real-time logs for a specific entity via SSE. By default, only new logs from connection time are sent. Set history=true to receive all existing logs.
 // @Tags process-logs
 // @Accept json
 // @Produce text/event-stream
 // @Security BearerAuth
 // @Param entity_type path string true "Entity type" example:"topic"
 // @Param entity_id path string true "Entity ID" example:"550e8400-e29b-41d4-a716-446655440000"
+// @Param history query bool false "Include existing logs from database (default: false)" default(false)
 // @Success 200 "SSE stream"
 // @Router /api/v1/process-logs/{entity_type}/{entity_id}/stream [get]
 func (h *ProcessLogHandler) StreamLogsSSE(c *gin.Context) {
 	entityType := c.Param("entity_type")
 	entityID := c.Param("entity_id")
+
+	// Get history parameter (default: false)
+	includeHistory := c.DefaultQuery("history", "false") == "true"
 
 	// Set headers for SSE
 	c.Header("Content-Type", "text/event-stream")
@@ -125,26 +129,29 @@ func (h *ProcessLogHandler) StreamLogsSSE(c *gin.Context) {
 
 	// Send initial connection message
 	c.SSEvent("connected", gin.H{
-		"entity_type": entityType,
-		"entity_id":   entityID,
-		"message":     "Connected to log stream",
+		"entity_type":     entityType,
+		"entity_id":       entityID,
+		"message":         "Connected to log stream",
+		"include_history": includeHistory,
 	})
 	c.Writer.Flush()
 
-	// Send existing logs from database (so client can see logs that were created before connection)
-	existingLogs, err := h.processLogService.GetLogsByEntity(entityType, entityID, 100, 0)
-	if err == nil {
-		for _, log := range existingLogs {
-			// Format log as SSE message with event type
-			logJSON, err := json.Marshal(log)
-			if err != nil {
-				continue
+	// Send existing logs from database only if history=true
+	if includeHistory {
+		existingLogs, err := h.processLogService.GetLogsByEntity(entityType, entityID, 100, 0)
+		if err == nil {
+			for _, log := range existingLogs {
+				// Format log as SSE message with event type
+				logJSON, err := json.Marshal(log)
+				if err != nil {
+					continue
+				}
+				message := fmt.Sprintf("event: log\ndata: %s\n\n", string(logJSON))
+				if _, err := c.Writer.Write([]byte(message)); err != nil {
+					return
+				}
+				c.Writer.Flush()
 			}
-			message := fmt.Sprintf("event: log\ndata: %s\n\n", string(logJSON))
-			if _, err := c.Writer.Write([]byte(message)); err != nil {
-				return
-			}
-			c.Writer.Flush()
 		}
 	}
 

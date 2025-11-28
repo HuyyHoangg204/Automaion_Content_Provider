@@ -78,4 +78,3 @@ func (r *TopicRepository) GetBySyncStatus(syncStatus string) ([]*models.Topic, e
 	err := r.db.Where("sync_status = ?", syncStatus).Find(&topics).Error
 	return topics, err
 }
-

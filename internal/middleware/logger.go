@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -44,13 +45,16 @@ func Logger() gin.HandlerFunc {
 			"path":      path,
 		})
 
-		// Log based on status code
+		// Skip logging for heartbeat endpoints
+		if strings.Contains(path, "/heartbeat") {
+			return
+		}
+
+		// Only log errors (status >= 400)
 		if statusCode >= 500 {
 			entry.Error("Server error")
 		} else if statusCode >= 400 {
 			entry.Warn("Client error")
-		} else {
-			entry.Info("Request processed")
 		}
 	}
 }
