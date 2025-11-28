@@ -66,6 +66,3 @@ func (r *ProcessLogRepository) DeleteOldLogs(days int) error {
 	return r.db.Where("created_at < NOW() - INTERVAL ? DAY", days).
 		Delete(&models.ProcessLog{}).Error
 }
-
-
-

@@ -81,6 +81,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	logRepo := repository.NewProcessLogRepository(db)
 	processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
 	topicService := services.NewTopicService(topicRepo, userProfileRepo, appRepo, chromeProfileService, processLogService, fileService)
+	geminiService := services.NewGeminiService(userProfileRepo, appRepo, topicRepo, chromeProfileService)
 
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService)
@@ -92,6 +93,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	topicHandler := handlers.NewTopicHandler(topicService)
 	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
 	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
+	geminiHandler := handlers.NewGeminiHandler(geminiService)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db)
@@ -186,8 +188,16 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 				topics.GET("", topicHandler.GetAllTopics)
 				topics.GET("/:id", topicHandler.GetTopicByID)
 				topics.PUT("/:id", topicHandler.UpdateTopic)
+				topics.GET("/:id/prompts", topicHandler.GetTopicPrompts)
+				topics.PUT("/:id/prompts", topicHandler.UpdateTopicPrompts)
 				topics.DELETE("/:id", topicHandler.DeleteTopic)
 				// topics.POST("/:id/sync", topicHandler.SyncTopicWithGemini) // TODO: Implement later
+			}
+
+			// Gemini routes
+			gemini := protected.Group("/gemini")
+			{
+				gemini.POST("/topics/:topic_id/generate-outline-and-upload", geminiHandler.GenerateOutlineAndUpload)
 			}
 
 			// File routes (upload and list require auth)

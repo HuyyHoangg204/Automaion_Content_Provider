@@ -69,13 +69,15 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 
 	// Create topic in database (initially with sync_status = "pending")
 	topic := &models.Topic{
-		UserProfileID:  userProfile.ID,
-		Name:           req.Name,
-		Description:    req.Description,
-		Instructions:   req.Instructions,
-		KnowledgeFiles: knowledgeFilesJSON, // Luôn là empty array, không lưu files
-		IsActive:       true,
-		SyncStatus:     "pending",
+		UserProfileID:    userProfile.ID,
+		Name:             req.Name,
+		Description:      req.Description,
+		Instructions:     req.Instructions,
+		KnowledgeFiles:   knowledgeFilesJSON, // Luôn là empty array, không lưu files
+		NotebooklmPrompt: req.NotebooklmPrompt,
+		SendPromptText:   req.SendPromptText,
+		IsActive:         true,
+		SyncStatus:       "pending",
 	}
 
 	if err := s.topicRepo.Create(topic); err != nil {
@@ -381,12 +383,35 @@ func (s *TopicService) UpdateTopic(id string, req *models.UpdateTopicRequest) (*
 		knowledgeFilesBytes, _ := json.Marshal(req.KnowledgeFiles)
 		json.Unmarshal(knowledgeFilesBytes, &topic.KnowledgeFiles)
 	}
+	if req.NotebooklmPrompt != "" {
+		topic.NotebooklmPrompt = req.NotebooklmPrompt
+	}
+	if req.SendPromptText != "" {
+		topic.SendPromptText = req.SendPromptText
+	}
 	if req.IsActive != nil {
 		topic.IsActive = *req.IsActive
 	}
 
 	if err := s.topicRepo.Update(topic); err != nil {
 		return nil, fmt.Errorf("failed to update topic: %w", err)
+	}
+
+	return topic, nil
+}
+
+// UpdateTopicPrompts updates only the prompt fields of a topic
+func (s *TopicService) UpdateTopicPrompts(id string, req *models.UpdateTopicPromptsRequest) (*models.Topic, error) {
+	topic, err := s.topicRepo.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("topic not found: %w", err)
+	}
+
+	topic.NotebooklmPrompt = req.NotebooklmPrompt
+	topic.SendPromptText = req.SendPromptText
+
+	if err := s.topicRepo.Update(topic); err != nil {
+		return nil, fmt.Errorf("failed to update topic prompts: %w", err)
 	}
 
 	return topic, nil

@@ -2157,6 +2157,219 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/files": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all files uploaded by the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Get user's files",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.FileResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/files/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upload one or multiple files to the server. Returns file IDs that can be used in knowledge_files when creating topics.\nSupports both single file (form field: \"file\") and multiple files (form field: \"files[]\")",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Upload file(s)",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Single file to upload",
+                        "name": "file",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Multiple files to upload (files[])",
+                        "name": "files",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Single file: {file: FileResponse}, Multiple files: {files: []FileResponse}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/files/{id}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Download a file by ID. Supports two methods:\n1. Authenticated: Requires Bearer token (owner only)\n2. Token-based: Use ?token=xxx query param (for automation backend)",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "files"
+                ],
+                "summary": "Download a file",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "File ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Signed download token (for automation backend)",
+                        "name": "token",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/topics/{topic_id}/generate-outline-and-upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Kết hợp NotebookLM và Gemini: tạo dàn ý bằng NotebookLM, lưu vào folder outlines trong profile, sau đó upload file dàn ý lên Gemini Gem và gửi prompt.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini"
+                ],
+                "summary": "Generate outline using NotebookLM and upload to Gemini",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Topic ID",
+                        "name": "topic_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Generate outline request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.GenerateOutlineRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GenerateOutlineResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/machines/register": {
             "post": {
                 "description": "Register a new machine or return existing machine info. This is a public endpoint for machines to self-register.",
@@ -2384,6 +2597,229 @@ const docTemplate = `{
                             "type": "object",
                             "additionalProperties": true
                         }
+                    }
+                }
+            }
+        },
+        "/api/v1/process-logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get paginated logs for all entities belonging to the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-logs"
+                ],
+                "summary": "Get logs for the current user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ProcessLogResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a process log entry. Can be called by automation backend via HTTP or RabbitMQ",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-logs"
+                ],
+                "summary": "Create a process log (for automation backend)",
+                "parameters": [
+                    {
+                        "description": "Process log request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ProcessLogRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.ProcessLogResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/process-logs/{entity_type}/{entity_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get paginated logs for a specific entity (e.g., topic)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "process-logs"
+                ],
+                "summary": "Get logs for a specific entity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity type",
+                        "name": "entity_type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Entity ID",
+                        "name": "entity_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.ProcessLogResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/process-logs/{entity_type}/{entity_id}/stream": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stream real-time logs for a specific entity via SSE",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "process-logs"
+                ],
+                "summary": "Stream logs via Server-Sent Events (SSE)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Entity type",
+                        "name": "entity_type",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Entity ID",
+                        "name": "entity_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE stream"
                     }
                 }
             }
@@ -2642,6 +3078,122 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/topics/{id}/prompts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get notebooklm_prompt and send_prompt_text for a topic",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "topics"
+                ],
+                "summary": "Get topic prompts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Topic ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TopicPromptsResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update notebooklm_prompt and send_prompt_text for a topic",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "topics"
+                ],
+                "summary": "Update topic prompts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Topic ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Topic prompts update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateTopicPromptsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.TopicResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2877,6 +3429,99 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Lịch sử"
+                },
+                "notebooklm_prompt": {
+                    "type": "string",
+                    "example": "Tóm tắt chi tiết..."
+                },
+                "send_prompt_text": {
+                    "type": "string",
+                    "example": "Prompt text to send..."
+                }
+            }
+        },
+        "models.FileResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
+                },
+                "download_url": {
+                    "type": "string",
+                    "example": "/api/v1/files/550e8400-e29b-41d4-a716-446655440000/download"
+                },
+                "file_name": {
+                    "type": "string",
+                    "example": "abc123.pdf"
+                },
+                "file_size": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "mime_type": {
+                    "type": "string",
+                    "example": "application/pdf"
+                },
+                "original_name": {
+                    "type": "string",
+                    "example": "document.pdf"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                }
+            }
+        },
+        "models.GenerateOutlineRequest": {
+            "type": "object",
+            "properties": {
+                "debugPort": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "textContent": {
+                    "type": "string",
+                    "example": "string"
+                },
+                "website": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"string\"]"
+                    ]
+                },
+                "youtube": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"string\"]"
+                    ]
+                }
+            }
+        },
+        "models.GenerateOutlineResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "Outline generated and uploaded successfully"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -2942,6 +3587,95 @@ const docTemplate = `{
             "properties": {
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ProcessLogRequest": {
+            "type": "object",
+            "required": [
+                "entity_id",
+                "entity_type",
+                "message",
+                "stage",
+                "status",
+                "user_id"
+            ],
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "entity_type": {
+                    "type": "string",
+                    "example": "topic"
+                },
+                "machine_id": {
+                    "type": "string",
+                    "example": "PC-001"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Chrome launched successfully"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "stage": {
+                    "type": "string",
+                    "example": "chrome_launched"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                }
+            }
+        },
+        "models.ProcessLogResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:30:00Z"
+                },
+                "entity_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "entity_type": {
+                    "type": "string",
+                    "example": "topic"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "machine_id": {
+                    "type": "string",
+                    "example": "PC-001"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Chrome launched successfully"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/models.JSON"
+                },
+                "stage": {
+                    "type": "string",
+                    "example": "chrome_launched"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
                 }
             }
         },
@@ -3149,6 +3883,14 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Lịch sử"
                 },
+                "notebooklm_prompt": {
+                    "type": "string",
+                    "example": "Tóm tắt chi tiết..."
+                },
+                "send_prompt_text": {
+                    "type": "string",
+                    "example": "Prompt text to send..."
+                },
                 "sync_error": {
                     "type": "string",
                     "example": "API returned status 404"
@@ -3171,6 +3913,23 @@ const docTemplate = `{
                 },
                 "user_profile_id": {
                     "type": "string"
+                }
+            }
+        },
+        "models.TopicPromptsResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "notebooklm_prompt": {
+                    "type": "string",
+                    "example": "Tóm tắt chi tiết..."
+                },
+                "send_prompt_text": {
+                    "type": "string",
+                    "example": "Prompt text to send..."
                 }
             }
         },
@@ -3215,6 +3974,14 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Lịch sử"
+                },
+                "notebooklm_prompt": {
+                    "type": "string",
+                    "example": "Tóm tắt chi tiết..."
+                },
+                "send_prompt_text": {
+                    "type": "string",
+                    "example": "Prompt text to send..."
                 },
                 "sync_error": {
                     "type": "string",
@@ -3262,6 +4029,19 @@ const docTemplate = `{
                 }
             }
         },
+        "models.UpdateTopicPromptsRequest": {
+            "type": "object",
+            "properties": {
+                "notebooklm_prompt": {
+                    "type": "string",
+                    "example": "Tóm tắt chi tiết..."
+                },
+                "send_prompt_text": {
+                    "type": "string",
+                    "example": "Prompt text to send..."
+                }
+            }
+        },
         "models.UpdateTopicRequest": {
             "type": "object",
             "properties": {
@@ -3290,6 +4070,14 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Lịch sử Việt Nam"
+                },
+                "notebooklm_prompt": {
+                    "type": "string",
+                    "example": "Tóm tắt chi tiết..."
+                },
+                "send_prompt_text": {
+                    "type": "string",
+                    "example": "Prompt text to send..."
                 }
             }
         },
@@ -3431,9 +4219,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile_dir_name": {
-                    "type": "string"
-                },
-                "profile_path": {
+                    "description": "Paths \u0026 Directories\nNote: UserDataDir không lưu trong DB vì path khác nhau trên mỗi máy automation\nAutomation backend tự resolve path: path.join(os.homedir(), 'AppData', 'Local', 'Automation_Profiles')",
                     "type": "string"
                 },
                 "profile_version": {
@@ -3464,10 +4250,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.User"
                         }
                     ]
-                },
-                "user_data_dir": {
-                    "description": "Paths \u0026 Directories",
-                    "type": "string"
                 },
                 "user_id": {
                     "type": "string"

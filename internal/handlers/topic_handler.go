@@ -140,6 +140,73 @@ func (h *TopicHandler) UpdateTopic(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetTopicPrompts godoc
+// @Summary Get topic prompts
+// @Description Get notebooklm_prompt and send_prompt_text for a topic
+// @Tags topics
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Topic ID"
+// @Success 200 {object} models.TopicPromptsResponse
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/topics/{id}/prompts [get]
+func (h *TopicHandler) GetTopicPrompts(c *gin.Context) {
+	id := c.Param("id")
+
+	topic, err := h.topicService.GetTopicByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+
+	response := models.TopicPromptsResponse{
+		ID:               topic.ID,
+		NotebooklmPrompt: topic.NotebooklmPrompt,
+		SendPromptText:   topic.SendPromptText,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// UpdateTopicPrompts godoc
+// @Summary Update topic prompts
+// @Description Update notebooklm_prompt and send_prompt_text for a topic
+// @Tags topics
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Topic ID"
+// @Param request body models.UpdateTopicPromptsRequest true "Topic prompts update request"
+// @Success 200 {object} models.TopicResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/topics/{id}/prompts [put]
+func (h *TopicHandler) UpdateTopicPrompts(c *gin.Context) {
+	id := c.Param("id")
+
+	var req models.UpdateTopicPromptsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
+		return
+	}
+
+	topic, err := h.topicService.UpdateTopicPrompts(id, &req)
+	if err != nil {
+		if err.Error() == "topic not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update topic prompts", "details": err.Error()})
+		return
+	}
+
+	response := h.topicToResponse(topic)
+	c.JSON(http.StatusOK, response)
+}
+
 // DeleteTopic godoc
 // @Summary Delete a topic
 // @Description Delete a topic by its ID
@@ -171,19 +238,21 @@ func (h *TopicHandler) DeleteTopic(c *gin.Context) {
 // topicToResponse converts a Topic model to TopicResponse
 func (h *TopicHandler) topicToResponse(topic *models.Topic) models.TopicResponse {
 	response := models.TopicResponse{
-		ID:             topic.ID,
-		UserProfileID:  topic.UserProfileID,
-		Name:           topic.Name,
-		GeminiGemID:    topic.GeminiGemID,
-		GeminiGemName:  topic.GeminiGemName,
-		Description:    topic.Description,
-		Instructions:   topic.Instructions,
-		KnowledgeFiles: topic.KnowledgeFiles,
-		IsActive:       topic.IsActive,
-		SyncStatus:     topic.SyncStatus,
-		SyncError:      topic.SyncError,
-		CreatedAt:      topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:      topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:               topic.ID,
+		UserProfileID:    topic.UserProfileID,
+		Name:             topic.Name,
+		GeminiGemID:      topic.GeminiGemID,
+		GeminiGemName:    topic.GeminiGemName,
+		Description:      topic.Description,
+		Instructions:     topic.Instructions,
+		KnowledgeFiles:   topic.KnowledgeFiles,
+		NotebooklmPrompt: topic.NotebooklmPrompt,
+		SendPromptText:   topic.SendPromptText,
+		IsActive:         topic.IsActive,
+		SyncStatus:       topic.SyncStatus,
+		SyncError:        topic.SyncError,
+		CreatedAt:        topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:        topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	if topic.LastSyncedAt != nil {

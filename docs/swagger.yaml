@@ -166,8 +166,74 @@ definitions:
       name:
         example: Lịch sử
         type: string
+      notebooklm_prompt:
+        example: Tóm tắt chi tiết...
+        type: string
+      send_prompt_text:
+        example: Prompt text to send...
+        type: string
     required:
     - name
+    type: object
+  models.FileResponse:
+    properties:
+      created_at:
+        example: "2025-01-21T10:00:00Z"
+        type: string
+      download_url:
+        example: /api/v1/files/550e8400-e29b-41d4-a716-446655440000/download
+        type: string
+      file_name:
+        example: abc123.pdf
+        type: string
+      file_size:
+        type: integer
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      mime_type:
+        example: application/pdf
+        type: string
+      original_name:
+        example: document.pdf
+        type: string
+      updated_at:
+        example: "2025-01-21T10:00:00Z"
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+    type: object
+  models.GenerateOutlineRequest:
+    properties:
+      debugPort:
+        example: 0
+        type: integer
+      textContent:
+        example: string
+        type: string
+      website:
+        example:
+        - '["string"]'
+        items:
+          type: string
+        type: array
+      youtube:
+        example:
+        - '["string"]'
+        items:
+          type: string
+        type: array
+    type: object
+  models.GenerateOutlineResponse:
+    properties:
+      data: {}
+      message:
+        example: Outline generated and uploaded successfully
+        type: string
+      success:
+        example: true
+        type: boolean
     type: object
   models.HeartbeatRequest:
     properties:
@@ -212,6 +278,72 @@ definitions:
   models.LogoutRequest:
     properties:
       refresh_token:
+        type: string
+    type: object
+  models.ProcessLogRequest:
+    properties:
+      entity_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      entity_type:
+        example: topic
+        type: string
+      machine_id:
+        example: PC-001
+        type: string
+      message:
+        example: Chrome launched successfully
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      stage:
+        example: chrome_launched
+        type: string
+      status:
+        example: success
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+    required:
+    - entity_id
+    - entity_type
+    - message
+    - stage
+    - status
+    - user_id
+    type: object
+  models.ProcessLogResponse:
+    properties:
+      created_at:
+        example: "2025-01-21T10:30:00Z"
+        type: string
+      entity_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      entity_type:
+        example: topic
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      machine_id:
+        example: PC-001
+        type: string
+      message:
+        example: Chrome launched successfully
+        type: string
+      metadata:
+        $ref: '#/definitions/models.JSON'
+      stage:
+        example: chrome_launched
+        type: string
+      status:
+        example: success
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
   models.RefreshToken:
@@ -367,6 +499,12 @@ definitions:
         description: Basic info
         example: Lịch sử
         type: string
+      notebooklm_prompt:
+        example: Tóm tắt chi tiết...
+        type: string
+      send_prompt_text:
+        example: Prompt text to send...
+        type: string
       sync_error:
         example: API returned status 404
         type: string
@@ -381,6 +519,18 @@ definitions:
         - $ref: '#/definitions/models.UserProfile'
         description: Relationships
       user_profile_id:
+        type: string
+    type: object
+  models.TopicPromptsResponse:
+    properties:
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      notebooklm_prompt:
+        example: Tóm tắt chi tiết...
+        type: string
+      send_prompt_text:
+        example: Prompt text to send...
         type: string
     type: object
   models.TopicResponse:
@@ -414,6 +564,12 @@ definitions:
       name:
         example: Lịch sử
         type: string
+      notebooklm_prompt:
+        example: Tóm tắt chi tiết...
+        type: string
+      send_prompt_text:
+        example: Prompt text to send...
+        type: string
       sync_error:
         example: ""
         type: string
@@ -446,6 +602,15 @@ definitions:
     required:
     - name
     type: object
+  models.UpdateTopicPromptsRequest:
+    properties:
+      notebooklm_prompt:
+        example: Tóm tắt chi tiết...
+        type: string
+      send_prompt_text:
+        example: Prompt text to send...
+        type: string
+    type: object
   models.UpdateTopicRequest:
     properties:
       description:
@@ -466,6 +631,12 @@ definitions:
         type: array
       name:
         example: Lịch sử Việt Nam
+        type: string
+      notebooklm_prompt:
+        example: Tóm tắt chi tiết...
+        type: string
+      send_prompt_text:
+        example: Prompt text to send...
         type: string
     type: object
   models.UpdateTunnelURLRequest:
@@ -559,8 +730,10 @@ definitions:
         description: Basic info
         type: string
       profile_dir_name:
-        type: string
-      profile_path:
+        description: |-
+          Paths & Directories
+          Note: UserDataDir không lưu trong DB vì path khác nhau trên mỗi máy automation
+          Automation backend tự resolve path: path.join(os.homedir(), 'AppData', 'Local', 'Automation_Profiles')
         type: string
       profile_version:
         description: Version tracking
@@ -579,9 +752,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/models.User'
         description: Relationships
-      user_data_dir:
-        description: Paths & Directories
-        type: string
       user_id:
         type: string
     type: object
@@ -2019,6 +2189,152 @@ paths:
       summary: Get apps by box
       tags:
       - boxes
+  /api/v1/files:
+    get:
+      description: Get all files uploaded by the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.FileResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user's files
+      tags:
+      - files
+  /api/v1/files/{id}/download:
+    get:
+      description: |-
+        Download a file by ID. Supports two methods:
+        1. Authenticated: Requires Bearer token (owner only)
+        2. Token-based: Use ?token=xxx query param (for automation backend)
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Signed download token (for automation backend)
+        in: query
+        name: token
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Download a file
+      tags:
+      - files
+  /api/v1/files/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Upload one or multiple files to the server. Returns file IDs that can be used in knowledge_files when creating topics.
+        Supports both single file (form field: "file") and multiple files (form field: "files[]")
+      parameters:
+      - description: Single file to upload
+        in: formData
+        name: file
+        type: file
+      - description: Multiple files to upload (files[])
+        in: formData
+        name: files
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'Single file: {file: FileResponse}, Multiple files: {files:
+            []FileResponse}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload file(s)
+      tags:
+      - files
+  /api/v1/gemini/topics/{topic_id}/generate-outline-and-upload:
+    post:
+      consumes:
+      - application/json
+      description: 'Kết hợp NotebookLM và Gemini: tạo dàn ý bằng NotebookLM, lưu vào
+        folder outlines trong profile, sau đó upload file dàn ý lên Gemini Gem và
+        gửi prompt.'
+      parameters:
+      - description: Topic ID
+        in: path
+        name: topic_id
+        required: true
+        type: string
+      - description: Generate outline request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.GenerateOutlineRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GenerateOutlineResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate outline using NotebookLM and upload to Gemini
+      tags:
+      - gemini
   /api/v1/machines/{machine_id}/frp-config:
     get:
       consumes:
@@ -2176,6 +2492,154 @@ paths:
       summary: Register a machine
       tags:
       - machines
+  /api/v1/process-logs:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated logs for all entities belonging to the current user
+      parameters:
+      - default: 100
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProcessLogResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get logs for the current user
+      tags:
+      - process-logs
+    post:
+      consumes:
+      - application/json
+      description: Create a process log entry. Can be called by automation backend
+        via HTTP or RabbitMQ
+      parameters:
+      - description: Process log request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ProcessLogRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ProcessLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a process log (for automation backend)
+      tags:
+      - process-logs
+  /api/v1/process-logs/{entity_type}/{entity_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated logs for a specific entity (e.g., topic)
+      parameters:
+      - description: Entity type
+        in: path
+        name: entity_type
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: entity_id
+        required: true
+        type: string
+      - default: 100
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ProcessLogResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get logs for a specific entity
+      tags:
+      - process-logs
+  /api/v1/process-logs/{entity_type}/{entity_id}/stream:
+    get:
+      consumes:
+      - application/json
+      description: Stream real-time logs for a specific entity via SSE
+      parameters:
+      - description: Entity type
+        in: path
+        name: entity_type
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: entity_id
+        required: true
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE stream
+      security:
+      - BearerAuth: []
+      summary: Stream logs via Server-Sent Events (SSE)
+      tags:
+      - process-logs
   /api/v1/topics:
     get:
       consumes:
@@ -2340,6 +2804,82 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a topic
+      tags:
+      - topics
+  /api/v1/topics/{id}/prompts:
+    get:
+      consumes:
+      - application/json
+      description: Get notebooklm_prompt and send_prompt_text for a topic
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TopicPromptsResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get topic prompts
+      tags:
+      - topics
+    put:
+      consumes:
+      - application/json
+      description: Update notebooklm_prompt and send_prompt_text for a topic
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Topic prompts update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateTopicPromptsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TopicResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update topic prompts
       tags:
       - topics
 securityDefinitions:

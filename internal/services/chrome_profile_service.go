@@ -155,11 +155,6 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
-	// Log request body for debugging
-	logrus.Infof("Launch Chrome API Request - URL: %s", launchURL)
-	logrus.Infof("Launch Chrome API Request - Body: %s", string(jsonBody))
-	logrus.Infof("Launch Chrome API Request - Headers: X-User-ID=%s, X-Entity-Type=%s, X-Entity-ID=%s", userID, req.EntityType, req.EntityID)
-
 	// Create HTTP request
 	httpReq, err := http.NewRequest("POST", launchURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
@@ -179,22 +174,19 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 
 	// Make request
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second,
 	}
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		logrus.Errorf("HTTP request failed to automation backend %s: %v", launchURL, err)
 		s.releaseLock(userProfile.ID, false)
 		return nil, fmt.Errorf("failed to launch Chrome: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Read response body for logging
-	responseBodyBytes, readErr := io.ReadAll(resp.Body)
-	logrus.Infof("Launch Chrome API Response - Status: %d", resp.StatusCode)
-	if readErr == nil && len(responseBodyBytes) > 0 {
-		logrus.Infof("Launch Chrome API Response - Body: %s", string(responseBodyBytes))
-	}
+	// Read response body
+	responseBodyBytes, _ := io.ReadAll(resp.Body)
 
 	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -207,9 +199,6 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 	if len(responseBodyBytes) > 0 {
 		if err := json.Unmarshal(responseBodyBytes, &responseData); err != nil {
 			logrus.Warnf("Failed to parse Chrome launch response: %v", err)
-			// Continue even if response parsing fails
-		} else {
-			logrus.Infof("Launch Chrome API Response - Parsed: %+v", responseData)
 		}
 	}
 
