@@ -35,6 +35,7 @@ COPY --from=builder /app/docs ./docs
 
 RUN mkdir -p /app/exports/excel
 RUN mkdir -p /app/temp/excel
+RUN mkdir -p /app/storage/files
 
 # Expose the application's port
 EXPOSE 8080

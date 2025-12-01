@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"gorm.io/gorm"
 )
@@ -62,7 +64,8 @@ func (r *ProcessLogRepository) CountByEntity(entityType, entityID string) (int64
 }
 
 // DeleteOldLogs deletes logs older than specified days
-func (r *ProcessLogRepository) DeleteOldLogs(days int) error {
-	return r.db.Where("created_at < NOW() - INTERVAL ? DAY", days).
-		Delete(&models.ProcessLog{}).Error
+func (r *ProcessLogRepository) DeleteOldLogs(days int) (int64, error) {
+	cutoffDate := time.Now().AddDate(0, 0, -days)
+	result := r.db.Where("created_at < ?", cutoffDate).Delete(&models.ProcessLog{})
+	return result.RowsAffected, result.Error
 }
