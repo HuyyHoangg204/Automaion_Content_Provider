@@ -99,9 +99,12 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		launchResp, err := s.chromeProfileService.LaunchChromeProfile(userID, launchReq)
 		if err != nil {
 			logrus.Errorf("Failed to launch Chrome for topic %s: %v", topic.ID, err)
-			topic.SyncStatus = "failed"
-			topic.SyncError = fmt.Sprintf("Failed to launch Chrome: %v", err)
-			s.topicRepo.Update(topic)
+			// Xóa topic khi automation fail
+			if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
+				logrus.Errorf("Failed to delete topic %s after Chrome launch failure: %v", topic.ID, deleteErr)
+			} else {
+				logrus.Infof("Deleted topic %s due to Chrome launch failure", topic.ID)
+			}
 			return
 		}
 
@@ -113,10 +116,12 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 			s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
 				UserProfileID: userProfile.ID,
 			})
-			// Update topic with error
-			topic.SyncStatus = "failed"
-			topic.SyncError = err.Error()
-			s.topicRepo.Update(topic)
+			// Xóa topic khi automation fail
+			if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
+				logrus.Errorf("Failed to delete topic %s after Gem creation failure: %v", topic.ID, deleteErr)
+			} else {
+				logrus.Infof("Deleted topic %s due to Gem creation failure", topic.ID)
+			}
 			return
 		}
 
@@ -142,11 +147,7 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		currentTopic.SyncError = ""
 		// KHÔNG update SyncStatus - để automation backend tự update qua log
 
-		if err := s.topicRepo.Update(currentTopic); err != nil {
-			logrus.Errorf("Failed to update topic with Gemini info: %v", err)
-		} else {
-			logrus.Infof("Gem creation request sent for topic %s, waiting for automation backend to complete. Gem name: %s", topic.ID, geminiGemName)
-		}
+		s.topicRepo.Update(currentTopic)
 	}()
 
 	return topic, nil
@@ -179,7 +180,6 @@ func (s *TopicService) AddUploadedFiles(userID string, fileIDs []string) {
 	}
 
 	s.recentUploadedFiles.Store(userID, newIDs)
-	logrus.Infof("Cached %d uploaded file IDs for user %s (total: %d)", len(fileIDs), userID, len(newIDs))
 }
 
 // GetAndClearUploadedFiles lấy file IDs từ cache và xóa sau khi lấy
@@ -188,12 +188,10 @@ func (s *TopicService) GetAndClearUploadedFiles(userID string) []string {
 	// Lấy file IDs từ cache
 	value, ok := s.recentUploadedFiles.LoadAndDelete(userID)
 	if !ok {
-		logrus.Infof("No cached files found for user %s", userID)
 		return []string{}
 	}
 
 	fileIDs := value.([]string)
-	logrus.Infof("Retrieved %d cached file IDs for user %s (cache cleared)", len(fileIDs), userID)
 	return fileIDs
 }
 
@@ -203,7 +201,6 @@ func (s *TopicService) getRecentUserFilesAsURLs(userID string) []string {
 	fileIDs := s.GetAndClearUploadedFiles(userID)
 
 	if len(fileIDs) == 0 {
-		logrus.Info("No cached files found, returning empty array")
 		return []string{}
 	}
 
@@ -213,8 +210,6 @@ func (s *TopicService) getRecentUserFilesAsURLs(userID string) []string {
 		downloadURL := fmt.Sprintf("%s/api/v1/files/%s/download", strings.TrimSuffix(s.baseURL, "/"), fileID)
 		urls = append(urls, downloadURL)
 	}
-
-	logrus.Infof("Converted %d file IDs to URLs for user %s", len(urls), userID)
 	return urls
 }
 
@@ -260,7 +255,6 @@ func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *m
 
 	// Thêm tiền tố username vào gemName
 	prefixedGemName := fmt.Sprintf("%s_%s", username, req.Name)
-	logrus.Infof("Gem name with prefix: '%s' (original: '%s', username: '%s')", prefixedGemName, req.Name, username)
 
 	// Prepare request body (without debugPort)
 	// Note: Không gửi userDataDir - automation backend tự resolve path

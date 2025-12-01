@@ -53,7 +53,7 @@ services:
       # FRP Configuration
       - FRP_SERVER_DOMAIN=api-greenbox-http.onegreen.cloud
       - FRP_SERVER_PORT=8700
-      - FRP_TOKEN=HelloWorld!!!
+      - FRP_TOKEN=your_secure_token_12345
       - FRP_PROTOCOL=http
       - FRP_CUSTOM_DOMAIN=agent-controller.onegreen.cloud
       
@@ -66,6 +66,15 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASS=guest
+      
+      # File Storage Configuration
+      - FILE_STORAGE_DIR=/app/storage/files
+
+    volumes:
+      # Bind mount for local testing (Windows path)
+      - D:/hoang:/app/storage/files
+      # Alternative: Use named volume for production (uncomment below and comment above)
+      # - storage_files:/app/storage/files
 
     depends_on:
       postgres:
@@ -76,3 +85,4 @@ services:
 
 volumes:
   postgres_data:
+  storage_files:

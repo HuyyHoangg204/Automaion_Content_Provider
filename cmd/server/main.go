@@ -89,6 +89,12 @@ func main() {
 			logrus.Info("RabbitMQ log consumer started")
 			defer processLogService.StopRabbitMQConsumer()
 		}
+
+		// Start log cleanup service (cleanup every 6 hours, keep logs for 1 day)
+		logRetentionDays := getEnvAsInt("LOG_RETENTION_DAYS", 1)
+		cleanupInterval := 6 * time.Hour
+		processLogService.StartLogCleanup(cleanupInterval, logRetentionDays)
+		defer processLogService.StopLogCleanup()
 	}
 
 	// Create admin user if not exists
@@ -158,4 +164,13 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvAsInt(key string, defaultValue int) int {
+	valueStr := getEnv(key, fmt.Sprintf("%d", defaultValue))
+	var value int
+	if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
+		return defaultValue
+	}
+	return value
 }

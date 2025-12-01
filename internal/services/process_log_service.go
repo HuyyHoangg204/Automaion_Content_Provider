@@ -12,22 +12,24 @@ import (
 )
 
 type ProcessLogService struct {
-	logRepo   *repository.ProcessLogRepository
-	topicRepo *repository.TopicRepository
-	sseHub    *SSEHub
-	rabbitMQ  *RabbitMQService
-	db        *gorm.DB
-	stopChan  chan bool
+	logRepo         *repository.ProcessLogRepository
+	topicRepo       *repository.TopicRepository
+	sseHub          *SSEHub
+	rabbitMQ        *RabbitMQService
+	db              *gorm.DB
+	stopChan        chan bool
+	cleanupStopChan chan bool
 }
 
 func NewProcessLogService(logRepo *repository.ProcessLogRepository, sseHub *SSEHub, rabbitMQ *RabbitMQService, db *gorm.DB) *ProcessLogService {
 	return &ProcessLogService{
-		logRepo:   logRepo,
-		topicRepo: repository.NewTopicRepository(db),
-		sseHub:    sseHub,
-		rabbitMQ:  rabbitMQ,
-		db:        db,
-		stopChan:  make(chan bool),
+		logRepo:         logRepo,
+		topicRepo:       repository.NewTopicRepository(db),
+		sseHub:          sseHub,
+		rabbitMQ:        rabbitMQ,
+		db:              db,
+		stopChan:        make(chan bool),
+		cleanupStopChan: make(chan bool),
 	}
 }
 
@@ -133,12 +135,7 @@ func (s *ProcessLogService) processLogMessage(body []byte) error {
 	// Broadcast via SSE
 	s.sseHub.BroadcastLog(log)
 
-	// Nếu là log "completed" hoặc "create_gem_completed" cho topic → tự động update topic SyncStatus
-	if req.EntityType == "topic" && req.Status == "success" {
-		if req.Stage == "completed" || req.Stage == "create_gem_completed" {
-			s.updateTopicOnCompletion(req.EntityID, req.Metadata)
-		}
-	}
+	s.handleTopicLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
 
 	return nil
 }
@@ -173,12 +170,7 @@ func (s *ProcessLogService) CreateLog(req *models.ProcessLogRequest) (*models.Pr
 	// Broadcast via SSE
 	s.sseHub.BroadcastLog(log)
 
-	// Nếu là log "completed" hoặc "create_gem_completed" cho topic → tự động update topic SyncStatus
-	if req.EntityType == "topic" && req.Status == "success" {
-		if req.Stage == "completed" || req.Stage == "create_gem_completed" {
-			s.updateTopicOnCompletion(req.EntityID, req.Metadata)
-		}
-	}
+	s.handleTopicLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
 
 	return log, nil
 }
@@ -210,6 +202,28 @@ func (s *ProcessLogService) updateTopicOnCompletion(topicID string, metadata map
 		logrus.Errorf("Failed to update topic %s on completion: %v", topicID, err)
 	} else {
 		logrus.Infof("Topic %s marked as synced after receiving completion log from automation backend", topicID)
+	}
+}
+
+// handleTopicLog xử lý log liên quan đến topic (thành công hoặc thất bại)
+func (s *ProcessLogService) handleTopicLog(entityType, topicID, stage, status string, metadata map[string]interface{}) {
+	if entityType != "topic" {
+		return
+	}
+
+	// Thành công → update sync status
+	if status == "success" && (stage == "completed" || stage == "create_gem_completed") {
+		s.updateTopicOnCompletion(topicID, metadata)
+		return
+	}
+
+	// Thất bại → xóa topic
+	if status == "failed" || status == "error" {
+		if deleteErr := s.topicRepo.Delete(topicID); deleteErr != nil {
+			logrus.Errorf("Failed to delete topic %s after automation %s (%s): %v", topicID, stage, status, deleteErr)
+		} else {
+			logrus.Warnf("Deleted topic %s due to automation %s (%s)", topicID, stage, status)
+		}
 	}
 }
 
@@ -248,4 +262,49 @@ func (s *ProcessLogService) Log(entityType, entityID, userID, machineID, stage, 
 
 	_, err := s.CreateLog(req)
 	return err
+}
+
+// StartLogCleanup starts a background goroutine to periodically clean up old logs
+func (s *ProcessLogService) StartLogCleanup(interval time.Duration, retentionDays int) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		// Run initial cleanup
+		s.cleanupOldLogs(retentionDays)
+
+		for {
+			select {
+			case <-ticker.C:
+				s.cleanupOldLogs(retentionDays)
+			case <-s.cleanupStopChan:
+				return
+			}
+		}
+	}()
+	logrus.Infof("Log cleanup service started (interval: %v, retention: %d days)", interval, retentionDays)
+}
+
+// StopLogCleanup stops the log cleanup service
+func (s *ProcessLogService) StopLogCleanup() {
+	select {
+	case s.cleanupStopChan <- true:
+	default:
+	}
+}
+
+// cleanupOldLogs deletes logs older than the specified number of days
+// Chỉ xóa log cũ, không ảnh hưởng đến log mới đang được tạo liên tục
+func (s *ProcessLogService) cleanupOldLogs(retentionDays int) {
+	deletedCount, err := s.logRepo.DeleteOldLogs(retentionDays)
+	if err != nil {
+		logrus.Errorf("Failed to cleanup old logs: %v", err)
+		return
+	}
+
+	if deletedCount > 0 {
+		logrus.Infof("Log cleanup completed: deleted %d log entries older than %d day(s)", deletedCount, retentionDays)
+	} else {
+		logrus.Debugf("Log cleanup completed: no logs to delete (all logs are within %d day(s))", retentionDays)
+	}
 }
