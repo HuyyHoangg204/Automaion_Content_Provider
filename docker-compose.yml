@@ -56,10 +56,12 @@ services:
       - FRP_TOKEN=your_secure_token_12345
       - FRP_PROTOCOL=http
       - FRP_CUSTOM_DOMAIN=agent-controller.onegreen.cloud
+      - FRP_TUNNEL_PORT=8085
       
       # Server Configuration
       - PORT=8080
       - LOG_LEVEL=info
+      - BASE_URL=http://158.69.59.214:8080
       
       # RabbitMQ Configuration
       - RABBITMQ_HOST=rabbitmq

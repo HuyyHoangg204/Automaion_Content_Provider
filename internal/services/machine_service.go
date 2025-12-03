@@ -3,13 +3,16 @@ package services
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/config"
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 type MachineService struct {
@@ -112,8 +115,43 @@ func (s *MachineService) GetFrpConfigByMachineID(machineID string) (*models.Regi
 	return response, nil
 }
 
+// normalizeTunnelURL adds port to tunnel URL if not present
+func (s *MachineService) normalizeTunnelURL(tunnelURL string) string {
+	// Parse URL to check if port is already present
+	parsedURL, err := url.Parse(tunnelURL)
+	if err != nil {
+		return tunnelURL
+	}
+
+	// If port is already present, return as-is
+	if parsedURL.Port() != "" {
+		return tunnelURL
+	}
+
+	// Get FRP_TUNNEL_PORT from environment (default: 8085)
+	tunnelPort := os.Getenv("FRP_TUNNEL_PORT")
+	if tunnelPort == "" {
+		tunnelPort = "8085" // Default port
+	}
+
+	// Validate port is a number
+	if _, err := strconv.Atoi(tunnelPort); err != nil {
+		logrus.Warnf("Invalid FRP_TUNNEL_PORT: %s, using default 8085", tunnelPort)
+		tunnelPort = "8085"
+	}
+
+	// Add port to URL
+	parsedURL.Host = parsedURL.Host + ":" + tunnelPort
+	normalizedURL := parsedURL.String()
+	logrus.Infof("Normalized tunnel URL: %s -> %s", tunnelURL, normalizedURL)
+	return normalizedURL
+}
+
 // UpdateTunnelURLByMachineID updates tunnel URL for a machine's app
 func (s *MachineService) UpdateTunnelURLByMachineID(machineID, tunnelURL string) (*models.UpdateTunnelURLResponse, error) {
+	// Normalize tunnel URL (add port if not present)
+	normalizedURL := s.normalizeTunnelURL(tunnelURL)
+
 	// Get box by machine ID
 	box, err := s.boxRepo.GetByMachineID(machineID)
 	if err != nil {
@@ -142,14 +180,14 @@ func (s *MachineService) UpdateTunnelURLByMachineID(machineID, tunnelURL string)
 		app = &models.App{
 			BoxID:     box.ID,
 			Name:      appName,
-			TunnelURL: &tunnelURL,
+			TunnelURL: &normalizedURL,
 		}
 		if err := s.appRepo.Create(app); err != nil {
 			return nil, fmt.Errorf("failed to create app: %w", err)
 		}
 	} else {
 		// Update existing app
-		app.TunnelURL = &tunnelURL
+		app.TunnelURL = &normalizedURL
 		if err := s.appRepo.Update(app); err != nil {
 			return nil, fmt.Errorf("failed to update app: %w", err)
 		}
