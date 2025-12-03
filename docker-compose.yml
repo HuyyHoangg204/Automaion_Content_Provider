@@ -29,11 +29,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    
+  frontend:
+    image: devhhoang/automation-web:latest
+    container_name: automation_web
+    ports:
+      - "3000:80"
+    restart: unless-stopped
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: devhhoang/green-provider-services-backend:latest
     ports:
       - "8080:8080"
     environment:
@@ -73,10 +79,8 @@ services:
       - FILE_STORAGE_DIR=/app/storage/files
 
     volumes:
-      # Bind mount for local testing (Windows path)
-      - D:/hoang:/app/storage/files
-      # Alternative: Use named volume for production (uncomment below and comment above)
-      # - storage_files:/app/storage/files
+      # Use named volume for production
+      - storage_files:/app/storage/files
 
     depends_on:
       postgres:
@@ -88,3 +92,4 @@ services:
 volumes:
   postgres_data:
   storage_files:
+
