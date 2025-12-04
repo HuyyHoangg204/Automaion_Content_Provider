@@ -109,6 +109,11 @@ func main() {
 	tokenCleanupService.Start()
 	defer tokenCleanupService.Stop()
 
+	// Initialize box status update service (update offline boxes every 1 minute)
+	boxStatusService := services.NewBoxStatusUpdateService(db)
+	boxStatusService.Start()
+	defer boxStatusService.Stop()
+
 	// Initialize router with RabbitMQ service and SSE Hub
 	r := router.SetupRouter(db, rabbitMQService, sseHub, basePath)
 

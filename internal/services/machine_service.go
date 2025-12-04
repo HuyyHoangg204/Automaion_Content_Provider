@@ -217,8 +217,9 @@ func (s *MachineService) SendHeartbeat(machineID string, req *models.HeartbeatRe
 		}
 	}
 
-	// Update box updated_at (acts as last_seen)
+	// Update box updated_at (acts as last_seen) and set is_online = true
 	box.UpdatedAt = time.Now()
+	box.IsOnline = true // Set online when receiving heartbeat
 	if err := s.boxRepo.Update(box); err != nil {
 		return nil, fmt.Errorf("failed to update box: %w", err)
 	}

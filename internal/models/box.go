@@ -10,6 +10,7 @@ type Box struct {
 	UserID    string    `json:"user_id" gorm:"not null;index;type:uuid"`
 	MachineID string    `json:"machine_id" gorm:"type:varchar(255);not null;unique;index"`
 	Name      string    `json:"name" gorm:"type:varchar(255);not null"`
+	IsOnline  bool      `json:"is_online" gorm:"default:false;index"` // Online/offline status
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
@@ -102,4 +103,26 @@ type HeartbeatResponse struct {
 	Success  bool   `json:"success" example:"true"`
 	LastSeen string `json:"last_seen" example:"2025-01-21T10:30:00Z"`
 	Message  string `json:"message" example:"Heartbeat received"`
+}
+
+// BoxWithStatusResponse represents the response for box with online/offline status
+type BoxWithStatusResponse struct {
+	ID          string           `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID      string           `json:"user_id" example:"550e8400-e29b-41d4-a716-446655440001"`
+	MachineID   string           `json:"machine_id" example:"PC-001"`
+	Name        string           `json:"name" example:"My Computer"`
+	IsOnline    bool             `json:"is_online" example:"true"`
+	LastSeen    string           `json:"last_seen" example:"2025-01-21T10:30:00Z"`
+	StatusCheck *StatusCheckInfo `json:"status_check,omitempty"`
+	CreatedAt   string           `json:"created_at" example:"2025-01-09T10:30:00Z"`
+	UpdatedAt   string           `json:"updated_at" example:"2025-01-09T10:30:00Z"`
+}
+
+// StatusCheckInfo contains information about the health check
+type StatusCheckInfo struct {
+	IsAccessible bool    `json:"is_accessible" example:"true"`
+	ResponseTime int64   `json:"response_time_ms" example:"150"`
+	Message      string  `json:"message" example:"Tunnel is accessible"`
+	StatusCode   *int    `json:"status_code,omitempty" example:"200"`
+	Error        *string `json:"error,omitempty"`
 }
