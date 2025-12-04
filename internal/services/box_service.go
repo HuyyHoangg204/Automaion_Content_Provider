@@ -8,6 +8,7 @@ import (
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/sirupsen/logrus"
 )
 
 type BoxService struct {
@@ -209,15 +210,16 @@ func (s *BoxService) GetAllBoxesWithStatus() ([]*models.BoxWithStatusResponse, e
 		}
 
 		// Check online status
-		// Priority: Use is_online from DB if heartbeat is recent, otherwise perform health check
+		// Priority: Heartbeat is the source of truth. If no heartbeat > 5 minutes, consider offline
 		now := time.Now()
 		timeSinceLastSeen := now.Sub(box.UpdatedAt)
-		isOnline := box.IsOnline // Use value from DB
+		var isOnline bool
 		var statusCheck *models.StatusCheckInfo
 
 		// If heartbeat is recent (< 5 minutes), trust DB value
 		if timeSinceLastSeen < 5*time.Minute {
 			// Use is_online from DB (set by heartbeat)
+			isOnline = box.IsOnline
 			if isOnline {
 				statusCheck = &models.StatusCheckInfo{
 					IsAccessible: true,
@@ -231,39 +233,52 @@ func (s *BoxService) GetAllBoxesWithStatus() ([]*models.BoxWithStatusResponse, e
 					Message:      fmt.Sprintf("Machine is offline (last heartbeat %d seconds ago)", int(timeSinceLastSeen.Seconds())),
 				}
 			}
-		} else if automationApp != nil && automationApp.TunnelURL != nil {
-			// If heartbeat is old, perform health check
-			checkResult, err := s.appService.CheckTunnelURLSimple(*automationApp.TunnelURL)
-			if err == nil && checkResult != nil {
-				isOnline = checkResult.IsAccessible
-				statusCheck = &models.StatusCheckInfo{
-					IsAccessible: checkResult.IsAccessible,
-					ResponseTime: checkResult.ResponseTime,
-					Message:      checkResult.Message,
-					StatusCode:   checkResult.StatusCode,
-					Error:        checkResult.Error,
+		} else {
+			// Heartbeat is old (> 5 minutes) → Consider offline regardless of health check
+			// Health check is only for informational purposes
+			isOnline = false
+
+			// Optionally perform health check for additional info (but doesn't change is_online)
+			if automationApp != nil && automationApp.TunnelURL != nil {
+				checkResult, err := s.appService.CheckTunnelURLSimple(*automationApp.TunnelURL)
+				if err == nil && checkResult != nil {
+					// Health check succeeded, but machine is still offline due to no heartbeat
+					statusCheck = &models.StatusCheckInfo{
+						IsAccessible: checkResult.IsAccessible,
+						ResponseTime: checkResult.ResponseTime,
+						Message:      fmt.Sprintf("Machine offline - no heartbeat for %d minutes (tunnel check: %s)", int(timeSinceLastSeen.Minutes()), checkResult.Message),
+						StatusCode:   checkResult.StatusCode,
+						Error:        checkResult.Error,
+					}
+				} else {
+					// Health check failed
+					errorMsg := "Health check failed"
+					if err != nil {
+						errorMsg = err.Error()
+					}
+					statusCheck = &models.StatusCheckInfo{
+						IsAccessible: false,
+						ResponseTime: 0,
+						Message:      fmt.Sprintf("Machine offline - no heartbeat for %d minutes", int(timeSinceLastSeen.Minutes())),
+						Error:        &errorMsg,
+					}
 				}
 			} else {
-				// Health check failed
-				isOnline = false
-				errorMsg := "Health check failed"
-				if err != nil {
-					errorMsg = err.Error()
-				}
+				// No tunnel URL or automation app
 				statusCheck = &models.StatusCheckInfo{
 					IsAccessible: false,
 					ResponseTime: 0,
-					Message:      fmt.Sprintf("Machine offline (last heartbeat %d minutes ago)", int(timeSinceLastSeen.Minutes())),
-					Error:        &errorMsg,
+					Message:      fmt.Sprintf("Machine offline - no heartbeat for %d minutes (no tunnel URL)", int(timeSinceLastSeen.Minutes())),
 				}
 			}
-		} else {
-			// No tunnel URL or automation app
-			isOnline = false
-			statusCheck = &models.StatusCheckInfo{
-				IsAccessible: false,
-				ResponseTime: 0,
-				Message:      fmt.Sprintf("No automation app or tunnel URL found (last heartbeat %d minutes ago)", int(timeSinceLastSeen.Minutes())),
+
+			// Update DB if box is still marked as online (sync with reality)
+			if box.IsOnline {
+				box.IsOnline = false
+				if err := s.boxRepo.Update(box); err != nil {
+					// Log error but don't fail the request
+					logrus.Warnf("Failed to update box %s to offline: %v", box.ID, err)
+				}
 			}
 		}
 
