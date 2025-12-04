@@ -74,6 +74,9 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASS=guest
+
+      # Log Cleanup Configuration
+      - LOG_RETENTION_DAYS=1
       
       # File Storage Configuration
       - FILE_STORAGE_DIR=/app/storage/files

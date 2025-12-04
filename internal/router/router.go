@@ -231,6 +231,8 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 				admin.GET("/users", adminHandler.GetAllUsers)
 				admin.PUT("/users/:id/status", adminHandler.SetUserStatus)
 				admin.POST("/users/:id/reset-password", adminHandler.ResetPassword)
+				// IMPORTANT: More specific routes must come before less specific ones
+				admin.GET("/boxes/status", adminHandler.AdminGetAllBoxesWithStatus)
 				admin.GET("/boxes", adminHandler.AdminGetAllBoxes)
 				admin.GET("/apps", adminHandler.AdminGetAllApps)
 			}

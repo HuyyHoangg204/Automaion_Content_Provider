@@ -317,3 +317,55 @@ func (s *AppService) CheckTunnelURL(tunnelURL string) (*models.CheckTunnelRespon
 	}, nil
 }
 
+// CheckTunnelURLSimple checks if a tunnel URL is accessible by checking root path
+// This is a simpler check that doesn't require specific endpoints
+func (s *AppService) CheckTunnelURLSimple(tunnelURL string) (*models.CheckTunnelResponse, error) {
+	if tunnelURL == "" {
+		return nil, errors.New("tunnel URL is empty")
+	}
+
+	// Create HTTP client with shorter timeout
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	// Record start time for response time measurement
+	startTime := time.Now()
+
+	// Test tunnel by calling root path
+	testURL := strings.TrimSuffix(tunnelURL, "/")
+	
+	resp, err := client.Get(testURL)
+	responseTime := time.Since(startTime).Milliseconds()
+
+	if err != nil {
+		errorMsg := err.Error()
+		return &models.CheckTunnelResponse{
+			IsAccessible: false,
+			ResponseTime: responseTime,
+			Message:      "Tunnel is not accessible",
+			Error:        &errorMsg,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	// If we get any response (even 404), it means tunnel is accessible
+	// The important thing is that we can reach the server
+	if resp.StatusCode >= 200 && resp.StatusCode < 500 {
+		return &models.CheckTunnelResponse{
+			IsAccessible: true,
+			ResponseTime: responseTime,
+			Message:      fmt.Sprintf("Tunnel is accessible (status: %d)", resp.StatusCode),
+			StatusCode:   &resp.StatusCode,
+		}, nil
+	}
+
+	// 5xx errors mean server is down
+	return &models.CheckTunnelResponse{
+		IsAccessible: false,
+		ResponseTime: responseTime,
+		Message:      fmt.Sprintf("Tunnel returned server error: %d", resp.StatusCode),
+		StatusCode:   &resp.StatusCode,
+	}, nil
+}
+

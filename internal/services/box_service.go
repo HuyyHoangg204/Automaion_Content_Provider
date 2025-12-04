@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -10,8 +11,10 @@ import (
 )
 
 type BoxService struct {
-	boxRepo  *repository.BoxRepository
-	userRepo *repository.UserRepository
+	boxRepo    *repository.BoxRepository
+	userRepo   *repository.UserRepository
+	appRepo    *repository.AppRepository
+	appService *AppService
 }
 
 // NewBoxService creates a new box service
@@ -20,6 +23,16 @@ func NewBoxService(boxRepo *repository.BoxRepository, userRepo *repository.UserR
 		boxRepo:  boxRepo,
 		userRepo: userRepo,
 	}
+}
+
+// SetAppService sets the app service (for checking tunnel status)
+func (s *BoxService) SetAppService(appService *AppService) {
+	s.appService = appService
+}
+
+// SetAppRepo sets the app repository
+func (s *BoxService) SetAppRepo(appRepo *repository.AppRepository) {
+	s.appRepo = appRepo
 }
 
 // CreateBox creates a new box for a user
@@ -160,4 +173,115 @@ func (s *BoxService) toResponse(box *models.Box) *models.BoxResponse {
 // GetBoxRepo returns the box repository
 func (s *BoxService) GetBoxRepo() *repository.BoxRepository {
 	return s.boxRepo
+}
+
+// GetAllBoxesWithStatus retrieves all boxes with online/offline status (admin only)
+func (s *BoxService) GetAllBoxesWithStatus() ([]*models.BoxWithStatusResponse, error) {
+	boxes, err := s.boxRepo.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all boxes: %w", err)
+	}
+
+	if s.appRepo == nil || s.appService == nil {
+		return nil, fmt.Errorf("app service or repository not initialized")
+	}
+
+	responses := make([]*models.BoxWithStatusResponse, 0, len(boxes))
+
+	for _, box := range boxes {
+		// Get apps for this box
+		apps, err := s.appRepo.GetByBoxID(box.ID)
+		if err != nil {
+			// Log error but continue
+			continue
+		}
+
+		// Find Automation app with tunnel URL
+		var automationApp *models.App
+		for _, app := range apps {
+			if app.TunnelURL != nil && *app.TunnelURL != "" {
+				// Check if it's Automation app (case-insensitive)
+				if strings.ToLower(app.Name) == "automation" {
+					automationApp = app
+					break
+				}
+			}
+		}
+
+		// Check online status
+		// Priority: Use is_online from DB if heartbeat is recent, otherwise perform health check
+		now := time.Now()
+		timeSinceLastSeen := now.Sub(box.UpdatedAt)
+		isOnline := box.IsOnline // Use value from DB
+		var statusCheck *models.StatusCheckInfo
+
+		// If heartbeat is recent (< 5 minutes), trust DB value
+		if timeSinceLastSeen < 5*time.Minute {
+			// Use is_online from DB (set by heartbeat)
+			if isOnline {
+				statusCheck = &models.StatusCheckInfo{
+					IsAccessible: true,
+					ResponseTime: 0,
+					Message:      fmt.Sprintf("Machine is online (last heartbeat %d seconds ago)", int(timeSinceLastSeen.Seconds())),
+				}
+			} else {
+				statusCheck = &models.StatusCheckInfo{
+					IsAccessible: false,
+					ResponseTime: 0,
+					Message:      fmt.Sprintf("Machine is offline (last heartbeat %d seconds ago)", int(timeSinceLastSeen.Seconds())),
+				}
+			}
+		} else if automationApp != nil && automationApp.TunnelURL != nil {
+			// If heartbeat is old, perform health check
+			checkResult, err := s.appService.CheckTunnelURLSimple(*automationApp.TunnelURL)
+			if err == nil && checkResult != nil {
+				isOnline = checkResult.IsAccessible
+				statusCheck = &models.StatusCheckInfo{
+					IsAccessible: checkResult.IsAccessible,
+					ResponseTime: checkResult.ResponseTime,
+					Message:      checkResult.Message,
+					StatusCode:   checkResult.StatusCode,
+					Error:        checkResult.Error,
+				}
+			} else {
+				// Health check failed
+				isOnline = false
+				errorMsg := "Health check failed"
+				if err != nil {
+					errorMsg = err.Error()
+				}
+				statusCheck = &models.StatusCheckInfo{
+					IsAccessible: false,
+					ResponseTime: 0,
+					Message:      fmt.Sprintf("Machine offline (last heartbeat %d minutes ago)", int(timeSinceLastSeen.Minutes())),
+					Error:        &errorMsg,
+				}
+			}
+		} else {
+			// No tunnel URL or automation app
+			isOnline = false
+			statusCheck = &models.StatusCheckInfo{
+				IsAccessible: false,
+				ResponseTime: 0,
+				Message:      fmt.Sprintf("No automation app or tunnel URL found (last heartbeat %d minutes ago)", int(timeSinceLastSeen.Minutes())),
+			}
+		}
+
+		// Convert to response
+		response := &models.BoxWithStatusResponse{
+			ID:          box.ID,
+			UserID:      box.UserID,
+			MachineID:   box.MachineID,
+			Name:        box.Name,
+			IsOnline:    isOnline,
+			LastSeen:    box.UpdatedAt.Format(time.RFC3339),
+			StatusCheck: statusCheck,
+			CreatedAt:   box.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:   box.UpdatedAt.Format(time.RFC3339),
+		}
+
+		responses = append(responses, response)
+	}
+
+	return responses, nil
 }

@@ -121,6 +121,34 @@ func InitDB() (*gorm.DB, error) {
 		}
 	}
 
+	// Migration: Add is_online column to boxes table if it doesn't exist
+	var isOnlineColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'boxes' 
+			AND column_name = 'is_online'
+		)
+	`).Scan(&isOnlineColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if is_online column exists: %v", err)
+	} else if !isOnlineColumnExists {
+		logrus.Info("Adding is_online column to boxes table...")
+		err = db.Exec("ALTER TABLE boxes ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT false").Error
+		if err != nil {
+			logrus.Warnf("Failed to add is_online column: %v", err)
+		} else {
+			logrus.Info("Successfully added is_online column")
+			// Create index for better query performance
+			err = db.Exec("CREATE INDEX IF NOT EXISTS idx_boxes_is_online ON boxes(is_online)").Error
+			if err != nil {
+				logrus.Warnf("Failed to create index on is_online: %v", err)
+			}
+		}
+	}
+
 	// Set global DB instance
 	DB = db
 

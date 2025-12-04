@@ -25,10 +25,18 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB) *AdminHandler {
 	boxRepo := repository.NewBoxRepository(db)
 	appRepo := repository.NewAppRepository(db)
 
+	// Create services
+	boxService := services.NewBoxService(boxRepo, userRepo)
+	appService := services.NewAppService(appRepo, boxRepo, userRepo)
+
+	// Set app service and repo for box service (for status checking)
+	boxService.SetAppService(appService)
+	boxService.SetAppRepo(appRepo)
+
 	return &AdminHandler{
 		authService: authService,
-		boxService:  services.NewBoxService(boxRepo, userRepo),
-		appService:  services.NewAppService(appRepo, boxRepo, userRepo),
+		boxService:  boxService,
+		appService:  appService,
 	}
 }
 
@@ -229,6 +237,35 @@ func (h *AdminHandler) AdminGetAllApps(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, apps)
+}
+
+// AdminGetAllBoxesWithStatus godoc
+// @Summary Get all boxes with online/offline status (Admin only)
+// @Description Get all boxes in the system with their online/offline status checked via health check (Admin privileges required)
+// @Tags admin
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {array} models.BoxWithStatusResponse
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/admin/boxes/status [get]
+func (h *AdminHandler) AdminGetAllBoxesWithStatus(c *gin.Context) {
+	// Check if user is admin
+	user := c.MustGet("user").(*models.User)
+	if !user.IsAdmin {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Admin privileges required"})
+		return
+	}
+
+	boxes, err := h.boxService.GetAllBoxesWithStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get boxes with status", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, boxes)
 }
 
 // ResetPassword godoc
