@@ -220,6 +220,20 @@ func (s *MachineService) SendHeartbeat(machineID string, req *models.HeartbeatRe
 	// Update box updated_at (acts as last_seen) and set is_online = true
 	box.UpdatedAt = time.Now()
 	box.IsOnline = true // Set online when receiving heartbeat
+
+	// Update system metrics from heartbeat if provided
+	if req.SystemInfo != nil {
+		if req.SystemInfo.CPU != nil {
+			box.CPUUsage = &req.SystemInfo.CPU.Usage
+		}
+		if req.SystemInfo.Memory != nil {
+			box.MemoryFreeGB = &req.SystemInfo.Memory.FreeGB
+		}
+		if req.SystemInfo.Profiles != nil {
+			box.RunningProfiles = req.SystemInfo.Profiles.Running
+		}
+	}
+
 	if err := s.boxRepo.Update(box); err != nil {
 		return nil, fmt.Errorf("failed to update box: %w", err)
 	}

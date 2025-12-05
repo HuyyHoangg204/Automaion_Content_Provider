@@ -14,6 +14,11 @@ type Box struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
+	// System metrics (updated via heartbeat for load balancing)
+	CPUUsage        *float64 `json:"cpu_usage,omitempty" gorm:"type:decimal(5,2)"`      // CPU usage percentage
+	MemoryFreeGB    *float64 `json:"memory_free_gb,omitempty" gorm:"type:decimal(5,2)"` // Free memory in GB
+	RunningProfiles int      `json:"running_profiles" gorm:"default:0;index"`           // Number of profiles currently running
+
 	// Relationships
 	User User  `json:"user,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Apps []App `json:"apps,omitempty" gorm:"foreignKey:BoxID;references:ID;constraint:OnDelete:CASCADE"`
@@ -92,10 +97,33 @@ type UpdateTunnelURLResponse struct {
 
 // HeartbeatRequest represents the request for machine heartbeat
 type HeartbeatRequest struct {
-	TunnelURL       string `json:"tunnel_url" example:"http://machineid-automation-userid.agent-controller.onegreen.cloud/"`
-	TunnelConnected bool   `json:"tunnel_connected" example:"true"`
-	APIRunning      bool   `json:"api_running" example:"true"`
-	APIPort         int    `json:"api_port" example:"3000"`
+	TunnelURL       string      `json:"tunnel_url" example:"http://machineid-automation-userid.agent-controller.onegreen.cloud/"`
+	TunnelConnected bool        `json:"tunnel_connected" example:"true"`
+	APIRunning      bool        `json:"api_running" example:"true"`
+	APIPort         int         `json:"api_port" example:"3000"`
+	SystemInfo      *SystemInfo `json:"system_info,omitempty"` // System metrics for load balancing
+}
+
+// SystemInfo represents system metrics sent in heartbeat
+type SystemInfo struct {
+	CPU      *CPUInfo      `json:"cpu,omitempty"`
+	Memory   *MemoryInfo   `json:"memory,omitempty"`
+	Profiles *ProfilesInfo `json:"profiles,omitempty"`
+}
+
+// CPUInfo represents CPU metrics
+type CPUInfo struct {
+	Usage float64 `json:"usage" example:"45.2"` // CPU usage percentage
+}
+
+// MemoryInfo represents memory metrics
+type MemoryInfo struct {
+	FreeGB float64 `json:"freeGB" example:"8.5"` // Free memory in GB
+}
+
+// ProfilesInfo represents profile metrics
+type ProfilesInfo struct {
+	Running int `json:"running" example:"3"` // Number of profiles currently running
 }
 
 // HeartbeatResponse represents the response for heartbeat

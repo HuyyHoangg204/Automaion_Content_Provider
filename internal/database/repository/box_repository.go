@@ -89,8 +89,32 @@ func (r *BoxRepository) GetByUserIDAndID(userID, boxID string) (*models.Box, err
 // Update updates a box
 func (r *BoxRepository) Update(box *models.Box) error {
 	// Use raw SQL to ensure all fields are updated
-	return r.db.Exec("UPDATE boxes SET user_id = ?, name = ?, is_online = ?, updated_at = NOW() WHERE id = ?",
-		box.UserID, box.Name, box.IsOnline, box.ID).Error
+	// Handle nullable fields
+	var cpuUsage, memoryFreeGB interface{}
+
+	if box.CPUUsage != nil {
+		cpuUsage = *box.CPUUsage
+	} else {
+		cpuUsage = nil
+	}
+
+	if box.MemoryFreeGB != nil {
+		memoryFreeGB = *box.MemoryFreeGB
+	} else {
+		memoryFreeGB = nil
+	}
+
+	return r.db.Exec(`
+		UPDATE boxes 
+		SET user_id = ?, 
+		    name = ?, 
+		    is_online = ?, 
+		    cpu_usage = ?,
+		    memory_free_gb = ?,
+		    running_profiles = ?,
+		    updated_at = NOW() 
+		WHERE id = ?`,
+		box.UserID, box.Name, box.IsOnline, cpuUsage, memoryFreeGB, box.RunningProfiles, box.ID).Error
 }
 
 // DeleteByUserIDAndID deletes a box by user ID and box ID

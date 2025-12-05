@@ -19,13 +19,15 @@ import (
 type ChromeProfileService struct {
 	userProfileRepo *repository.UserProfileRepository
 	appRepo         *repository.AppRepository
+	boxRepo         *repository.BoxRepository
 }
 
 // NewChromeProfileService creates a new ChromeProfileService
-func NewChromeProfileService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository) *ChromeProfileService {
+func NewChromeProfileService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, boxRepo *repository.BoxRepository) *ChromeProfileService {
 	return &ChromeProfileService{
 		userProfileRepo: userProfileRepo,
 		appRepo:         appRepo,
+		boxRepo:         boxRepo,
 	}
 }
 
@@ -93,29 +95,11 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 		}
 	}
 
-	// Get available machines (apps with tunnel URLs)
-	allApps, err := s.appRepo.GetAll()
+	// Get available machines using load balancing (weighted score)
+	selectedApp, err := s.selectBestMachineForProfile(userProfile)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get apps: %w", err)
+		return nil, fmt.Errorf("failed to select machine: %w", err)
 	}
-
-	// Filter apps with tunnel URLs and find Automation app
-	var automationApps []*models.App
-	for _, app := range allApps {
-		if app.TunnelURL != nil && *app.TunnelURL != "" {
-			// Find Automation app (case-insensitive)
-			if strings.ToLower(app.Name) == "automation" {
-				automationApps = append(automationApps, app)
-			}
-		}
-	}
-
-	if len(automationApps) == 0 {
-		return nil, errors.New("no automation machines available")
-	}
-
-	// Select first available machine (can be improved with load balancing)
-	selectedApp := automationApps[0]
 
 	// Acquire lock: Set CurrentAppID and LastRunStartedAt
 	now := time.Now()
@@ -309,7 +293,150 @@ func (s *ChromeProfileService) GetAvailableMachine() (*models.App, error) {
 		return nil, errors.New("no automation machines available")
 	}
 
-	// TODO: Implement load balancing logic here
-	// For now, return first available
-	return automationApps[0], nil
+	// Use weighted score load balancing
+	return s.selectBestMachine(automationApps, nil)
+}
+
+// selectBestMachineForProfile selects the best machine for a specific profile using weighted score
+func (s *ChromeProfileService) selectBestMachineForProfile(userProfile *models.UserProfile) (*models.App, error) {
+	// Get all automation apps
+	allApps, err := s.appRepo.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get apps: %w", err)
+	}
+
+	// Filter online automation apps with tunnel URLs
+	var candidateApps []*models.App
+	for _, app := range allApps {
+		if app.TunnelURL == nil || *app.TunnelURL == "" {
+			continue
+		}
+		if strings.ToLower(app.Name) != "automation" {
+			continue
+		}
+
+		// Get box to check online status
+		box, err := s.boxRepo.GetByID(app.BoxID)
+		if err != nil {
+			continue
+		}
+
+		// Only consider online machines
+		if !box.IsOnline {
+			continue
+		}
+
+		// Check if profile is deployed on this machine
+		deployedMachines := userProfile.DeployedMachines
+		if len(deployedMachines) > 0 {
+			appIDStr := app.ID
+			found := false
+
+			// DeployedMachines is a JSON map, check if app ID exists in values
+			for _, value := range deployedMachines {
+				// Value could be a string or an array of strings
+				if strValue, ok := value.(string); ok && strValue == appIDStr {
+					found = true
+					break
+				}
+				// If value is an array, check each element
+				if arrValue, ok := value.([]interface{}); ok {
+					for _, item := range arrValue {
+						if itemStr, ok := item.(string); ok && itemStr == appIDStr {
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+			}
+
+			if !found {
+				continue // Profile not deployed on this machine
+			}
+		}
+
+		candidateApps = append(candidateApps, app)
+	}
+
+	if len(candidateApps) == 0 {
+		return nil, errors.New("no online automation machines available with profile deployed")
+	}
+
+	// Select best machine using weighted score
+	return s.selectBestMachine(candidateApps, userProfile)
+}
+
+// selectBestMachine selects machine with lowest weighted score
+// Weighted Score = RunningProfiles * 10 + (CPUUsage / 10) - (MemoryFreeGB * 2)
+func (s *ChromeProfileService) selectBestMachine(apps []*models.App, userProfile *models.UserProfile) (*models.App, error) {
+	if len(apps) == 0 {
+		return nil, errors.New("no machines available")
+	}
+
+	type machineScore struct {
+		app   *models.App
+		box   *models.Box
+		score float64
+	}
+
+	var scoredMachines []machineScore
+
+	// Calculate score for each machine
+	for _, app := range apps {
+		// Get box to access system metrics
+		box, err := s.boxRepo.GetByID(app.BoxID)
+		if err != nil {
+			logrus.Warnf("Failed to get box %s for app %s: %v", app.BoxID, app.ID, err)
+			continue
+		}
+
+		// Calculate weighted score
+		// Score = RunningProfiles * 10 + (CPUUsage / 10) - (MemoryFreeGB * 2)
+		score := float64(box.RunningProfiles) * 10.0
+
+		if box.CPUUsage != nil {
+			score += *box.CPUUsage / 10.0
+		}
+
+		if box.MemoryFreeGB != nil {
+			score -= *box.MemoryFreeGB * 2.0
+		}
+
+		scoredMachines = append(scoredMachines, machineScore{
+			app:   app,
+			box:   box,
+			score: score,
+		})
+	}
+
+	if len(scoredMachines) == 0 {
+		return nil, errors.New("no machines with valid metrics available")
+	}
+
+	// Find machine with lowest score (least loaded)
+	bestMachine := scoredMachines[0]
+	for _, machine := range scoredMachines[1:] {
+		if machine.score < bestMachine.score {
+			bestMachine = machine
+		}
+	}
+
+	logrus.Infof("Selected machine %s (box %s) with score %.2f (RunningProfiles: %d, CPU: %.2f%%, Memory: %.2fGB)",
+		bestMachine.app.ID, bestMachine.box.ID, bestMachine.score,
+		bestMachine.box.RunningProfiles,
+		getFloat64Value(bestMachine.box.CPUUsage),
+		getFloat64Value(bestMachine.box.MemoryFreeGB))
+
+	return bestMachine.app, nil
+}
+
+// getFloat64Value safely gets float64 value from pointer
+func getFloat64Value(ptr *float64) float64 {
+	if ptr == nil {
+		return 0
+	}
+	return *ptr
 }

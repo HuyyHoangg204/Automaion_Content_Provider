@@ -149,6 +149,50 @@ func InitDB() (*gorm.DB, error) {
 		}
 	}
 
+	// Migration: Add system metrics columns to boxes table if they don't exist
+	migrations := []struct {
+		columnName string
+		columnType string
+		index      bool
+	}{
+		{"cpu_usage", "DECIMAL(5,2)", false},
+		{"memory_free_gb", "DECIMAL(5,2)", false},
+		{"running_profiles", "INTEGER DEFAULT 0", true},
+	}
+
+	for _, migration := range migrations {
+		var columnExists bool
+		err = db.Raw(`
+			SELECT EXISTS (
+				SELECT 1 
+				FROM information_schema.columns 
+				WHERE table_schema = 'public' 
+				AND table_name = 'boxes' 
+				AND column_name = ?
+			)
+		`, migration.columnName).Scan(&columnExists).Error
+		if err != nil {
+			logrus.Warnf("Failed to check if %s column exists: %v", migration.columnName, err)
+			continue
+		}
+		if !columnExists {
+			logrus.Infof("Adding %s column to boxes table...", migration.columnName)
+			err = db.Exec(fmt.Sprintf("ALTER TABLE boxes ADD COLUMN IF NOT EXISTS %s %s", migration.columnName, migration.columnType)).Error
+			if err != nil {
+				logrus.Warnf("Failed to add %s column: %v", migration.columnName, err)
+			} else {
+				logrus.Infof("Successfully added %s column", migration.columnName)
+				if migration.index {
+					indexName := fmt.Sprintf("idx_boxes_%s", migration.columnName)
+					err = db.Exec(fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON boxes(%s)", indexName, migration.columnName)).Error
+					if err != nil {
+						logrus.Warnf("Failed to create index on %s: %v", migration.columnName, err)
+					}
+				}
+			}
+		}
+	}
+
 	// Set global DB instance
 	DB = db
 
