@@ -21,6 +21,7 @@ type User struct {
 	RefreshTokens []RefreshToken `json:"refresh_tokens,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	Boxes         []Box          `json:"boxes,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
 	UserProfile   *UserProfile   `json:"user_profile,omitempty" gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
+	Roles         []Role         `json:"roles,omitempty" gorm:"many2many:user_roles;"`
 }
 
 // TableName specifies the table name for the User model

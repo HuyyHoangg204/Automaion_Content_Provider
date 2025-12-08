@@ -23,12 +23,13 @@ type AuthService struct {
 	userRepo           *repository.UserRepository
 	refreshTokenRepo   *repository.RefreshTokenRepository
 	userProfileService *services.UserProfileService
+	roleService        *services.RoleService
 	jwtSecret          []byte
 	accessTokenTTL     time.Duration
 	refreshTokenTTL    time.Duration
 }
 
-func NewAuthService(db *gorm.DB) *AuthService {
+func NewAuthService(db *gorm.DB, roleService *services.RoleService) *AuthService {
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {
 		jwtSecret = []byte("default-secret-key-change-in-production")
@@ -60,6 +61,7 @@ func NewAuthService(db *gorm.DB) *AuthService {
 		userRepo:           repository.NewUserRepository(db),
 		refreshTokenRepo:   repository.NewRefreshTokenRepository(db),
 		userProfileService: userProfileService,
+		roleService:        roleService,
 		jwtSecret:          jwtSecret,
 		accessTokenTTL:     accessTokenTTL,
 		refreshTokenTTL:    refreshTokenTTL,
@@ -95,6 +97,16 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthRespons
 
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// Assign default role "topic_user" to new user
+	if s.roleService != nil {
+		if err := s.roleService.AssignRoleToUserByName(user.ID, "topic_user"); err != nil {
+			logrus.Warnf("Failed to assign default role 'topic_user' to user %s: %v", user.ID, err)
+			// Don't fail registration if role assignment fails
+		} else {
+			logrus.Infof("Successfully assigned default role 'topic_user' to user %s", user.ID)
+		}
 	}
 
 	// Create UserProfile and deploy to all machines
@@ -243,6 +255,18 @@ func (s *AuthService) ValidateToken(tokenString string) (*models.TokenInfo, erro
 
 // generateAuthResponse generates access and refresh tokens for a user
 func (s *AuthService) generateAuthResponse(user *models.User) (*models.AuthResponse, error) {
+	// Load user roles if not already loaded
+	if len(user.Roles) == 0 && s.roleService != nil {
+		roles, err := s.roleService.GetUserRoles(user.ID)
+		if err != nil {
+			logrus.Warnf("Failed to load roles for user %s: %v", user.ID, err)
+			// Continue without roles if loading fails
+			user.Roles = []models.Role{}
+		} else {
+			user.Roles = roles
+		}
+	}
+
 	// Generate access token
 	accessToken, err := s.generateAccessToken(user)
 	if err != nil {

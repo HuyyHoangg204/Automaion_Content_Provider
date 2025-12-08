@@ -6,17 +6,58 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
+	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
 type TopicHandler struct {
 	topicService *services.TopicService
+	roleService  *services.RoleService
 }
 
-func NewTopicHandler(topicService *services.TopicService) *TopicHandler {
+func NewTopicHandler(topicService *services.TopicService, roleService *services.RoleService) *TopicHandler {
 	return &TopicHandler{
 		topicService: topicService,
+		roleService:  roleService,
 	}
+}
+
+// checkTopicPermission checks if user has permission to access topics (topic_user or topic_creator role)
+func (h *TopicHandler) checkTopicPermission(userID string) (bool, error) {
+	hasTopicUser, err := h.roleService.UserHasRole(userID, "topic_user")
+	if err != nil {
+		return false, err
+	}
+	hasTopicCreator, err := h.roleService.UserHasRole(userID, "topic_creator")
+	if err != nil {
+		return false, err
+	}
+	return hasTopicUser || hasTopicCreator, nil
+}
+
+// checkTopicOwnership checks if user owns the topic, is assigned, or is admin
+func (h *TopicHandler) checkTopicOwnership(c *gin.Context, topic *models.Topic) bool {
+	userID := c.MustGet("user_id").(string)
+	isAdmin, _ := c.Get("is_admin")
+
+	// Admin can access all topics
+	if isAdmin != nil && isAdmin.(bool) {
+		return true
+	}
+
+	// Check if user owns the topic (creator)
+	if topic.UserProfile.ID != "" && topic.UserProfile.UserID == userID {
+		return true
+	}
+
+	// Check if user is assigned to the topic
+	canAccess, _, err := h.topicService.CanUserAccessTopic(userID, topic.ID, false)
+	if err != nil {
+		logrus.Warnf("Failed to check topic access for user %s, topic %s: %v", userID, topic.ID, err)
+		return false
+	}
+
+	return canAccess
 }
 
 // CreateTopic godoc
@@ -33,6 +74,17 @@ func NewTopicHandler(topicService *services.TopicService) *TopicHandler {
 // @Router /api/v1/topics [post]
 func (h *TopicHandler) CreateTopic(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
+
+	// Check if user has "topic_creator" role
+	hasRole, err := h.roleService.UserHasRole(userID, "topic_creator")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasRole {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_creator' role to create topics"})
+		return
+	}
 
 	var req models.CreateTopicRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,18 +108,35 @@ func (h *TopicHandler) CreateTopic(c *gin.Context) {
 
 // GetAllTopics godoc
 // @Summary Get all topics for the current user
-// @Description Get all topics belonging to the authenticated user
+// @Description Get all topics belonging to the authenticated user with pagination (requires topic_user or topic_creator role)
 // @Tags topics
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {array} models.TopicResponse
+// @Param page query int false "Page number (default: 1)" minimum(1)
+// @Param limit query int false "Number of items per page (default: 20, max: 100)" minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/topics [get]
 func (h *TopicHandler) GetAllTopics(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	topics, err := h.topicService.GetAllTopicsByUserID(userID)
+	// Check if user has permission to access topics
+	hasPermission, err := h.checkTopicPermission(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to access topics"})
+		return
+	}
+
+	// Parse query parameters
+	page, pageSize := utils.ParsePaginationFromQuery(c.Query("page"), c.Query("limit"))
+
+	topics, total, err := h.topicService.GetAllTopicsByUserIDPaginated(userID, page, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get topics", "details": err.Error()})
 		return
@@ -79,27 +148,59 @@ func (h *TopicHandler) GetAllTopics(c *gin.Context) {
 		responses[i] = h.topicToResponse(topic)
 	}
 
-	c.JSON(http.StatusOK, responses)
+	// Calculate pagination info
+	paginationInfo := utils.CalculatePaginationInfo(int(total), page, pageSize)
+
+	response := gin.H{
+		"data":         responses,
+		"total":        total,
+		"page":         paginationInfo.Page,
+		"limit":        paginationInfo.PageSize,
+		"total_pages":  paginationInfo.TotalPages,
+		"has_next":     paginationInfo.HasNext,
+		"has_previous": paginationInfo.HasPrevious,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // GetTopicByID godoc
 // @Summary Get a topic by ID
-// @Description Get a specific topic by its ID
+// @Description Get a specific topic by its ID (requires topic_user or topic_creator role and ownership)
 // @Tags topics
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Topic ID"
 // @Success 200 {object} models.TopicResponse
+// @Failure 403 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/topics/{id} [get]
 func (h *TopicHandler) GetTopicByID(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
 	id := c.Param("id")
+
+	// Check if user has permission to access topics
+	hasPermission, err := h.checkTopicPermission(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to access topics"})
+		return
+	}
 
 	topic, err := h.topicService.GetTopicByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+
+	// Check ownership
+	if !h.checkTopicOwnership(c, topic) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only access your own topics"})
 		return
 	}
 
@@ -109,7 +210,7 @@ func (h *TopicHandler) GetTopicByID(c *gin.Context) {
 
 // UpdateTopic godoc
 // @Summary Update a topic
-// @Description Update a topic's information
+// @Description Update a topic's information (requires topic_user or topic_creator role and ownership)
 // @Tags topics
 // @Accept json
 // @Produce json
@@ -118,11 +219,35 @@ func (h *TopicHandler) GetTopicByID(c *gin.Context) {
 // @Param request body models.UpdateTopicRequest true "Topic update request"
 // @Success 200 {object} models.TopicResponse
 // @Failure 400 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/topics/{id} [put]
 func (h *TopicHandler) UpdateTopic(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
 	id := c.Param("id")
+
+	// Check if user has permission to access topics
+	hasPermission, err := h.checkTopicPermission(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to update topics"})
+		return
+	}
+
+	// Check ownership before updating
+	topic, err := h.topicService.GetTopicByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+	if !h.checkTopicOwnership(c, topic) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only update your own topics"})
+		return
+	}
 
 	var req models.UpdateTopicRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -130,7 +255,7 @@ func (h *TopicHandler) UpdateTopic(c *gin.Context) {
 		return
 	}
 
-	topic, err := h.topicService.UpdateTopic(id, &req)
+	topic, err = h.topicService.UpdateTopic(id, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update topic", "details": err.Error()})
 		return
@@ -142,22 +267,41 @@ func (h *TopicHandler) UpdateTopic(c *gin.Context) {
 
 // GetTopicPrompts godoc
 // @Summary Get topic prompts
-// @Description Get notebooklm_prompt and send_prompt_text for a topic
+// @Description Get notebooklm_prompt and send_prompt_text for a topic (requires topic_user or topic_creator role and ownership)
 // @Tags topics
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Topic ID"
 // @Success 200 {object} models.TopicPromptsResponse
+// @Failure 403 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/topics/{id}/prompts [get]
 func (h *TopicHandler) GetTopicPrompts(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
 	id := c.Param("id")
+
+	// Check if user has permission to access topics
+	hasPermission, err := h.checkTopicPermission(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to access topics"})
+		return
+	}
 
 	topic, err := h.topicService.GetTopicByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+
+	// Check ownership
+	if !h.checkTopicOwnership(c, topic) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only access your own topics"})
 		return
 	}
 
@@ -172,7 +316,7 @@ func (h *TopicHandler) GetTopicPrompts(c *gin.Context) {
 
 // UpdateTopicPrompts godoc
 // @Summary Update topic prompts
-// @Description Update notebooklm_prompt and send_prompt_text for a topic
+// @Description Update notebooklm_prompt and send_prompt_text for a topic (requires topic_user or topic_creator role and ownership)
 // @Tags topics
 // @Accept json
 // @Produce json
@@ -181,11 +325,35 @@ func (h *TopicHandler) GetTopicPrompts(c *gin.Context) {
 // @Param request body models.UpdateTopicPromptsRequest true "Topic prompts update request"
 // @Success 200 {object} models.TopicResponse
 // @Failure 400 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/topics/{id}/prompts [put]
 func (h *TopicHandler) UpdateTopicPrompts(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
 	id := c.Param("id")
+
+	// Check if user has permission to access topics
+	hasPermission, err := h.checkTopicPermission(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to update topics"})
+		return
+	}
+
+	// Check ownership before updating
+	topic, err := h.topicService.GetTopicByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+	if !h.checkTopicOwnership(c, topic) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only update your own topics"})
+		return
+	}
 
 	var req models.UpdateTopicPromptsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -193,7 +361,7 @@ func (h *TopicHandler) UpdateTopicPrompts(c *gin.Context) {
 		return
 	}
 
-	topic, err := h.topicService.UpdateTopicPrompts(id, &req)
+	topic, err = h.topicService.UpdateTopicPrompts(id, &req)
 	if err != nil {
 		if err.Error() == "topic not found" {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
@@ -209,18 +377,42 @@ func (h *TopicHandler) UpdateTopicPrompts(c *gin.Context) {
 
 // DeleteTopic godoc
 // @Summary Delete a topic
-// @Description Delete a topic by its ID
+// @Description Delete a topic by its ID (requires topic_user or topic_creator role and ownership)
 // @Tags topics
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param id path string true "Topic ID"
 // @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/topics/{id} [delete]
 func (h *TopicHandler) DeleteTopic(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
 	id := c.Param("id")
+
+	// Check if user has permission to access topics
+	hasPermission, err := h.checkTopicPermission(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
+		return
+	}
+	if !hasPermission {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to delete topics"})
+		return
+	}
+
+	// Check ownership before deleting
+	topic, err := h.topicService.GetTopicByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+	if !h.checkTopicOwnership(c, topic) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only delete your own topics"})
+		return
+	}
 
 	if err := h.topicService.DeleteTopic(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete topic", "details": err.Error()})

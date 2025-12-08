@@ -65,8 +65,13 @@ func main() {
 		logrus.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	// Initialize role service (needed by auth service)
+	userRepo := repository.NewUserRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
+	roleService := services.NewRoleService(roleRepo, userRepo)
+
 	// Initialize auth service
-	authService := auth.NewAuthService(db)
+	authService := auth.NewAuthService(db, roleService)
 
 	// Create SSE Hub (shared instance for both ProcessLogService and ProcessLogHandler)
 	sseHub := services.NewSSEHub()

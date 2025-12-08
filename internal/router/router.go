@@ -52,9 +52,14 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	// Create repositories first
+	userRepo := repository.NewUserRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
+	roleService := services.NewRoleService(roleRepo, userRepo)
+
 	// Create auth middleware
 	// Create services
-	authService := auth.NewAuthService(db)
+	authService := auth.NewAuthService(db, roleService)
 	apiKeyService := api_key.NewService(db)
 
 	// Create middleware with services
@@ -75,29 +80,30 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 
 	// Create TopicService (needed by FileHandler để cache file IDs và TopicHandler)
 	topicRepo := repository.NewTopicRepository(db)
+	topicUserRepo := repository.NewTopicUserRepository(db) // New: For topic assignments
 	userProfileRepo := repository.NewUserProfileRepository(db)
 	appRepo := repository.NewAppRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
 	chromeProfileService := services.NewChromeProfileService(userProfileRepo, appRepo, boxRepo)
 	logRepo := repository.NewProcessLogRepository(db)
 	processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
-	topicService := services.NewTopicService(topicRepo, userProfileRepo, appRepo, chromeProfileService, processLogService, fileService)
+	topicService := services.NewTopicService(topicRepo, topicUserRepo, userProfileRepo, appRepo, chromeProfileService, processLogService, fileService)
 	geminiService := services.NewGeminiService(userProfileRepo, appRepo, topicRepo, chromeProfileService)
 
 	// Create handlers with services
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, roleService)
 	boxHandler := handlers.NewBoxHandler(db)
 	appHandler := handlers.NewAppHandler(db)
 	appProxyHandler := handlers.NewAppProxyHandler(db)
 	apiKeyHandler := handlers.NewAPIKeyHandler(db)
 	machineHandler := handlers.NewMachineHandler(db)
-	topicHandler := handlers.NewTopicHandler(topicService)
+	topicHandler := handlers.NewTopicHandler(topicService, roleService)
 	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
 	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
 	geminiHandler := handlers.NewGeminiHandler(geminiService)
 
 	// Create admin handler with services
-	adminHandler := handlers.NewAdminHandler(authService, db)
+	adminHandler := handlers.NewAdminHandler(authService, db, topicService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -232,6 +238,18 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 				admin.GET("/users", adminHandler.GetAllUsers)
 				admin.PUT("/users/:id/status", adminHandler.SetUserStatus)
 				admin.POST("/users/:id/reset-password", adminHandler.ResetPassword)
+				// Role management routes
+				admin.GET("/roles", adminHandler.GetAllRoles)
+				admin.GET("/users/:id/roles", adminHandler.GetUserRoles)
+				admin.POST("/users/:id/roles", adminHandler.AssignRoleToUser)
+				admin.DELETE("/users/:id/roles", adminHandler.RemoveRoleFromUser)
+				// Topic management routes
+				// IMPORTANT: More specific routes must come before less specific ones
+				admin.GET("/topics", adminHandler.GetAllTopics) // Must come before /topics/:id routes
+				// Topic assignment management routes
+				admin.POST("/topics/:id/assign", adminHandler.AssignTopicToUser)
+				admin.GET("/topics/:id/users", adminHandler.GetTopicAssignedUsers)
+				admin.DELETE("/topics/:id/users/:user_id", adminHandler.RemoveTopicAssignment)
 				// IMPORTANT: More specific routes must come before less specific ones
 				admin.GET("/boxes/status", adminHandler.AdminGetAllBoxesWithStatus)
 				admin.GET("/boxes", adminHandler.AdminGetAllBoxes)

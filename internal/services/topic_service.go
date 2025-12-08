@@ -18,6 +18,7 @@ import (
 
 type TopicService struct {
 	topicRepo            *repository.TopicRepository
+	topicUserRepo        *repository.TopicUserRepository // New: For topic assignments
 	userProfileRepo      *repository.UserProfileRepository
 	appRepo              *repository.AppRepository
 	chromeProfileService *ChromeProfileService
@@ -29,7 +30,7 @@ type TopicService struct {
 	recentUploadedFiles sync.Map // map[string][]string
 }
 
-func NewTopicService(topicRepo *repository.TopicRepository, userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, chromeProfileService *ChromeProfileService, processLogService *ProcessLogService, fileService *FileService) *TopicService {
+func NewTopicService(topicRepo *repository.TopicRepository, topicUserRepo *repository.TopicUserRepository, userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, chromeProfileService *ChromeProfileService, processLogService *ProcessLogService, fileService *FileService) *TopicService {
 	// Get base URL from environment
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
@@ -43,6 +44,7 @@ func NewTopicService(topicRepo *repository.TopicRepository, userProfileRepo *rep
 
 	return &TopicService{
 		topicRepo:            topicRepo,
+		topicUserRepo:        topicUserRepo,
 		userProfileRepo:      userProfileRepo,
 		appRepo:              appRepo,
 		chromeProfileService: chromeProfileService,
@@ -346,14 +348,74 @@ func normalizeUsername(username string) string {
 	return resultStr
 }
 
-// GetAllTopicsByUserID retrieves all topics for a user
+// GetAllTopicsByUserID retrieves all topics for a user (owned + assigned) - DEPRECATED: Use GetAllTopicsByUserIDPaginated
 func (s *TopicService) GetAllTopicsByUserID(userID string) ([]*models.Topic, error) {
-	return s.topicRepo.GetByUserID(userID)
+	// Get assigned topic IDs
+	assignedTopicIDs, err := s.topicUserRepo.GetTopicIDsAssignedToUser(userID)
+	if err != nil {
+		logrus.Warnf("Failed to get assigned topic IDs for user %s: %v", userID, err)
+		assignedTopicIDs = []string{} // Continue with empty list
+	}
+	
+	// Get topics (owned + assigned)
+	return s.topicRepo.GetByUserIDIncludingAssigned(userID, assignedTopicIDs)
+}
+
+// GetAllTopicsByUserIDPaginated retrieves all topics for a user (owned + assigned) with pagination
+func (s *TopicService) GetAllTopicsByUserIDPaginated(userID string, page, pageSize int) ([]*models.Topic, int64, error) {
+	// Get assigned topic IDs
+	assignedTopicIDs, err := s.topicUserRepo.GetTopicIDsAssignedToUser(userID)
+	if err != nil {
+		logrus.Warnf("Failed to get assigned topic IDs for user %s: %v", userID, err)
+		assignedTopicIDs = []string{} // Continue with empty list
+	}
+	
+	// Get topics (owned + assigned) with pagination
+	return s.topicRepo.GetByUserIDIncludingAssignedPaginated(userID, assignedTopicIDs, page, pageSize)
+}
+
+// CanUserAccessTopic checks if a user can access a topic (creator, assigned, or admin)
+func (s *TopicService) CanUserAccessTopic(userID string, topicID string, isAdmin bool) (bool, string, error) {
+	// Admin can access all topics
+	if isAdmin {
+		return true, "admin", nil
+	}
+	
+	// Get topic
+	topic, err := s.topicRepo.GetByID(topicID)
+	if err != nil {
+		return false, "", fmt.Errorf("topic not found: %w", err)
+	}
+	
+	// Check if user is creator
+	if topic.UserProfile.UserID == userID {
+		return true, "creator", nil
+	}
+	
+	// Check if user is assigned
+	isAssigned, err := s.topicUserRepo.IsUserAssigned(topicID, userID)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to check assignment: %w", err)
+	}
+	if isAssigned {
+		return true, "assigned", nil
+	}
+	
+	return false, "", nil
 }
 
 // GetTopicByID retrieves a topic by ID
 func (s *TopicService) GetTopicByID(id string) (*models.Topic, error) {
 	return s.topicRepo.GetByID(id)
+}
+
+// GetAllTopicsPaginated retrieves all topics with pagination, search, and filters (admin only)
+// search: searches in topic name, description, and creator username
+// creatorID: filter by creator user ID
+// syncStatus: filter by sync status
+// isActive: filter by is_active status (nil = no filter)
+func (s *TopicService) GetAllTopicsPaginated(page, pageSize int, search, creatorID, syncStatus string, isActive *bool) ([]*models.Topic, int64, error) {
+	return s.topicRepo.GetAllPaginated(page, pageSize, search, creatorID, syncStatus, isActive)
 }
 
 // UpdateTopic updates a topic and optionally syncs with Gemini

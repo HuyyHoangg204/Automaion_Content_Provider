@@ -75,3 +75,17 @@ type ResetPasswordRequest struct {
 type AssignBoxRequest struct {
 	UserID string `json:"user_id" binding:"required"`
 }
+
+// UserWithRolesResponse represents the response for user profile with roles
+type UserWithRolesResponse struct {
+	ID           string     `json:"id"`
+	Username     string     `json:"username"`
+	FirstName    string     `json:"first_name"`
+	LastName     string     `json:"last_name"`
+	IsActive     bool       `json:"is_active"`
+	IsAdmin      bool       `json:"is_admin"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
+	Roles        []string   `json:"roles"` // List of role names
+}

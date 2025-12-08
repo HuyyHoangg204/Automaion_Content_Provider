@@ -6,16 +6,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
+	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 )
 
 type AuthHandler struct {
 	authService *auth.AuthService
+	roleService *services.RoleService
 }
 
-func NewAuthHandler(authService *auth.AuthService) *AuthHandler {
+func NewAuthHandler(authService *auth.AuthService, roleService *services.RoleService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		roleService: roleService,
 	}
 }
 
@@ -117,12 +120,12 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 // GetProfile godoc
 // @Summary Get user profile
-// @Description Get current user profile information
+// @Description Get current user profile information with roles
 // @Tags auth
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} models.User
+// @Success 200 {object} models.UserWithRolesResponse
 // @Failure 401 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/auth/profile [get]
@@ -130,7 +133,34 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	// Get user from context (middleware already verified authentication)
 	user := c.MustGet("user").(*models.User)
 
-	c.JSON(http.StatusOK, user)
+	// Get user roles
+	roles, err := h.roleService.GetUserRoles(user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user roles", "details": err.Error()})
+		return
+	}
+
+	// Convert roles to role names
+	roleNames := make([]string, len(roles))
+	for i, role := range roles {
+		roleNames[i] = role.Name
+	}
+
+	// Create response with roles
+	response := models.UserWithRolesResponse{
+		ID:          user.ID,
+		Username:    user.Username,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		IsActive:    user.IsActive,
+		IsAdmin:     user.IsAdmin,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+		LastLoginAt: user.LastLoginAt,
+		Roles:       roleNames,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // ChangePassword godoc
