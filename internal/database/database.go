@@ -89,9 +89,11 @@ func InitDB() (*gorm.DB, error) {
 		&models.App{},
 		&models.UserProfile{},
 		&models.Topic{},
+		&models.TopicUser{}, // New: Topic-User assignment table
 		&models.ProcessLog{},
 		&models.APIKey{},
 		&models.File{},
+		&models.Role{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
@@ -189,6 +191,42 @@ func InitDB() (*gorm.DB, error) {
 						logrus.Warnf("Failed to create index on %s: %v", migration.columnName, err)
 					}
 				}
+			}
+		}
+	}
+
+	// Migration: Create default roles if they don't exist
+	defaultRoles := []struct {
+		name        string
+		description string
+	}{
+		{"topic_creator", "Can create topics"},
+		{"topic_user", "Can access and use topics"},
+	}
+
+	for _, roleData := range defaultRoles {
+		var roleExists bool
+		err = db.Raw(`
+			SELECT EXISTS (
+				SELECT 1 
+				FROM roles 
+				WHERE name = ?
+			)
+		`, roleData.name).Scan(&roleExists).Error
+		if err != nil {
+			logrus.Warnf("Failed to check if %s role exists: %v", roleData.name, err)
+			continue
+		}
+		if !roleExists {
+			logrus.Infof("Creating default role '%s'...", roleData.name)
+			role := &models.Role{
+				Name:        roleData.name,
+				Description: roleData.description,
+			}
+			if err := db.Create(role).Error; err != nil {
+				logrus.Warnf("Failed to create %s role: %v", roleData.name, err)
+			} else {
+				logrus.Infof("Successfully created %s role", roleData.name)
 			}
 		}
 	}
