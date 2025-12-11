@@ -55,7 +55,9 @@ func NewAuthService(db *gorm.DB, roleService *services.RoleService) *AuthService
 	// Initialize UserProfileService
 	userProfileRepo := repository.NewUserProfileRepository(db)
 	appRepo := repository.NewAppRepository(db)
-	userProfileService := services.NewUserProfileService(userProfileRepo, appRepo)
+	geminiAccountRepo := repository.NewGeminiAccountRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	userProfileService := services.NewUserProfileService(userProfileRepo, appRepo, geminiAccountRepo, boxRepo)
 
 	return &AuthService{
 		userRepo:           repository.NewUserRepository(db),
@@ -99,36 +101,33 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthRespons
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// Assign default role "topic_user" to new user
+	// Assign role to new user
+	// If RoleID is provided, assign that role; otherwise, assign default "topic_user"
+	// Profile creation is handled by RoleService when assigning topic_creator role
 	if s.roleService != nil {
-		if err := s.roleService.AssignRoleToUserByName(user.ID, "topic_user"); err != nil {
-			logrus.Warnf("Failed to assign default role 'topic_user' to user %s: %v", user.ID, err)
-			// Don't fail registration if role assignment fails
+		if req.RoleID != "" {
+			// Assign specified role
+			if err := s.roleService.AssignRoleToUser(user.ID, req.RoleID); err != nil {
+				logrus.Warnf("Failed to assign role %s to user %s: %v", req.RoleID, user.ID, err)
+				// Don't fail registration if role assignment fails, but try to assign default role
+				if err := s.roleService.AssignRoleToUserByName(user.ID, "topic_user"); err != nil {
+					logrus.Warnf("Failed to assign default role 'topic_user' to user %s: %v", user.ID, err)
+				} else {
+					logrus.Infof("Assigned default role 'topic_user' to user %s after specified role assignment failed", user.ID)
+				}
+			} else {
+				logrus.Infof("Successfully assigned role %s to user %s", req.RoleID, user.ID)
+			}
 		} else {
-			logrus.Infof("Successfully assigned default role 'topic_user' to user %s", user.ID)
+			// Assign default role "topic_user"
+			if err := s.roleService.AssignRoleToUserByName(user.ID, "topic_user"); err != nil {
+				logrus.Warnf("Failed to assign default role 'topic_user' to user %s: %v", user.ID, err)
+				// Don't fail registration if role assignment fails
+			} else {
+				logrus.Infof("Successfully assigned default role 'topic_user' to user %s", user.ID)
+			}
 		}
 	}
-
-	// Create UserProfile and deploy to all machines
-	// Use default profile name based on username
-	profileName := fmt.Sprintf("Profile_%s", user.Username)
-	// Note: Không lưu UserDataDir trong DB vì path khác nhau trên mỗi máy automation
-	// Automation backend tự resolve path: path.join(os.homedir(), 'AppData', 'Local', 'Automation_Profiles')
-
-	createProfileReq := &models.CreateUserProfileRequest{
-		Name:           profileName,
-		ProfileDirName: profileName, // Profile directory name (ví dụ: Profile_huyhoang2004)
-	}
-
-	// Create profile in background (don't block registration)
-	go func() {
-		_, err := s.userProfileService.CreateUserProfileAndDeploy(user.ID, createProfileReq)
-		if err != nil {
-			logrus.Errorf("Failed to create user profile for user %s: %v", user.ID, err)
-		} else {
-			logrus.Infof("Successfully created and deployed user profile for user %s", user.ID)
-		}
-	}()
 
 	// Generate tokens
 	return s.generateAuthResponse(user)

@@ -18,6 +18,7 @@ type RegisterRequest struct {
 	Password  string `json:"password" binding:"required,min=6"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
+	RoleID    string `json:"role_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"` // Optional: Role ID to assign to user. If not provided, defaults to "topic_user"
 }
 
 // AuthResponse represents the authentication response
@@ -78,14 +79,14 @@ type AssignBoxRequest struct {
 
 // UserWithRolesResponse represents the response for user profile with roles
 type UserWithRolesResponse struct {
-	ID           string     `json:"id"`
-	Username     string     `json:"username"`
-	FirstName    string     `json:"first_name"`
-	LastName     string     `json:"last_name"`
-	IsActive     bool       `json:"is_active"`
-	IsAdmin      bool       `json:"is_admin"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
-	Roles        []string   `json:"roles"` // List of role names
+	ID          string     `json:"id"`
+	Username    string     `json:"username"`
+	FirstName   string     `json:"first_name"`
+	LastName    string     `json:"last_name"`
+	IsActive    bool       `json:"is_active"`
+	IsAdmin     bool       `json:"is_admin"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+	Roles       []string   `json:"roles"` // List of role names
 }

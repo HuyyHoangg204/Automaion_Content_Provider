@@ -9,14 +9,16 @@ import (
 )
 
 type RoleService struct {
-	roleRepo *repository.RoleRepository
-	userRepo *repository.UserRepository
+	roleRepo         *repository.RoleRepository
+	userRepo         *repository.UserRepository
+	userProfileService *UserProfileService
 }
 
-func NewRoleService(roleRepo *repository.RoleRepository, userRepo *repository.UserRepository) *RoleService {
+func NewRoleService(roleRepo *repository.RoleRepository, userRepo *repository.UserRepository, userProfileService *UserProfileService) *RoleService {
 	return &RoleService{
-		roleRepo: roleRepo,
-		userRepo: userRepo,
+		roleRepo:          roleRepo,
+		userRepo:          userRepo,
+		userProfileService: userProfileService,
 	}
 }
 
@@ -28,6 +30,11 @@ func (s *RoleService) GetAllRoles() ([]models.Role, error) {
 // GetRoleByName retrieves a role by name
 func (s *RoleService) GetRoleByName(name string) (*models.Role, error) {
 	return s.roleRepo.GetByName(name)
+}
+
+// GetRoleByID retrieves a role by ID
+func (s *RoleService) GetRoleByID(roleID string) (*models.Role, error) {
+	return s.roleRepo.GetByID(roleID)
 }
 
 // CreateRole creates a new role
@@ -73,6 +80,33 @@ func (s *RoleService) AssignRoleToUser(userID string, roleID string) error {
 	}
 
 	logrus.Infof("Assigned role '%s' (ID: %s) to user '%s'", role.Name, role.ID, user.Username)
+
+	// If role is topic_creator, create user profile
+	if role.Name == "topic_creator" && s.userProfileService != nil {
+		// Check if user already has a profile
+		existingProfile, err := s.userProfileService.GetByUserID(user.ID)
+		if err == nil && existingProfile != nil {
+			logrus.Infof("User %s already has a profile, skipping profile creation", user.Username)
+		} else {
+			// Create profile for topic_creator
+			profileName := fmt.Sprintf("Profile_%s", user.Username)
+			createProfileReq := &models.CreateUserProfileRequest{
+				Name:           profileName,
+				ProfileDirName: profileName,
+			}
+
+			// Create profile in background (don't block role assignment)
+			go func() {
+				_, err := s.userProfileService.CreateUserProfileAndDeploy(user.ID, createProfileReq)
+				if err != nil {
+					logrus.Errorf("Failed to create user profile for user %s with topic_creator role: %v", user.ID, err)
+				} else {
+					logrus.Infof("Successfully created and deployed user profile for user %s with topic_creator role", user.Username)
+				}
+			}()
+		}
+	}
+
 	return nil
 }
 
