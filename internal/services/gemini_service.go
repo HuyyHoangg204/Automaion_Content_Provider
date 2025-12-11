@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -19,14 +20,16 @@ type GeminiService struct {
 	userProfileRepo      *repository.UserProfileRepository
 	appRepo              *repository.AppRepository
 	topicRepo            *repository.TopicRepository
+	topicService         *TopicService
 	chromeProfileService *ChromeProfileService
 }
 
-func NewGeminiService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, topicRepo *repository.TopicRepository, chromeProfileService *ChromeProfileService) *GeminiService {
+func NewGeminiService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, topicRepo *repository.TopicRepository, topicService *TopicService, chromeProfileService *ChromeProfileService) *GeminiService {
 	return &GeminiService{
 		userProfileRepo:      userProfileRepo,
 		appRepo:              appRepo,
 		topicRepo:            topicRepo,
+		topicService:         topicService,
 		chromeProfileService: chromeProfileService,
 	}
 }
@@ -34,41 +37,52 @@ func NewGeminiService(userProfileRepo *repository.UserProfileRepository, appRepo
 func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, req *models.GenerateOutlineRequest) (*models.GenerateOutlineResponse, error) {
 	logrus.Infof("GenerateOutlineAndUpload called for user %s with topic_id: %s", userID, topicID)
 
-	// Get topic from DB
+	// Get topic from DB with UserProfile preloaded
 	topic, err := s.topicRepo.GetByID(topicID)
 	if err != nil {
 		logrus.Errorf("Failed to get topic %s: %v", topicID, err)
 		return nil, fmt.Errorf("topic not found: %w", err)
 	}
 
-	// Verify topic belongs to user
-	userProfile, err := s.userProfileRepo.GetByUserID(userID)
+	// Check if user has permission to access this topic (owner or assigned)
+	canAccess, accessType, err := s.topicService.CanUserAccessTopic(userID, topicID, false)
 	if err != nil {
-		logrus.Errorf("Failed to get user profile for user %s: %v", userID, err)
-		return nil, fmt.Errorf("user profile not found: %w", err)
+		logrus.Errorf("Failed to check topic access for user %s, topic %s: %v", userID, topicID, err)
+		return nil, fmt.Errorf("failed to check topic access: %w", err)
 	}
-
-	if topic.UserProfileID != userProfile.ID {
-		logrus.Errorf("Topic %s does not belong to user %s", topicID, userID)
+	if !canAccess {
+		logrus.Errorf("User %s does not have permission to access topic %s", userID, topicID)
 		return nil, fmt.Errorf("topic not found")
 	}
 
-	profileDirName := userProfile.ProfileDirName
-	logrus.Infof("Using profile: name=%s, dirName=%s", userProfile.Name, profileDirName)
+	// Use topic owner's profile instead of current user's profile
+	// This ensures the profile has the correct Gemini account login
+	ownerProfile, err := s.userProfileRepo.GetByID(topic.UserProfileID)
+	if err != nil {
+		logrus.Errorf("Failed to get owner profile %s for topic %s: %v", topic.UserProfileID, topicID, err)
+		return nil, fmt.Errorf("failed to get owner profile: %w", err)
+	}
+
+	logrus.Infof("User %s (access type: %s) using owner profile %s (user: %s) for topic %s",
+		userID, accessType, ownerProfile.ID, ownerProfile.UserID, topicID)
+
+	profileDirName := ownerProfile.ProfileDirName
+	logrus.Infof("Using owner profile: name=%s, dirName=%s", ownerProfile.Name, profileDirName)
 
 	// Use gem name from topic (already stored in DB when topic was created)
 	gemName := topic.GeminiGemName
 	if gemName == "" {
 		// Fallback: Create gem name if not stored yet (should not happen for synced topics)
+		// Use owner's username for gem name
 		username := "user" // Default fallback
-		if userProfile.User.ID != "" {
-			if userProfile.User.Username != "" {
-				username = s.normalizeUsername(userProfile.User.Username)
+		if ownerProfile.User.ID != "" {
+			if ownerProfile.User.Username != "" {
+				username = s.normalizeUsername(ownerProfile.User.Username)
 			} else {
-				logrus.Warnf("User.Username is empty for userID %s, using default 'user' prefix", userID)
+				logrus.Warnf("Owner User.Username is empty for userID %s, using default 'user' prefix", ownerProfile.UserID)
 			}
 		} else {
-			logrus.Warnf("User not preloaded for userID %s, using default 'user' prefix", userID)
+			logrus.Warnf("Owner User not preloaded for profileID %s, using default 'user' prefix", ownerProfile.ID)
 		}
 		gemName = fmt.Sprintf("%s_%s", username, topic.Name)
 		logrus.Warnf("Topic %s does not have gemini_gem_name, generated fallback: '%s'", topic.ID, gemName)
@@ -81,14 +95,15 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 	sendPromptText := topic.SendPromptText
 	logrus.Infof("Prompts from topic: notebooklmPrompt length=%d, sendPromptText length=%d", len(notebooklmPrompt), len(sendPromptText))
 
+	// Use owner's profile to launch Chrome (ensures correct Gemini account login)
 	launchReq := &LaunchChromeProfileRequest{
-		UserProfileID: userProfile.ID,
+		UserProfileID: ownerProfile.ID, // Use owner's profile, not current user's profile
 		EnsureGmail:   true,
 		EntityType:    "gemini",
 		EntityID:      topic.ID,
 	}
 
-	logrus.Infof("Launching Chrome profile for user %s, profileID: %s", userID, userProfile.ID)
+	logrus.Infof("Launching Chrome profile for user %s (using owner profile %s for topic %s)", userID, ownerProfile.ID, topicID)
 	launchResp, err := s.chromeProfileService.LaunchChromeProfile(userID, launchReq)
 	if err != nil {
 		logrus.Errorf("Failed to launch Chrome profile for user %s: %v", userID, err)
@@ -98,7 +113,7 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 
 	defer func() {
 		if releaseErr := s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
-			UserProfileID: userProfile.ID,
+			UserProfileID: ownerProfile.ID, // Release owner's profile lock
 		}); releaseErr != nil {
 			logrus.Warnf("Failed to release Chrome profile lock: %v", releaseErr)
 		}
@@ -108,7 +123,7 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 	apiURL := fmt.Sprintf("%s/gemini/generate-outline-and-upload", strings.TrimSuffix(tunnelURL, "/"))
 
 	requestBody := map[string]interface{}{
-		"name":             userProfile.Name,
+		"name":             ownerProfile.Name, // Use owner's profile name
 		"dirName":          profileDirName,
 		"profileDirName":   profileDirName,
 		"gem":              gemName,
@@ -181,12 +196,17 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 	var responseData map[string]interface{}
 	if err := json.Unmarshal(bodyBytes, &responseData); err != nil {
 		logrus.Warnf("Failed to parse response as JSON, returning raw response: %v", err)
+		// Clean citation markers from raw response string
+		cleanedResponse := s.removeCitationMarkers(string(bodyBytes))
 		return &models.GenerateOutlineResponse{
 			Success: true,
 			Message: "Outline generated and uploaded successfully",
-			Data:    string(bodyBytes),
+			Data:    cleanedResponse,
 		}, nil
 	}
+
+	// Remove citation markers from response data
+	s.cleanCitationMarkersFromData(responseData)
 
 	response := &models.GenerateOutlineResponse{
 		Success: true,
@@ -194,7 +214,7 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 	}
 
 	if msg, ok := responseData["message"].(string); ok {
-		response.Message = msg
+		response.Message = s.removeCitationMarkers(msg)
 	} else {
 		response.Message = "Outline generated and uploaded successfully"
 	}
@@ -261,4 +281,49 @@ func (s *GeminiService) normalizeUsername(username string) string {
 	}
 
 	return resultStr
+}
+
+// removeCitationMarkers removes citation markers like [cite:...] and [cite_start] from text
+func (s *GeminiService) removeCitationMarkers(text string) string {
+	// Remove [cite_start] markers
+	text = strings.ReplaceAll(text, "[cite_start]", "")
+
+	// Remove [cite:...] patterns using regex
+	// Pattern matches [cite: followed by optional spaces, numbers, commas, spaces, and closing ]
+	citeRegex := regexp.MustCompile(`\[cite:\s*[0-9,\s]*\]`)
+	text = citeRegex.ReplaceAllString(text, "")
+
+	// Clean up multiple spaces that might be left
+	spaceRegex := regexp.MustCompile(`\s+`)
+	text = spaceRegex.ReplaceAllString(text, " ")
+
+	return strings.TrimSpace(text)
+}
+
+// cleanCitationMarkersFromData recursively removes citation markers from response data
+func (s *GeminiService) cleanCitationMarkersFromData(data interface{}) {
+	switch v := data.(type) {
+	case map[string]interface{}:
+		for key, value := range v {
+			switch val := value.(type) {
+			case string:
+				v[key] = s.removeCitationMarkers(val)
+			case map[string]interface{}:
+				s.cleanCitationMarkersFromData(val)
+			case []interface{}:
+				s.cleanCitationMarkersFromData(val)
+			}
+		}
+	case []interface{}:
+		for i, item := range v {
+			switch val := item.(type) {
+			case string:
+				v[i] = s.removeCitationMarkers(val)
+			case map[string]interface{}:
+				s.cleanCitationMarkersFromData(val)
+			case []interface{}:
+				s.cleanCitationMarkersFromData(val)
+			}
+		}
+	}
 }

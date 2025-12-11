@@ -21,16 +21,18 @@ type TopicService struct {
 	topicUserRepo        *repository.TopicUserRepository // New: For topic assignments
 	userProfileRepo      *repository.UserProfileRepository
 	appRepo              *repository.AppRepository
+	boxRepo              *repository.BoxRepository // For getting machine_id from BoxID
 	chromeProfileService *ChromeProfileService
 	processLogService    *ProcessLogService
-	fileService          *FileService // FileService để lấy files mới nhất của user
-	baseURL              string       // Base URL để generate download URLs cho files
+	fileService          *FileService          // FileService để lấy files mới nhất của user
+	geminiAccountService *GeminiAccountService // For getting available Gemini account
+	baseURL              string                // Base URL để generate download URLs cho files
 	// In-memory cache để lưu file IDs vừa upload theo userID
 	// Key: userID, Value: []string (file IDs)
 	recentUploadedFiles sync.Map // map[string][]string
 }
 
-func NewTopicService(topicRepo *repository.TopicRepository, topicUserRepo *repository.TopicUserRepository, userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, chromeProfileService *ChromeProfileService, processLogService *ProcessLogService, fileService *FileService) *TopicService {
+func NewTopicService(topicRepo *repository.TopicRepository, topicUserRepo *repository.TopicUserRepository, userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, chromeProfileService *ChromeProfileService, processLogService *ProcessLogService, fileService *FileService, geminiAccountService *GeminiAccountService) *TopicService {
 	// Get base URL from environment
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
@@ -47,9 +49,11 @@ func NewTopicService(topicRepo *repository.TopicRepository, topicUserRepo *repos
 		topicUserRepo:        topicUserRepo,
 		userProfileRepo:      userProfileRepo,
 		appRepo:              appRepo,
+		boxRepo:              boxRepo,
 		chromeProfileService: chromeProfileService,
 		processLogService:    processLogService,
 		fileService:          fileService,
+		geminiAccountService: geminiAccountService,
 		baseURL:              baseURL,
 	}
 }
@@ -110,8 +114,28 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 			return
 		}
 
+		// Step 1.5: Get Gemini account for this machine (if available)
+		var geminiAccountID *string
+		var geminiAccount *models.GeminiAccount
+		if s.geminiAccountService != nil && launchResp.MachineID != "" {
+			// Get Box to get machine_id (string) from BoxID (UUID)
+			box, err := s.boxRepo.GetByID(launchResp.MachineID)
+			if err == nil && box != nil {
+				// Get available Gemini account for this machine
+				account, err := s.geminiAccountService.GetAvailableAccountForMachine(box.MachineID)
+				if err == nil && account != nil {
+					geminiAccountID = &account.ID
+					geminiAccount = account
+					// Update account: increment topics_count and last_used_at (will be done in service method)
+					logrus.Infof("Using Gemini account %s (email: %s) for topic %s on machine %s", account.ID, account.Email, topic.ID, box.MachineID)
+				} else {
+					logrus.Warnf("No available Gemini account found for machine %s, topic will be created without account association", box.MachineID)
+				}
+			}
+		}
+
 		// Step 2: Create Gem on Gemini
-		geminiGemName, err := s.createGemOnGemini(userProfile, req, launchResp.TunnelURL, userID)
+		geminiGemName, err := s.createGemOnGemini(userProfile, req, launchResp.TunnelURL, userID, geminiAccount)
 		if err != nil {
 			logrus.Errorf("Failed to create Gem on Gemini for topic %s: %v", topic.ID, err)
 			// Release lock on error
@@ -143,9 +167,10 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 			return
 		}
 
-		// Chỉ update geminiGemName và syncError, giữ nguyên SyncStatus (có thể đã được automation backend update)
+		// Chỉ update geminiGemName, gemini_account_id và syncError, giữ nguyên SyncStatus (có thể đã được automation backend update)
 		currentTopic.GeminiGemID = nil
 		currentTopic.GeminiGemName = geminiGemName
+		currentTopic.GeminiAccountID = geminiAccountID // Lưu Gemini account ID
 		currentTopic.SyncError = ""
 		// KHÔNG update SyncStatus - để automation backend tự update qua log
 
@@ -229,8 +254,9 @@ func (s *TopicService) isFileID(input string) bool {
 
 // createGemOnGemini calls the Gemini API to create a Gem
 // tunnelURL is passed from LaunchChromeProfileResponse to use the same machine
+// geminiAccount is optional - if provided, will send account_index to automation backend
 // Returns gemName only (gemID is not needed - gem is identified by name with username prefix)
-func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *models.CreateTopicRequest, tunnelURL string, userID string) (string, error) {
+func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *models.CreateTopicRequest, tunnelURL string, userID string, geminiAccount *models.GeminiAccount) (string, error) {
 	// Build API URL: POST /gemini/gems
 	apiURL := fmt.Sprintf("%s/gemini/gems", strings.TrimSuffix(tunnelURL, "/"))
 
@@ -260,6 +286,7 @@ func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *m
 
 	// Prepare request body (without debugPort)
 	// Note: Không gửi userDataDir - automation backend tự resolve path
+	// Note: Không gửi account_index vì 1 machine = 1 account, automation backend tự biết account nào
 	requestBody := map[string]interface{}{
 		"name":           req.Name,
 		"profileDirName": userProfile.ProfileDirName, // Chỉ gửi profileDirName, backend tự resolve path
@@ -267,6 +294,12 @@ func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *m
 		"description":    req.Description,
 		"instructions":   req.Instructions,
 		"knowledgeFiles": knowledgeFiles, // URLs để automation backend download (always array, never null)
+	}
+
+	// Note: Không cần gửi account_index vì 1 machine = 1 account
+	// Automation backend sẽ tự biết account nào được setup trên machine đó
+	if geminiAccount != nil {
+		logrus.Infof("Using Gemini account %s (email: %s) for topic on machine", geminiAccount.ID, geminiAccount.Email)
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
@@ -356,7 +389,7 @@ func (s *TopicService) GetAllTopicsByUserID(userID string) ([]*models.Topic, err
 		logrus.Warnf("Failed to get assigned topic IDs for user %s: %v", userID, err)
 		assignedTopicIDs = []string{} // Continue with empty list
 	}
-	
+
 	// Get topics (owned + assigned)
 	return s.topicRepo.GetByUserIDIncludingAssigned(userID, assignedTopicIDs)
 }
@@ -369,7 +402,7 @@ func (s *TopicService) GetAllTopicsByUserIDPaginated(userID string, page, pageSi
 		logrus.Warnf("Failed to get assigned topic IDs for user %s: %v", userID, err)
 		assignedTopicIDs = []string{} // Continue with empty list
 	}
-	
+
 	// Get topics (owned + assigned) with pagination
 	return s.topicRepo.GetByUserIDIncludingAssignedPaginated(userID, assignedTopicIDs, page, pageSize)
 }
@@ -380,18 +413,18 @@ func (s *TopicService) CanUserAccessTopic(userID string, topicID string, isAdmin
 	if isAdmin {
 		return true, "admin", nil
 	}
-	
+
 	// Get topic
 	topic, err := s.topicRepo.GetByID(topicID)
 	if err != nil {
 		return false, "", fmt.Errorf("topic not found: %w", err)
 	}
-	
+
 	// Check if user is creator
 	if topic.UserProfile.UserID == userID {
 		return true, "creator", nil
 	}
-	
+
 	// Check if user is assigned
 	isAssigned, err := s.topicUserRepo.IsUserAssigned(topicID, userID)
 	if err != nil {
@@ -400,13 +433,18 @@ func (s *TopicService) CanUserAccessTopic(userID string, topicID string, isAdmin
 	if isAssigned {
 		return true, "assigned", nil
 	}
-	
+
 	return false, "", nil
 }
 
 // GetTopicByID retrieves a topic by ID
 func (s *TopicService) GetTopicByID(id string) (*models.Topic, error) {
 	return s.topicRepo.GetByID(id)
+}
+
+// GetTopicsByGeminiAccountID retrieves all topics created with a specific Gemini account
+func (s *TopicService) GetTopicsByGeminiAccountID(geminiAccountID string) ([]*models.Topic, error) {
+	return s.topicRepo.GetByGeminiAccountID(geminiAccountID)
 }
 
 // GetAllTopicsPaginated retrieves all topics with pagination, search, and filters (admin only)

@@ -94,6 +94,7 @@ func InitDB() (*gorm.DB, error) {
 		&models.APIKey{},
 		&models.File{},
 		&models.Role{},
+		&models.GeminiAccount{}, // New: Gemini accounts table
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
@@ -192,6 +193,126 @@ func InitDB() (*gorm.DB, error) {
 					}
 				}
 			}
+		}
+	}
+
+	// Migration: Add gemini_account_id column to topics table if it doesn't exist
+	var geminiAccountIDColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'topics' 
+			AND column_name = 'gemini_account_id'
+		)
+	`).Scan(&geminiAccountIDColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if gemini_account_id column exists: %v", err)
+	} else if !geminiAccountIDColumnExists {
+		logrus.Info("Adding gemini_account_id column to topics table...")
+		err = db.Exec("ALTER TABLE topics ADD COLUMN IF NOT EXISTS gemini_account_id UUID").Error
+		if err != nil {
+			logrus.Warnf("Failed to add gemini_account_id column: %v", err)
+		} else {
+			logrus.Info("Successfully added gemini_account_id column")
+			// Create index
+			err = db.Exec("CREATE INDEX IF NOT EXISTS idx_topics_gemini_account_id ON topics(gemini_account_id)").Error
+			if err != nil {
+				logrus.Warnf("Failed to create index on gemini_account_id: %v", err)
+			}
+			// Add foreign key constraint
+			err = db.Exec(`
+				ALTER TABLE topics 
+				ADD CONSTRAINT fk_topics_gemini_account 
+				FOREIGN KEY (gemini_account_id) 
+				REFERENCES gemini_accounts(id) 
+				ON DELETE SET NULL
+			`).Error
+			if err != nil {
+				logrus.Warnf("Failed to add foreign key constraint: %v", err)
+			}
+		}
+	}
+
+	// Migration: Drop old unique constraint on machine_id (nếu có)
+	// Và thêm unique constraint trên (email, machine_id) để đảm bảo 1 machine không có 2 accounts cùng email
+	// Nhưng cho phép nhiều machines có cùng email (cùng account)
+	var oldUniqueIndexExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM pg_indexes 
+			WHERE schemaname = 'public' 
+			AND tablename = 'gemini_accounts' 
+			AND indexname = 'idx_gemini_accounts_machine_id_unique'
+		)
+	`).Scan(&oldUniqueIndexExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if old unique index exists: %v", err)
+	} else if oldUniqueIndexExists {
+		logrus.Info("Dropping old unique index on machine_id...")
+		err = db.Exec("DROP INDEX IF EXISTS idx_gemini_accounts_machine_id_unique").Error
+		if err != nil {
+			logrus.Warnf("Failed to drop old unique index: %v", err)
+		} else {
+			logrus.Info("Successfully dropped old unique index on machine_id")
+		}
+	}
+
+	// Migration: Add unique constraint on (email, machine_id)
+	// Đảm bảo 1 machine không có 2 accounts cùng email, nhưng cho phép nhiều machines có cùng email
+	var emailMachineUniqueExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM pg_indexes 
+			WHERE schemaname = 'public' 
+			AND tablename = 'gemini_accounts' 
+			AND indexname = 'idx_gemini_accounts_email_machine'
+		)
+	`).Scan(&emailMachineUniqueExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if email_machine unique index exists: %v", err)
+	} else if !emailMachineUniqueExists {
+		logrus.Info("Creating unique index on (email, machine_id)...")
+		err = db.Exec(`
+			CREATE UNIQUE INDEX IF NOT EXISTS idx_gemini_accounts_email_machine 
+			ON gemini_accounts(email, machine_id)
+		`).Error
+		if err != nil {
+			logrus.Warnf("Failed to create unique index on (email, machine_id): %v", err)
+		} else {
+			logrus.Info("Successfully created unique index on (email, machine_id)")
+		}
+	}
+
+	// Migration: Drop account_index column from gemini_accounts table if it exists (1 machine = 1 account, không cần account_index)
+	var accountIndexColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'gemini_accounts' 
+			AND column_name = 'account_index'
+		)
+	`).Scan(&accountIndexColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if account_index column exists: %v", err)
+	} else if accountIndexColumnExists {
+		logrus.Info("Dropping account_index column from gemini_accounts table...")
+		// Drop unique constraint on (machine_id, account_index) if exists
+		err = db.Exec("ALTER TABLE gemini_accounts DROP CONSTRAINT IF EXISTS gemini_accounts_machine_id_account_index_key").Error
+		if err != nil {
+			logrus.Warnf("Failed to drop unique constraint: %v", err)
+		}
+		// Drop column
+		err = db.Exec("ALTER TABLE gemini_accounts DROP COLUMN IF EXISTS account_index").Error
+		if err != nil {
+			logrus.Warnf("Failed to drop account_index column: %v", err)
+		} else {
+			logrus.Info("Successfully dropped account_index column")
 		}
 	}
 

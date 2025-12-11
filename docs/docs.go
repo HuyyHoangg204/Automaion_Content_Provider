@@ -2960,6 +2960,393 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/gemini/accounts": {
+            "get": {
+                "description": "Get all Gemini accounts with optional filters (machine_id, is_active, is_locked)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Get all Gemini accounts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by machine ID",
+                        "name": "machine_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by active status",
+                        "name": "is_active",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by locked status",
+                        "name": "is_locked",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.GeminiAccountResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/accounts/machine/{machine_id}": {
+            "get": {
+                "description": "Get all Gemini accounts for a specific machine",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Get Gemini accounts by machine ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Machine ID",
+                        "name": "machine_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.GeminiAccountResponse"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/accounts/setup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Setup a Gemini account (Gmail) on a specific machine for creating Gemini Gems (Admin privileges required)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Setup Gemini account (Admin only)",
+                "parameters": [
+                    {
+                        "description": "Setup Gemini Account Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SetupGeminiAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/models.GeminiAccountResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Admin privileges required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Machine not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/accounts/{id}": {
+            "get": {
+                "description": "Get a specific Gemini account by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Get Gemini account by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.GeminiAccountResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/accounts/{id}/lock": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lock a Gemini account and delete all topics created with it (Admin privileges required)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Lock Gemini account (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Lock reason (optional)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/models.LockGeminiAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\\\"message\\\": \\\"Account locked successfully\\\", \\\"topics_deleted\\\": 5}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Account already locked",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Admin privileges required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/accounts/{id}/topics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all topics that were created using a specific Gemini account",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Get topics by Gemini account ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gemini Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.TopicResponse"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/gemini/accounts/{id}/unlock": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Unlock a previously locked Gemini account (Admin privileges required)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gemini-accounts"
+                ],
+                "summary": "Unlock Gemini account (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\\\"message\\\": \\\"Account unlocked successfully\\\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Account not locked",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Admin privileges required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Account not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/gemini/topics/{topic_id}/generate-outline-and-upload": {
             "post": {
                 "security": [
@@ -4289,6 +4676,131 @@ const docTemplate = `{
                 }
             }
         },
+        "models.GeminiAccount": {
+            "type": "object",
+            "properties": {
+                "app": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.App"
+                        }
+                    ]
+                },
+                "app_id": {
+                    "description": "Optional: link với App",
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "gemini_accessible": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_locked": {
+                    "type": "boolean"
+                },
+                "last_checked_at": {
+                    "type": "string"
+                },
+                "last_used_at": {
+                    "type": "string"
+                },
+                "locked_at": {
+                    "type": "string"
+                },
+                "locked_reason": {
+                    "type": "string"
+                },
+                "machine_id": {
+                    "description": "MachineID từ Box",
+                    "type": "string"
+                },
+                "topics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Topic"
+                    }
+                },
+                "topics_count": {
+                    "description": "Số topics đã tạo trên account này",
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GeminiAccountResponse": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@gmail.com"
+                },
+                "gemini_accessible": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "is_active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "is_locked": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "last_checked_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
+                },
+                "last_used_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:30:00Z"
+                },
+                "locked_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:30:00Z"
+                },
+                "locked_reason": {
+                    "type": "string",
+                    "example": ""
+                },
+                "machine_id": {
+                    "type": "string",
+                    "example": "PC-001"
+                },
+                "topics_count": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2025-01-21T10:00:00Z"
+                }
+            }
+        },
         "models.GenerateOutlineRequest": {
             "type": "object",
             "properties": {
@@ -4383,6 +4895,15 @@ const docTemplate = `{
         "models.JSON": {
             "type": "object",
             "additionalProperties": true
+        },
+        "models.LockGeminiAccountRequest": {
+            "type": "object",
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "example": "Account was locked by Google"
+                }
+            }
         },
         "models.LoginRequest": {
             "type": "object",
@@ -4711,6 +5232,32 @@ const docTemplate = `{
                 }
             }
         },
+        "models.SetupGeminiAccountRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "machine_id",
+                "password"
+            ],
+            "properties": {
+                "debug_port": {
+                    "type": "integer",
+                    "example": 9222
+                },
+                "email": {
+                    "type": "string",
+                    "example": "user@gmail.com"
+                },
+                "machine_id": {
+                    "type": "string",
+                    "example": "PC-001"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                }
+            }
+        },
         "models.StatusCheckInfo": {
             "type": "object",
             "properties": {
@@ -4760,6 +5307,13 @@ const docTemplate = `{
                     "description": "Content",
                     "type": "string",
                     "example": "Chủ đề về lịch sử Việt Nam"
+                },
+                "gemini_account": {
+                    "$ref": "#/definitions/models.GeminiAccount"
+                },
+                "gemini_account_id": {
+                    "description": "Gemini account được dùng để tạo topic này",
+                    "type": "string"
                 },
                 "gemini_gem_id": {
                     "description": "Gemini Gem info",

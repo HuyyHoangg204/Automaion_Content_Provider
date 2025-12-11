@@ -14,8 +14,9 @@ type Topic struct {
 	Name string `json:"name" gorm:"type:varchar(255);not null" example:"Lịch sử"`
 
 	// Gemini Gem info
-	GeminiGemID   *string `json:"gemini_gem_id,omitempty" gorm:"type:varchar(255);index" example:"gemini-gem-123"`
-	GeminiGemName string  `json:"gemini_gem_name" gorm:"type:varchar(255)" example:"My History Gem"`
+	GeminiGemID      *string `json:"gemini_gem_id,omitempty" gorm:"type:varchar(255);index" example:"gemini-gem-123"`
+	GeminiGemName    string  `json:"gemini_gem_name" gorm:"type:varchar(255)" example:"My History Gem"`
+	GeminiAccountID  *string `json:"gemini_account_id,omitempty" gorm:"type:uuid;index"` // Gemini account được dùng để tạo topic này
 
 	// Content
 	Description      string `json:"description" gorm:"type:text" example:"Chủ đề về lịch sử Việt Nam"`
@@ -35,7 +36,8 @@ type Topic struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relationships
-	UserProfile UserProfile `json:"user_profile,omitempty" gorm:"foreignKey:UserProfileID;references:ID;constraint:OnDelete:CASCADE"`
+	UserProfile     UserProfile     `json:"user_profile,omitempty" gorm:"foreignKey:UserProfileID;references:ID;constraint:OnDelete:CASCADE"`
+	GeminiAccount   *GeminiAccount  `json:"gemini_account,omitempty" gorm:"foreignKey:GeminiAccountID;references:ID;constraint:OnDelete:SET NULL"`
 }
 
 // TableName specifies the table name for the Topic model

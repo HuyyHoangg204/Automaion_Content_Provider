@@ -272,6 +272,93 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440001
         type: string
     type: object
+  models.GeminiAccount:
+    properties:
+      app:
+        allOf:
+        - $ref: '#/definitions/models.App'
+        description: Relationships
+      app_id:
+        description: 'Optional: link với App'
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      gemini_accessible:
+        type: boolean
+      id:
+        type: string
+      is_active:
+        type: boolean
+      is_locked:
+        type: boolean
+      last_checked_at:
+        type: string
+      last_used_at:
+        type: string
+      locked_at:
+        type: string
+      locked_reason:
+        type: string
+      machine_id:
+        description: MachineID từ Box
+        type: string
+      topics:
+        items:
+          $ref: '#/definitions/models.Topic'
+        type: array
+      topics_count:
+        description: Số topics đã tạo trên account này
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.GeminiAccountResponse:
+    properties:
+      app_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      created_at:
+        example: "2025-01-21T10:00:00Z"
+        type: string
+      email:
+        example: user@gmail.com
+        type: string
+      gemini_accessible:
+        example: true
+        type: boolean
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      is_locked:
+        example: false
+        type: boolean
+      last_checked_at:
+        example: "2025-01-21T10:00:00Z"
+        type: string
+      last_used_at:
+        example: "2025-01-21T10:30:00Z"
+        type: string
+      locked_at:
+        example: "2025-01-21T10:30:00Z"
+        type: string
+      locked_reason:
+        example: ""
+        type: string
+      machine_id:
+        example: PC-001
+        type: string
+      topics_count:
+        example: 5
+        type: integer
+      updated_at:
+        example: "2025-01-21T10:00:00Z"
+        type: string
+    type: object
   models.GenerateOutlineRequest:
     properties:
       debugPort:
@@ -336,6 +423,12 @@ definitions:
     type: object
   models.JSON:
     additionalProperties: true
+    type: object
+  models.LockGeminiAccountRequest:
+    properties:
+      reason:
+        example: Account was locked by Google
+        type: string
     type: object
   models.LoginRequest:
     properties:
@@ -577,6 +670,25 @@ definitions:
           $ref: '#/definitions/models.User'
         type: array
     type: object
+  models.SetupGeminiAccountRequest:
+    properties:
+      debug_port:
+        example: 9222
+        type: integer
+      email:
+        example: user@gmail.com
+        type: string
+      machine_id:
+        example: PC-001
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - machine_id
+    - password
+    type: object
   models.StatusCheckInfo:
     properties:
       error:
@@ -611,6 +723,11 @@ definitions:
       description:
         description: Content
         example: Chủ đề về lịch sử Việt Nam
+        type: string
+      gemini_account:
+        $ref: '#/definitions/models.GeminiAccount'
+      gemini_account_id:
+        description: Gemini account được dùng để tạo topic này
         type: string
       gemini_gem_id:
         description: Gemini Gem info
@@ -2938,6 +3055,266 @@ paths:
       summary: Upload file(s)
       tags:
       - files
+  /api/v1/gemini/accounts:
+    get:
+      description: Get all Gemini accounts with optional filters (machine_id, is_active,
+        is_locked)
+      parameters:
+      - description: Filter by machine ID
+        in: query
+        name: machine_id
+        type: string
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      - description: Filter by locked status
+        in: query
+        name: is_locked
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.GeminiAccountResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all Gemini accounts
+      tags:
+      - gemini-accounts
+  /api/v1/gemini/accounts/{id}:
+    get:
+      description: Get a specific Gemini account by its ID
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GeminiAccountResponse'
+        "404":
+          description: Account not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Gemini account by ID
+      tags:
+      - gemini-accounts
+  /api/v1/gemini/accounts/{id}/lock:
+    put:
+      consumes:
+      - application/json
+      description: Lock a Gemini account and delete all topics created with it (Admin
+        privileges required)
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Lock reason (optional)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/models.LockGeminiAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{\"message\": \"Account locked successfully\", \"topics_deleted\":
+            5}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Account already locked
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Admin privileges required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Account not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Lock Gemini account (Admin only)
+      tags:
+      - gemini-accounts
+  /api/v1/gemini/accounts/{id}/topics:
+    get:
+      description: Get all topics that were created using a specific Gemini account
+      parameters:
+      - description: Gemini Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.TopicResponse'
+            type: array
+        "404":
+          description: Account not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get topics by Gemini account ID
+      tags:
+      - gemini-accounts
+  /api/v1/gemini/accounts/{id}/unlock:
+    put:
+      description: Unlock a previously locked Gemini account (Admin privileges required)
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{\"message\": \"Account unlocked successfully\"}'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Account not locked
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Admin privileges required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Account not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Unlock Gemini account (Admin only)
+      tags:
+      - gemini-accounts
+  /api/v1/gemini/accounts/machine/{machine_id}:
+    get:
+      description: Get all Gemini accounts for a specific machine
+      parameters:
+      - description: Machine ID
+        in: path
+        name: machine_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.GeminiAccountResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Gemini accounts by machine ID
+      tags:
+      - gemini-accounts
+  /api/v1/gemini/accounts/setup:
+    post:
+      consumes:
+      - application/json
+      description: Setup a Gemini account (Gmail) on a specific machine for creating
+        Gemini Gems (Admin privileges required)
+      parameters:
+      - description: Setup Gemini Account Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SetupGeminiAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.GeminiAccountResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Admin privileges required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Machine not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Setup Gemini account (Admin only)
+      tags:
+      - gemini-accounts
   /api/v1/gemini/topics/{topic_id}/generate-outline-and-upload:
     post:
       consumes:
