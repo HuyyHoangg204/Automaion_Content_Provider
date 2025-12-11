@@ -68,7 +68,12 @@ func main() {
 	// Initialize role service (needed by auth service)
 	userRepo := repository.NewUserRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
-	roleService := services.NewRoleService(roleRepo, userRepo)
+	userProfileRepo := repository.NewUserProfileRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	geminiAccountRepo := repository.NewGeminiAccountRepository(db)
+	boxRepo := repository.NewBoxRepository(db)
+	userProfileService := services.NewUserProfileService(userProfileRepo, appRepo, geminiAccountRepo, boxRepo)
+	roleService := services.NewRoleService(roleRepo, userRepo, userProfileService)
 
 	// Initialize auth service
 	authService := auth.NewAuthService(db, roleService)

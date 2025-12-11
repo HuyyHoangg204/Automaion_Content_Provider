@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -15,14 +16,18 @@ import (
 )
 
 type UserProfileService struct {
-	userProfileRepo *repository.UserProfileRepository
-	appRepo         *repository.AppRepository
+	userProfileRepo   *repository.UserProfileRepository
+	appRepo           *repository.AppRepository
+	geminiAccountRepo *repository.GeminiAccountRepository
+	boxRepo           *repository.BoxRepository
 }
 
-func NewUserProfileService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository) *UserProfileService {
+func NewUserProfileService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, geminiAccountRepo *repository.GeminiAccountRepository, boxRepo *repository.BoxRepository) *UserProfileService {
 	return &UserProfileService{
-		userProfileRepo: userProfileRepo,
-		appRepo:         appRepo,
+		userProfileRepo:   userProfileRepo,
+		appRepo:           appRepo,
+		geminiAccountRepo: geminiAccountRepo,
+		boxRepo:           boxRepo,
 	}
 }
 
@@ -75,9 +80,10 @@ func (s *UserProfileService) CreateUserProfileAndDeploy(userID string, req *mode
 	return userProfile, nil
 }
 
-// deployProfileToAllMachines deploys profile to all machines with tunnel URLs
+// deployProfileToAllMachines deploys profile to machines that have active GeminiAccount
+// Only deploys to machines with tunnel URLs AND have an active, non-locked GeminiAccount
 func (s *UserProfileService) deployProfileToAllMachines(userProfile *models.UserProfile, profileName string) ([]byte, []byte, error) {
-	// Get all apps with tunnel URLs (all machines)
+	// Get all apps with tunnel URLs
 	allApps, err := s.appRepo.GetAll()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get all apps: %w", err)
@@ -86,23 +92,53 @@ func (s *UserProfileService) deployProfileToAllMachines(userProfile *models.User
 	var deployedAppIDs []string
 	syncStatusMap := make(map[string]interface{})
 
-	// Filter apps with tunnel URLs
-	var appsWithTunnel []*models.App
+	// Filter apps with tunnel URLs AND have active GeminiAccount
+	var appsWithGeminiAccount []*models.App
 	for _, app := range allApps {
-		if app.TunnelURL != nil && *app.TunnelURL != "" {
-			appsWithTunnel = append(appsWithTunnel, app)
+		if app.TunnelURL == nil || *app.TunnelURL == "" {
+			continue
+		}
+
+		// Get Box to get MachineID (string) from BoxID (UUID)
+		box, err := s.boxRepo.GetByID(app.BoxID)
+		if err != nil {
+			logrus.Warnf("Failed to get Box %s for app %s: %v", app.BoxID, app.ID, err)
+			continue
+		}
+
+		// Check if this machine has an active GeminiAccount
+		// Note: GeminiAccount.MachineID is Box.MachineID (string), not Box.ID (UUID)
+		accounts, err := s.geminiAccountRepo.GetActiveByMachineID(box.MachineID)
+		if err != nil {
+			logrus.Warnf("Failed to check GeminiAccount for machine %s (app %s): %v", box.MachineID, app.ID, err)
+			continue
+		}
+
+		// Only include machines that have at least one active GeminiAccount
+		if len(accounts) > 0 {
+			appsWithGeminiAccount = append(appsWithGeminiAccount, app)
+			logrus.Infof("Machine %s (app %s) has active GeminiAccount, will deploy profile", box.MachineID, app.ID)
+		} else {
+			// Debug: Check if machine has any GeminiAccount (even inactive)
+			allAccounts, err := s.geminiAccountRepo.GetByMachineID(box.MachineID)
+			if err == nil && len(allAccounts) > 0 {
+				logrus.Warnf("Machine %s (app %s) has GeminiAccount but it's not active. Account status: is_active=%v, is_locked=%v, gemini_accessible=%v",
+					box.MachineID, app.ID, allAccounts[0].IsActive, allAccounts[0].IsLocked, allAccounts[0].GeminiAccessible)
+			} else {
+				logrus.Infof("Machine %s (app %s) does not have GeminiAccount, skipping profile deployment", box.MachineID, app.ID)
+			}
 		}
 	}
 
-	if len(appsWithTunnel) == 0 {
-		logrus.Info("No apps with tunnel URLs found, skipping deployment")
+	if len(appsWithGeminiAccount) == 0 {
+		logrus.Info("No machines with active GeminiAccount found, skipping deployment")
 		deployedAppsJSON, _ := json.Marshal(deployedAppIDs)
 		syncStatusJSON, _ := json.Marshal(syncStatusMap)
 		return deployedAppsJSON, syncStatusJSON, nil
 	}
 
-	// Deploy to each machine
-	for _, app := range appsWithTunnel {
+	// Deploy to each machine that has GeminiAccount
+	for _, app := range appsWithGeminiAccount {
 		platformProfileID, err := s.createProfileOnMachine(*app.TunnelURL, profileName)
 		if err != nil {
 			logrus.Errorf("Failed to create profile on machine %s (app %s): %v", app.BoxID, app.ID, err)
@@ -165,27 +201,58 @@ func (s *UserProfileService) createProfileOnMachine(tunnelURL, profileName strin
 
 	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("API returned status %d", resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Read response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	// Parse response to get profile ID
 	var responseData map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&responseData); err != nil {
+	if err := json.Unmarshal(bodyBytes, &responseData); err != nil {
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	// Extract profile ID from response (could be "id", "uuid", "profile_id", etc.)
+	// Extract profile ID from response
+	// Response can be either:
+	// 1. Direct: {"id": "...", ...}
+	// 2. Nested: {"profile": {"id": "...", ...}}
 	profileID := ""
-	if id, ok := responseData["id"].(string); ok {
-		profileID = id
-	} else if uuid, ok := responseData["uuid"].(string); ok {
-		profileID = uuid
-	} else if profileIDVal, ok := responseData["profile_id"].(string); ok {
-		profileID = profileIDVal
+
+	// First, try to get from nested "profile" object (most common case)
+	if profileObj, ok := responseData["profile"].(map[string]interface{}); ok {
+		if id, ok := profileObj["id"].(string); ok {
+			profileID = id
+		} else if uuid, ok := profileObj["uuid"].(string); ok {
+			profileID = uuid
+		} else if profileIDVal, ok := profileObj["profile_id"].(string); ok {
+			profileID = profileIDVal
+		}
+	}
+
+	// If not found in nested object, try root level
+	if profileID == "" {
+		if id, ok := responseData["id"].(string); ok {
+			profileID = id
+		} else if uuid, ok := responseData["uuid"].(string); ok {
+			profileID = uuid
+		} else if profileIDVal, ok := responseData["profile_id"].(string); ok {
+			profileID = profileIDVal
+		} else if profileIDVal, ok := responseData["profileId"].(string); ok {
+			profileID = profileIDVal
+		} else if profileIDVal, ok := responseData["profile_uuid"].(string); ok {
+			profileID = profileIDVal
+		} else if name, ok := responseData["name"].(string); ok {
+			profileID = name
+		}
 	}
 
 	if profileID == "" {
-		return "", errors.New("profile ID not found in response")
+		return "", fmt.Errorf("profile ID not found in response. Raw response: %s", string(bodyBytes))
 	}
 
 	return profileID, nil

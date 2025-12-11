@@ -253,3 +253,13 @@ func (r *TopicRepository) GetBySyncStatus(syncStatus string) ([]*models.Topic, e
 	err := r.db.Where("sync_status = ?", syncStatus).Find(&topics).Error
 	return topics, err
 }
+
+// GetByGeminiAccountID retrieves all topics created with a specific Gemini account
+func (r *TopicRepository) GetByGeminiAccountID(geminiAccountID string) ([]*models.Topic, error) {
+	var topics []*models.Topic
+	err := r.db.Where("gemini_account_id = ?", geminiAccountID).
+		Preload("UserProfile").Preload("UserProfile.User").
+		Order("created_at DESC").
+		Find(&topics).Error
+	return topics, err
+}

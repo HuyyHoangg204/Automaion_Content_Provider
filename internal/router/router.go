@@ -55,7 +55,16 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	// Create repositories first
 	userRepo := repository.NewUserRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
-	roleService := services.NewRoleService(roleRepo, userRepo)
+	userProfileRepo := repository.NewUserProfileRepository(db)
+	appRepo := repository.NewAppRepository(db)
+	geminiAccountRepo := repository.NewGeminiAccountRepository(db)
+	
+	// Create UserProfileService for RoleService (needed to create profile when assigning topic_creator role)
+	// Note: boxRepo will be created later, but we need it here for UserProfileService
+	boxRepoForUserProfile := repository.NewBoxRepository(db)
+	userProfileService := services.NewUserProfileService(userProfileRepo, appRepo, geminiAccountRepo, boxRepoForUserProfile)
+	
+	roleService := services.NewRoleService(roleRepo, userRepo, userProfileService)
 
 	// Create auth middleware
 	// Create services
@@ -79,16 +88,15 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	fileService := services.NewFileService(fileRepo, baseURL)
 
 	// Create TopicService (needed by FileHandler để cache file IDs và TopicHandler)
-	topicRepo := repository.NewTopicRepository(db)
 	topicUserRepo := repository.NewTopicUserRepository(db) // New: For topic assignments
-	userProfileRepo := repository.NewUserProfileRepository(db)
-	appRepo := repository.NewAppRepository(db)
-	boxRepo := repository.NewBoxRepository(db)
-	chromeProfileService := services.NewChromeProfileService(userProfileRepo, appRepo, boxRepo)
+	boxRepo := boxRepoForUserProfile // Reuse the same instance
+	topicRepo := repository.NewTopicRepository(db)
+	chromeProfileService := services.NewChromeProfileService(userProfileRepo, appRepo, boxRepo, geminiAccountRepo, topicRepo)
 	logRepo := repository.NewProcessLogRepository(db)
 	processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
-	topicService := services.NewTopicService(topicRepo, topicUserRepo, userProfileRepo, appRepo, chromeProfileService, processLogService, fileService)
-	geminiService := services.NewGeminiService(userProfileRepo, appRepo, topicRepo, chromeProfileService)
+	geminiAccountService := services.NewGeminiAccountService(geminiAccountRepo, appRepo, boxRepo, topicRepo, topicUserRepo)
+	topicService := services.NewTopicService(topicRepo, topicUserRepo, userProfileRepo, appRepo, boxRepo, chromeProfileService, processLogService, fileService, geminiAccountService)
+	geminiService := services.NewGeminiService(userProfileRepo, appRepo, topicRepo, topicService, chromeProfileService)
 
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService, roleService)
@@ -101,6 +109,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
 	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
 	geminiHandler := handlers.NewGeminiHandler(geminiService)
+	geminiAccountHandler := handlers.NewGeminiAccountHandler(geminiAccountService, topicService)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db, topicService)
@@ -205,6 +214,17 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 			gemini := protected.Group("/gemini")
 			{
 				gemini.POST("/topics/:topic_id/generate-outline-and-upload", geminiHandler.GenerateOutlineAndUpload)
+				// Gemini Account management routes
+				geminiAccounts := gemini.Group("/accounts")
+				{
+					geminiAccounts.POST("/setup", geminiAccountHandler.SetupGeminiAccount)
+					geminiAccounts.GET("", geminiAccountHandler.GetAllAccounts)
+					geminiAccounts.GET("/:id", geminiAccountHandler.GetAccountByID)
+				geminiAccounts.GET("/machine/:machine_id", geminiAccountHandler.GetAccountsByMachineID)
+				geminiAccounts.GET("/:id/topics", geminiAccountHandler.GetTopicsByAccountID)
+				geminiAccounts.PUT("/:id/lock", geminiAccountHandler.LockAccount)
+				geminiAccounts.PUT("/:id/unlock", geminiAccountHandler.UnlockAccount)
+				}
 			}
 
 			// File routes (upload and list require auth)

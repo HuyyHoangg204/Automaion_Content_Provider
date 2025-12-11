@@ -30,11 +30,14 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB, topicService *s
 	appRepo := repository.NewAppRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	topicUserRepo := repository.NewTopicUserRepository(db)
+	userProfileRepo := repository.NewUserProfileRepository(db)
+	geminiAccountRepo := repository.NewGeminiAccountRepository(db)
 
 	// Create services
 	boxService := services.NewBoxService(boxRepo, userRepo)
 	appService := services.NewAppService(appRepo, boxRepo, userRepo)
-	roleService := services.NewRoleService(roleRepo, userRepo)
+	userProfileService := services.NewUserProfileService(userProfileRepo, appRepo, geminiAccountRepo, boxRepo)
+	roleService := services.NewRoleService(roleRepo, userRepo, userProfileService)
 
 	// Set app service and repo for box service (for status checking)
 	boxService.SetAppService(appService)
@@ -53,12 +56,12 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB, topicService *s
 
 // Register godoc
 // @Summary Register a new user (Admin only)
-// @Description Register a new user account with username and password (Admin privileges required)
+// @Description Register a new user account with username and password (Admin privileges required). Role can be specified via role_id field. If not provided, defaults to "topic_user".
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body models.RegisterRequest true "Registration request (username, password, first_name, last_name)"
+// @Param request body models.RegisterRequest true "Registration request (username, password, first_name, last_name, role_id)"
 // @Success 201 {object} models.AuthResponse
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
