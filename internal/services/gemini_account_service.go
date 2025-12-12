@@ -357,16 +357,62 @@ func (s *GeminiAccountService) UnlockAccount(accountID string) error {
 }
 
 // GetAllAccounts retrieves all Gemini accounts with optional filters
+// TopicsCount is calculated from actual topics in DB, not from cached field
 func (s *GeminiAccountService) GetAllAccounts(machineID string, isActive *bool, isLocked *bool) ([]*models.GeminiAccount, error) {
-	return s.geminiAccountRepo.GetAll(machineID, isActive, isLocked)
+	accounts, err := s.geminiAccountRepo.GetAll(machineID, isActive, isLocked)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update topics_count from actual DB count for each account
+	for _, account := range accounts {
+		actualCount, err := s.geminiAccountRepo.CountTopicsByAccountID(account.ID)
+		if err == nil {
+			account.TopicsCount = actualCount
+		} else {
+			logrus.Warnf("Failed to count topics for account %s: %v", account.ID, err)
+		}
+	}
+
+	return accounts, nil
 }
 
 // GetAccountByID retrieves a Gemini account by ID
+// TopicsCount is calculated from actual topics in DB, not from cached field
 func (s *GeminiAccountService) GetAccountByID(accountID string) (*models.GeminiAccount, error) {
-	return s.geminiAccountRepo.GetByID(accountID)
+	account, err := s.geminiAccountRepo.GetByID(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update topics_count from actual DB count
+	actualCount, err := s.geminiAccountRepo.CountTopicsByAccountID(accountID)
+	if err == nil {
+		account.TopicsCount = actualCount
+	} else {
+		logrus.Warnf("Failed to count topics for account %s: %v", accountID, err)
+	}
+
+	return account, nil
 }
 
 // GetAccountsByMachineID retrieves all Gemini accounts for a specific machine
+// TopicsCount is calculated from actual topics in DB, not from cached field
 func (s *GeminiAccountService) GetAccountsByMachineID(machineID string) ([]*models.GeminiAccount, error) {
-	return s.geminiAccountRepo.GetByMachineID(machineID)
+	accounts, err := s.geminiAccountRepo.GetByMachineID(machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update topics_count from actual DB count for each account
+	for _, account := range accounts {
+		actualCount, err := s.geminiAccountRepo.CountTopicsByAccountID(account.ID)
+		if err == nil {
+			account.TopicsCount = actualCount
+		} else {
+			logrus.Warnf("Failed to count topics for account %s: %v", account.ID, err)
+		}
+	}
+
+	return accounts, nil
 }

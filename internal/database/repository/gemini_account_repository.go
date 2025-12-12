@@ -46,7 +46,6 @@ func (r *GeminiAccountRepository) GetActiveByMachineID(machineID string) ([]*mod
 	return accounts, err
 }
 
-
 // GetByMachineIDAndEmail retrieves a Gemini account by machine ID and email
 func (r *GeminiAccountRepository) GetByMachineIDAndEmail(machineID, email string) (*models.GeminiAccount, error) {
 	var account models.GeminiAccount
@@ -116,10 +115,10 @@ func (r *GeminiAccountRepository) LockAccount(id string, reason string) error {
 	return r.db.Model(&models.GeminiAccount{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
-			"is_locked":    true,
-			"locked_at":    now,
+			"is_locked":     true,
+			"locked_at":     now,
 			"locked_reason": reason,
-			"is_active":    false,
+			"is_active":     false,
 		}).Error
 }
 
@@ -164,8 +163,16 @@ func (r *GeminiAccountRepository) GetTopicsByAccountID(accountID string) ([]*mod
 	return topics, err
 }
 
+// CountTopicsByAccountID counts the actual number of topics for a specific Gemini account from DB
+func (r *GeminiAccountRepository) CountTopicsByAccountID(accountID string) (int, error) {
+	var count int64
+	err := r.db.Model(&models.Topic{}).
+		Where("gemini_account_id = ?", accountID).
+		Count(&count).Error
+	return int(count), err
+}
+
 // Delete deletes a Gemini account (soft delete if using GORM soft delete)
 func (r *GeminiAccountRepository) Delete(id string) error {
 	return r.db.Delete(&models.GeminiAccount{}, "id = ?", id).Error
 }
-
