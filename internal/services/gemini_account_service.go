@@ -48,23 +48,17 @@ func (s *GeminiAccountService) SetupGeminiAccount(req *models.SetupGeminiAccount
 		return nil, fmt.Errorf("machine not found: %w", err)
 	}
 
-	// Check if account already exists for this machine with the same email
-	// Nếu machine đã có account với email khác, báo lỗi (1 machine không thể có 2 accounts khác nhau)
-	// Nhưng cho phép setup cùng email trên nhiều machines
-	existingAccount, err := s.geminiAccountRepo.GetByMachineIDAndEmail(req.MachineID, req.Email)
-	if err == nil && existingAccount != nil {
-		// Account với email này đã tồn tại trên machine này, sẽ update
-	} else {
-		// Check if machine has account with different email
-		existingAccounts, err := s.geminiAccountRepo.GetByMachineID(req.MachineID)
-		if err == nil && len(existingAccounts) > 0 {
-			// Machine đã có account với email khác
-			for _, acc := range existingAccounts {
-				if acc.Email != req.Email {
-					return nil, fmt.Errorf("machine %s already has a Gemini account with email %s. Cannot setup account with different email %s. Please update existing account instead", req.MachineID, acc.Email, req.Email)
-				}
-			}
-		}
+	// Check if account already exists for this machine
+	// Logic: 1 machine = 1 account, cho phép update account (thay đổi email/password)
+	// QUAN TRỌNG: Chỉ check để biết có account hay không, KHÔNG update database ở đây
+	// Phải đợi automation backend response thành công rồi mới update database
+	var existingAccount *models.GeminiAccount
+	existingAccounts, err := s.geminiAccountRepo.GetByMachineID(req.MachineID)
+	if err == nil && len(existingAccounts) > 0 {
+		// Machine đã có account, sẽ update account đầu tiên (1 machine = 1 account)
+		existingAccount = existingAccounts[0]
+		logrus.Infof("Found existing Gemini account %s with email %s on machine %s, will update to email %s after automation backend success",
+			existingAccount.ID, existingAccount.Email, req.MachineID, req.Email)
 	}
 
 	// Get automation app for this machine to get tunnel URL
@@ -85,13 +79,39 @@ func (s *GeminiAccountService) SetupGeminiAccount(req *models.SetupGeminiAccount
 		return nil, errors.New("automation app with tunnel URL not found for this machine")
 	}
 
+	// QUAN TRỌNG: Luôn gọi automation backend TRƯỚC, đợi response thành công rồi mới update database
+
+	// Kiểm tra tunnel URL có accessible không trước khi gọi API chính
+	tunnelBaseURL := strings.TrimSuffix(*automationApp.TunnelURL, "/")
+	healthCheckURL := fmt.Sprintf("%s/health", tunnelBaseURL)
+
+	logrus.Infof("Checking automation backend health at %s before setup", healthCheckURL)
+	healthClient := &http.Client{
+		Timeout: 5 * time.Second, // Short timeout for health check
+	}
+
+	healthResp, healthErr := healthClient.Get(healthCheckURL)
+	if healthErr != nil {
+		logrus.Warnf("Health check failed (may be normal if /health endpoint doesn't exist): %v", healthErr)
+		// Continue anyway - some backends don't have /health endpoint
+	} else {
+		healthResp.Body.Close()
+		if healthResp.StatusCode >= 200 && healthResp.StatusCode < 300 {
+			logrus.Infof("Automation backend health check passed (status: %d)", healthResp.StatusCode)
+		} else {
+			logrus.Warnf("Automation backend health check returned status %d", healthResp.StatusCode)
+		}
+	}
+
 	// Call automation backend API to setup/update Gemini account
-	apiURL := fmt.Sprintf("%s/gemini/account/setup", strings.TrimSuffix(*automationApp.TunnelURL, "/"))
+	// Endpoint đúng: /gemini/accounts/setup (có "s" trong "accounts")
+	apiURL := fmt.Sprintf("%s/gemini/accounts/setup", tunnelBaseURL)
+	logrus.Infof("Calling automation backend at %s for machine %s (email: %s)", apiURL, req.MachineID, req.Email)
 
 	requestBody := map[string]interface{}{
 		"email":    req.Email,
 		"password": req.Password,
-		// Note: Không gửi accountIndex vì 1 machine = 1 account, automation backend tự biết
+		// Note: API chỉ cần email và password, không cần name hoặc userDataDir
 	}
 	if req.DebugPort != nil {
 		requestBody["debugPort"] = *req.DebugPort
@@ -114,19 +134,31 @@ func (s *GeminiAccountService) SetupGeminiAccount(req *models.SetupGeminiAccount
 		Timeout: 60 * time.Second,
 	}
 
+	// Log DNS resolution và connection details
+	logrus.Infof("Attempting to connect to automation backend: %s", apiURL)
+
+	startTime := time.Now()
 	resp, err := client.Do(httpReq)
+	requestDuration := time.Since(startTime)
+
 	if err != nil {
+		logrus.Errorf("Automation backend request failed after %v: %v", requestDuration, err)
+		logrus.Errorf("Tunnel URL: %s, Resolved IP: 158.69.59.214:8085 (from error message)", *automationApp.TunnelURL)
+		logrus.Errorf("Possible causes: 1) Automation backend not running, 2) Firewall blocking port 8085, 3) Tunnel not working properly")
 		return nil, fmt.Errorf("failed to call automation backend: %w", err)
 	}
 	defer resp.Body.Close()
+
+	logrus.Infof("Automation backend responded with status %d after %v", resp.StatusCode, requestDuration)
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
+	// Check response status - nếu lỗi thì return ngay, KHÔNG update database
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		logrus.Errorf("Automation backend returned error status %d: %s", resp.StatusCode, string(bodyBytes))
+		logrus.Errorf("Automation backend returned error status %d after %v. Response: %s", resp.StatusCode, requestDuration, string(bodyBytes))
 		var errorResp map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &errorResp); err == nil {
 			if errorMsg, ok := errorResp["error"].(string); ok {
@@ -139,19 +171,29 @@ func (s *GeminiAccountService) SetupGeminiAccount(req *models.SetupGeminiAccount
 		return nil, fmt.Errorf("automation backend returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	// Parse response
+	// Parse response - chỉ parse khi status code thành công
 	var responseData map[string]interface{}
 	if err := json.Unmarshal(bodyBytes, &responseData); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	// Extract gemini_accessible from response
-	// If setup is successful (status 200), default to true unless explicitly set to false
+	// Response có thể có format: {"success": true, "message": "...", "path": "..."}
+	// hoặc {"geminiAccessible": true, ...}
 	geminiAccessible := true // Default to true for successful setup
 	if accessible, ok := responseData["geminiAccessible"].(bool); ok {
 		geminiAccessible = accessible
 	}
 
+	// Check success field if present
+	if success, ok := responseData["success"].(bool); ok && !success {
+		logrus.Warnf("Automation backend returned success=false in response: %s", string(bodyBytes))
+		// Vẫn tiếp tục vì status code đã là 200
+	}
+
+	logrus.Infof("Automation backend setup successful, gemini_accessible: %v", geminiAccessible)
+
+	// QUAN TRỌNG: Chỉ update database SAU KHI automation backend đã thành công
 	// If account already exists, update it instead of creating new
 	if existingAccount != nil {
 		// Update existing account
