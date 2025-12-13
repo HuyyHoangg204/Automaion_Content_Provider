@@ -159,22 +159,12 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		}
 
 		// Lưu geminiGemName tạm thời (từ response của automation backend)
-		// Reload topic trước khi update để tránh overwrite sync_status đã được automation backend update
-		// Automation backend có thể đã update sync_status = "synced" qua log "completed"
-		currentTopic, err := s.topicRepo.GetByID(topic.ID)
-		if err != nil {
-			logrus.Errorf("Failed to reload topic %s before update: %v", topic.ID, err)
-			return
+		// Update geminiGemName, gemini_account_id và syncError
+		// Sử dụng UpdateGeminiInfo để tránh re-insert nếu topic đã bị xóa bởi process log service
+		if err := s.topicRepo.UpdateGeminiInfo(topic.ID, geminiGemName, geminiAccountID); err != nil {
+			logrus.Errorf("Failed to update topic %s gemini info: %v", topic.ID, err)
 		}
 
-		// Chỉ update geminiGemName, gemini_account_id và syncError, giữ nguyên SyncStatus (có thể đã được automation backend update)
-		currentTopic.GeminiGemID = nil
-		currentTopic.GeminiGemName = geminiGemName
-		currentTopic.GeminiAccountID = geminiAccountID // Lưu Gemini account ID
-		currentTopic.SyncError = ""
-		// KHÔNG update SyncStatus - để automation backend tự update qua log
-
-		s.topicRepo.Update(currentTopic)
 	}()
 
 	return topic, nil

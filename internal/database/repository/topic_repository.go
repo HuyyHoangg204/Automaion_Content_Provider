@@ -156,9 +156,18 @@ func (r *TopicRepository) GetByGeminiGemID(geminiGemID string) (*models.Topic, e
 	return &topic, nil
 }
 
-// Update updates a topic
 func (r *TopicRepository) Update(topic *models.Topic) error {
 	return r.db.Save(topic).Error
+}
+
+// UpdateGeminiInfo updates Gemini info safely (prevents re-insertion if deleted)
+func (r *TopicRepository) UpdateGeminiInfo(id string, geminiGemName string, geminiAccountID *string) error {
+	return r.db.Model(&models.Topic{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"gemini_gem_id":     nil,
+		"gemini_gem_name":   geminiGemName,
+		"gemini_account_id": geminiAccountID,
+		"sync_error":        "",
+	}).Error
 }
 
 // Delete deletes a topic
