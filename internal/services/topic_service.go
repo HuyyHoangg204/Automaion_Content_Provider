@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -134,21 +135,31 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 			}
 		}
 
-		// Step 2: Create Gem on Gemini
-		geminiGemName, err := s.createGemOnGemini(userProfile, req, launchResp.TunnelURL, userID, geminiAccount)
+		// Step 2: Trigger Gem creation on Gemini (fire-and-forget)
+		// Automation backend sẽ xử lý việc tạo Gem và gửi log qua RabbitMQ
+		// Chỉ xóa topic khi nhận log "failed" từ automation backend, không xóa khi API timeout
+		err = s.triggerGemCreation(userProfile, req, launchResp.TunnelURL, userID, geminiAccount)
 		if err != nil {
-			logrus.Errorf("Failed to create Gem on Gemini for topic %s: %v", topic.ID, err)
-			// Release lock on error
-			s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
-				UserProfileID: userProfile.ID,
-			})
-			// Xóa topic khi automation fail
-			if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
-				logrus.Errorf("Failed to delete topic %s after Gem creation failure: %v", topic.ID, deleteErr)
-			} else {
-				logrus.Infof("Deleted topic %s due to Gem creation failure", topic.ID)
+			// Chỉ xóa topic nếu không gửi được request (network error, không phải timeout)
+			// Nếu timeout → automation backend vẫn đang chạy, sẽ gửi log sau
+			if isNetworkError(err) {
+				logrus.Errorf("Failed to trigger Gem creation for topic %s (network error): %v", topic.ID, err)
+				// Release lock on error
+				s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
+					UserProfileID: userProfile.ID,
+				})
+				// Xóa topic khi không gửi được request
+				if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
+					logrus.Errorf("Failed to delete topic %s after trigger failure: %v", topic.ID, deleteErr)
+				} else {
+					logrus.Infof("Deleted topic %s due to trigger failure (network error)", topic.ID)
+				}
+				return
 			}
-			return
+			// Timeout hoặc lỗi khác → automation backend có thể vẫn đang chạy
+			// Không xóa topic, đợi log từ automation backend
+			logrus.Warnf("Gem creation trigger returned error for topic %s (may be timeout, automation backend still running): %v", topic.ID, err)
+			logrus.Infof("Topic %s will be updated/deleted based on logs from automation backend", topic.ID)
 		}
 
 		// Step 3: Release lock (automation backend sẽ xử lý việc tạo Gem và gửi log)
@@ -158,11 +169,9 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 			logrus.Warnf("Failed to release lock for topic %s: %v", topic.ID, err)
 		}
 
-		// Lưu geminiGemName tạm thời (từ response của automation backend)
-		// Update geminiGemName, gemini_account_id và syncError
-		// Sử dụng UpdateGeminiInfo để tránh re-insert nếu topic đã bị xóa bởi process log service
-		if err := s.topicRepo.UpdateGeminiInfo(topic.ID, geminiGemName, geminiAccountID); err != nil {
-			logrus.Errorf("Failed to update topic %s gemini info: %v", topic.ID, err)
+		// Update gemini_account_id (gemName sẽ được update từ log của automation backend)
+		if err := s.topicRepo.UpdateGeminiInfo(topic.ID, "", geminiAccountID); err != nil {
+			logrus.Errorf("Failed to update topic %s gemini account: %v", topic.ID, err)
 		}
 
 	}()
@@ -242,11 +251,26 @@ func (s *TopicService) isFileID(input string) bool {
 	return false
 }
 
-// createGemOnGemini calls the Gemini API to create a Gem
-// tunnelURL is passed from LaunchChromeProfileResponse to use the same machine
-// geminiAccount is optional - if provided, will send account_index to automation backend
-// Returns gemName only (gemID is not needed - gem is identified by name with username prefix)
-func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *models.CreateTopicRequest, tunnelURL string, userID string, geminiAccount *models.GeminiAccount) (string, error) {
+// isNetworkError checks if error is a network error (not timeout)
+func isNetworkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	// Network errors: connection refused, no such host, etc.
+	// NOT timeout errors: context deadline exceeded, timeout
+	return (strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "no such host") ||
+		strings.Contains(errStr, "dial tcp") ||
+		strings.Contains(errStr, "connectex")) &&
+		!strings.Contains(errStr, "timeout") &&
+		!strings.Contains(errStr, "deadline exceeded")
+}
+
+// triggerGemCreation triggers Gem creation on automation backend (fire-and-forget)
+// Returns error only if cannot send request (network error)
+// Timeout errors are ignored - automation backend will send logs via RabbitMQ
+func (s *TopicService) triggerGemCreation(userProfile *models.UserProfile, req *models.CreateTopicRequest, tunnelURL string, userID string, geminiAccount *models.GeminiAccount) error {
 	// Build API URL: POST /gemini/gems
 	apiURL := fmt.Sprintf("%s/gemini/gems", strings.TrimSuffix(tunnelURL, "/"))
 
@@ -294,48 +318,45 @@ func (s *TopicService) createGemOnGemini(userProfile *models.UserProfile, req *m
 
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal request body: %w", err)
+		return fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
 	// Create HTTP request
 	httpReq, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("User-Agent", "Green-Provider-Services/1.0")
 
-	// Make request
+	// Make request with short timeout (chỉ để trigger, không đợi response)
+	// Automation backend sẽ xử lý và gửi log qua RabbitMQ
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 10 * time.Second, // Short timeout, chỉ để trigger
 	}
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return "", fmt.Errorf("failed to make request: %w", err)
+		// Network error hoặc timeout đều return error
+		// Caller sẽ phân biệt network error vs timeout
+		return fmt.Errorf("failed to trigger Gem creation: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Check response status
+	// Check response status (nếu có response)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("API returned status %d", resp.StatusCode)
+		// HTTP error status → automation backend đã nhận request nhưng trả về lỗi
+		// Đọc response body để log
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		logrus.Warnf("Automation backend returned status %d for Gem creation trigger: %s", resp.StatusCode, string(bodyBytes))
+		// Không return error vì automation backend có thể vẫn xử lý được
+		// Sẽ đợi log từ automation backend
 	}
 
-	// Parse response to get Gem name
-	var responseData map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&responseData); err != nil {
-		return "", fmt.Errorf("failed to parse response: %w", err)
-	}
-
-	// Extract Gem name from response (gemID không cần thiết - xác định gem bằng name với tiền tố username)
-	gemName := prefixedGemName // Default to prefixed name we sent
-
-	if name, ok := responseData["name"].(string); ok {
-		gemName = name
-	}
-
-	return gemName, nil
+	// Không cần parse response, automation backend sẽ gửi log qua RabbitMQ
+	logrus.Infof("Gem creation triggered for topic, waiting for logs from automation backend")
+	return nil
 }
 
 // normalizeUsername normalizes username for use as prefix
