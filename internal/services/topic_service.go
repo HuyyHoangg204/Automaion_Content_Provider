@@ -139,40 +139,40 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		// Automation backend sẽ xử lý việc tạo Gem và gửi log qua RabbitMQ
 		// Chỉ xóa topic khi nhận log "failed" từ automation backend, không xóa khi API timeout
 		err = s.triggerGemCreation(userProfile, req, launchResp.TunnelURL, userID, geminiAccount)
-	if err != nil {
-		// Chỉ xóa topic nếu không gửi được request (network error, không phải timeout)
-		// Nếu timeout → automation backend vẫn đang chạy, sẽ gửi log sau
-		if isNetworkError(err) {
-			logrus.Errorf("Failed to trigger Gem creation for topic %s (network error): %v", topic.ID, err)
-			// Release lock on error
-			s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
-				UserProfileID: userProfile.ID,
-			})
-			// Xóa topic khi không gửi được request
-			if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
-				logrus.Errorf("Failed to delete topic %s after trigger failure: %v", topic.ID, deleteErr)
-			} else {
-				logrus.Infof("Deleted topic %s due to trigger failure (network error)", topic.ID)
+		if err != nil {
+			// Chỉ xóa topic nếu không gửi được request (network error, không phải timeout)
+			// Nếu timeout → automation backend vẫn đang chạy, sẽ gửi log sau
+			if isNetworkError(err) {
+				logrus.Errorf("Failed to trigger Gem creation for topic %s (network error): %v", topic.ID, err)
+				// Release lock on error
+				s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
+					UserProfileID: userProfile.ID,
+				})
+				// Xóa topic khi không gửi được request
+				if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
+					logrus.Errorf("Failed to delete topic %s after trigger failure: %v", topic.ID, deleteErr)
+				} else {
+					logrus.Infof("Deleted topic %s due to trigger failure (network error)", topic.ID)
+				}
+				return
 			}
-			return
+			// Timeout hoặc lỗi khác → automation backend có thể vẫn đang chạy
+			// Không xóa topic, đợi log từ automation backend
+			logrus.Warnf("Gem creation trigger returned error for topic %s (may be timeout, automation backend still running): %v", topic.ID, err)
+			logrus.Infof("Topic %s will be updated/deleted based on logs from automation backend", topic.ID)
 		}
-		// Timeout hoặc lỗi khác → automation backend có thể vẫn đang chạy
-		// Không xóa topic, đợi log từ automation backend
-		logrus.Warnf("Gem creation trigger returned error for topic %s (may be timeout, automation backend still running): %v", topic.ID, err)
-		logrus.Infof("Topic %s will be updated/deleted based on logs from automation backend", topic.ID)
-	}
 
-	// Step 3: Release lock (automation backend sẽ xử lý việc tạo Gem và gửi log)
-	if err := s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
-		UserProfileID: userProfile.ID,
-	}); err != nil {
-		logrus.Warnf("Failed to release lock for topic %s: %v", topic.ID, err)
-	}
+		// Step 3: Release lock (automation backend sẽ xử lý việc tạo Gem và gửi log)
+		if err := s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
+			UserProfileID: userProfile.ID,
+		}); err != nil {
+			logrus.Warnf("Failed to release lock for topic %s: %v", topic.ID, err)
+		}
 
-	// Update gemini_account_id (gemName sẽ được update từ log của automation backend)
-	if err := s.topicRepo.UpdateGeminiInfo(topic.ID, "", geminiAccountID); err != nil {
-		logrus.Errorf("Failed to update topic %s gemini account: %v", topic.ID, err)
-	}
+		// Update gemini_account_id (gemName sẽ được update từ log của automation backend)
+		if err := s.topicRepo.UpdateGeminiInfo(topic.ID, "", geminiAccountID); err != nil {
+			logrus.Errorf("Failed to update topic %s gemini account: %v", topic.ID, err)
+		}
 
 	}()
 
