@@ -90,11 +90,6 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 		logrus.Infof("Using gem name from topic: '%s'", gemName)
 	}
 
-	// Get prompts from topic
-	notebooklmPrompt := topic.NotebooklmPrompt
-	sendPromptText := topic.SendPromptText
-	logrus.Infof("Prompts from topic: notebooklmPrompt length=%d, sendPromptText length=%d", len(notebooklmPrompt), len(sendPromptText))
-
 	// Use owner's profile to launch Chrome (ensures correct Gemini account login)
 	launchReq := &LaunchChromeProfileRequest{
 		UserProfileID: ownerProfile.ID, // Use owner's profile, not current user's profile
@@ -123,12 +118,10 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 	apiURL := fmt.Sprintf("%s/gemini/generate-outline-and-upload", strings.TrimSuffix(tunnelURL, "/"))
 
 	requestBody := map[string]interface{}{
-		"name":             ownerProfile.Name, // Use owner's profile name
-		"dirName":          profileDirName,
-		"profileDirName":   profileDirName,
-		"gem":              gemName,
-		"notebooklmPrompt": notebooklmPrompt, // Always send, even if empty
-		"sendPromptText":   sendPromptText,   // Always send, even if empty
+		"name":           ownerProfile.Name, // Use owner's profile name
+		"dirName":        profileDirName,
+		"profileDirName": profileDirName,
+		"gem":            gemName,
 	}
 
 	if req.DebugPort > 0 {

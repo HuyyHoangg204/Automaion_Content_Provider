@@ -97,6 +97,10 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	geminiAccountService := services.NewGeminiAccountService(geminiAccountRepo, appRepo, boxRepo, topicRepo, topicUserRepo)
 	topicService := services.NewTopicService(topicRepo, topicUserRepo, userProfileRepo, appRepo, boxRepo, chromeProfileService, processLogService, fileService, geminiAccountService)
 	geminiService := services.NewGeminiService(userProfileRepo, appRepo, topicRepo, topicService, chromeProfileService)
+	
+	// Create ScriptService
+	scriptRepo := repository.NewScriptRepository(db)
+	scriptService := services.NewScriptService(scriptRepo, topicRepo)
 
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService, roleService)
@@ -110,6 +114,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
 	geminiHandler := handlers.NewGeminiHandler(geminiService)
 	geminiAccountHandler := handlers.NewGeminiAccountHandler(geminiAccountService, topicService)
+	scriptHandler := handlers.NewScriptHandler(scriptService, topicService)
 
 	// Create admin handler with services
 	adminHandler := handlers.NewAdminHandler(authService, db, topicService)
@@ -202,10 +207,14 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 			{
 				topics.POST("", topicHandler.CreateTopic)
 				topics.GET("", topicHandler.GetAllTopics)
+				
+				// Script routes (1-1 với user + topic) - phải đặt trước /:id để tránh conflict
+				topics.POST("/:id/scripts", scriptHandler.SaveScript)
+				topics.GET("/:id/scripts", scriptHandler.GetScript)
+				topics.DELETE("/:id/scripts", scriptHandler.DeleteScript)
+				
 				topics.GET("/:id", topicHandler.GetTopicByID)
 				topics.PUT("/:id", topicHandler.UpdateTopic)
-				topics.GET("/:id/prompts", topicHandler.GetTopicPrompts)
-				topics.PUT("/:id/prompts", topicHandler.UpdateTopicPrompts)
 				topics.DELETE("/:id", topicHandler.DeleteTopic)
 				// topics.POST("/:id/sync", topicHandler.SyncTopicWithGemini) // TODO: Implement later
 			}

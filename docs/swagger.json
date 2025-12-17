@@ -180,7 +180,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Register a new user account with username and password (Admin privileges required)",
+                "description": "Register a new user account with username and password (Admin privileges required). Role can be specified via role_id field. If not provided, defaults to \"topic_user\".",
                 "consumes": [
                     "application/json"
                 ],
@@ -193,7 +193,7 @@
                 "summary": "Register a new user (Admin only)",
                 "parameters": [
                     {
-                        "description": "Registration request (username, password, first_name, last_name)",
+                        "description": "Registration request (username, password, first_name, last_name, role_id)",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -4159,14 +4159,14 @@
                 }
             }
         },
-        "/api/v1/topics/{id}/prompts": {
+        "/api/v1/topics/{id}/scripts": {
             "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get notebooklm_prompt and send_prompt_text for a topic (requires topic_user or topic_creator role and ownership)",
+                "description": "Get a script (projects + edges) for a topic and current user",
                 "consumes": [
                     "application/json"
                 ],
@@ -4174,9 +4174,9 @@
                     "application/json"
                 ],
                 "tags": [
-                    "topics"
+                    "scripts"
                 ],
-                "summary": "Get topic prompts",
+                "summary": "Get a script for a topic",
                 "parameters": [
                     {
                         "type": "string",
@@ -4190,11 +4190,69 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.TopicPromptsResponse"
+                            "$ref": "#/definitions/models.ScriptResponse"
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Save or update a script (projects + edges) for a topic. 1 script = 1 user + 1 topic (1-1 relationship)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scripts"
+                ],
+                "summary": "Save or update a script for a topic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Topic ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Script data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.SaveScriptRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ScriptResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4216,13 +4274,13 @@
                     }
                 }
             },
-            "put": {
+            "delete": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Update notebooklm_prompt and send_prompt_text for a topic (requires topic_user or topic_creator role and ownership)",
+                "description": "Delete a script (projects + edges) for a topic and current user",
                 "consumes": [
                     "application/json"
                 ],
@@ -4230,9 +4288,9 @@
                     "application/json"
                 ],
                 "tags": [
-                    "topics"
+                    "scripts"
                 ],
-                "summary": "Update topic prompts",
+                "summary": "Delete a script for a topic",
                 "parameters": [
                     {
                         "type": "string",
@@ -4240,33 +4298,11 @@
                         "name": "id",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "description": "Topic prompts update request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.UpdateTopicPromptsRequest"
-                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.TopicResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -4618,14 +4654,6 @@
                 "name": {
                     "type": "string",
                     "example": "Lịch sử"
-                },
-                "notebooklm_prompt": {
-                    "type": "string",
-                    "example": "Tóm tắt chi tiết..."
-                },
-                "send_prompt_text": {
-                    "type": "string",
-                    "example": "Prompt text to send..."
                 }
             }
         },
@@ -4688,6 +4716,7 @@
                     "type": "string"
                 },
                 "email": {
+                    "description": "Unique với MachineID",
                     "type": "string"
                 },
                 "gemini_accessible": {
@@ -5165,6 +5194,11 @@
                     "type": "string",
                     "minLength": 6
                 },
+                "role_id": {
+                    "description": "Optional: Role ID to assign to user. If not provided, defaults to \"topic_user\"",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
                 "username": {
                     "type": "string",
                     "maxLength": 50,
@@ -5222,6 +5256,195 @@
                     "items": {
                         "$ref": "#/definitions/models.User"
                     }
+                }
+            }
+        },
+        "models.SaveScriptRequest": {
+            "type": "object",
+            "required": [
+                "edges",
+                "projects"
+            ],
+            "properties": {
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ScriptEdgeRequest"
+                    }
+                },
+                "projects": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/models.ScriptProjectRequest"
+                    }
+                }
+            }
+        },
+        "models.ScriptEdgeRequest": {
+            "type": "object",
+            "required": [
+                "id",
+                "source",
+                "target"
+            ],
+            "properties": {
+                "id": {
+                    "description": "Frontend ID (format \"edge-{source}-{target}\")",
+                    "type": "string"
+                },
+                "source": {
+                    "description": "project_id",
+                    "type": "string"
+                },
+                "sourceName": {
+                    "type": "string"
+                },
+                "target": {
+                    "description": "project_id",
+                    "type": "string"
+                },
+                "targetName": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ScriptEdgeResponse": {
+            "type": "object",
+            "properties": {
+                "edge_id": {
+                    "description": "Frontend ID",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "UUID từ DB",
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "sourceName": {
+                    "type": "string"
+                },
+                "target": {
+                    "type": "string"
+                },
+                "targetName": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ScriptProjectRequest": {
+            "type": "object",
+            "required": [
+                "created_at",
+                "id",
+                "name",
+                "prompts"
+            ],
+            "properties": {
+                "created_at": {
+                    "description": "ISO 8601 timestamp",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Frontend ID (timestamp)",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prompts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/models.ScriptPromptRequest"
+                    }
+                }
+            }
+        },
+        "models.ScriptProjectResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "Từ frontend",
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "description": "Frontend ID (timestamp) - chỉ cần field này",
+                    "type": "string"
+                },
+                "prompts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ScriptPromptResponse"
+                    }
+                }
+            }
+        },
+        "models.ScriptPromptRequest": {
+            "type": "object",
+            "required": [
+                "text"
+            ],
+            "properties": {
+                "exit": {
+                    "type": "boolean"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ScriptPromptResponse": {
+            "type": "object",
+            "properties": {
+                "exit": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "prompt_order": {
+                    "type": "integer"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ScriptResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ScriptEdgeResponse"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ScriptProjectResponse"
+                    }
+                },
+                "topic_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -5346,14 +5569,6 @@
                     "type": "string",
                     "example": "Lịch sử"
                 },
-                "notebooklm_prompt": {
-                    "type": "string",
-                    "example": "Tóm tắt chi tiết..."
-                },
-                "send_prompt_text": {
-                    "type": "string",
-                    "example": "Prompt text to send..."
-                },
                 "sync_error": {
                     "type": "string",
                     "example": "API returned status 404"
@@ -5376,23 +5591,6 @@
                 },
                 "user_profile_id": {
                     "type": "string"
-                }
-            }
-        },
-        "models.TopicPromptsResponse": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string",
-                    "example": "550e8400-e29b-41d4-a716-446655440000"
-                },
-                "notebooklm_prompt": {
-                    "type": "string",
-                    "example": "Tóm tắt chi tiết..."
-                },
-                "send_prompt_text": {
-                    "type": "string",
-                    "example": "Prompt text to send..."
                 }
             }
         },
@@ -5437,14 +5635,6 @@
                 "name": {
                     "type": "string",
                     "example": "Lịch sử"
-                },
-                "notebooklm_prompt": {
-                    "type": "string",
-                    "example": "Tóm tắt chi tiết..."
-                },
-                "send_prompt_text": {
-                    "type": "string",
-                    "example": "Prompt text to send..."
                 },
                 "sync_error": {
                     "type": "string",
@@ -5528,19 +5718,6 @@
                 }
             }
         },
-        "models.UpdateTopicPromptsRequest": {
-            "type": "object",
-            "properties": {
-                "notebooklm_prompt": {
-                    "type": "string",
-                    "example": "Tóm tắt chi tiết..."
-                },
-                "send_prompt_text": {
-                    "type": "string",
-                    "example": "Prompt text to send..."
-                }
-            }
-        },
         "models.UpdateTopicRequest": {
             "type": "object",
             "properties": {
@@ -5569,14 +5746,6 @@
                 "name": {
                     "type": "string",
                     "example": "Lịch sử Việt Nam"
-                },
-                "notebooklm_prompt": {
-                    "type": "string",
-                    "example": "Tóm tắt chi tiết..."
-                },
-                "send_prompt_text": {
-                    "type": "string",
-                    "example": "Prompt text to send..."
                 }
             }
         },
