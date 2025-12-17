@@ -265,116 +265,6 @@ func (h *TopicHandler) UpdateTopic(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// GetTopicPrompts godoc
-// @Summary Get topic prompts
-// @Description Get notebooklm_prompt and send_prompt_text for a topic (requires topic_user or topic_creator role and ownership)
-// @Tags topics
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Topic ID"
-// @Success 200 {object} models.TopicPromptsResponse
-// @Failure 403 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/topics/{id}/prompts [get]
-func (h *TopicHandler) GetTopicPrompts(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-	id := c.Param("id")
-
-	// Check if user has permission to access topics
-	hasPermission, err := h.checkTopicPermission(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
-		return
-	}
-	if !hasPermission {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to access topics"})
-		return
-	}
-
-	topic, err := h.topicService.GetTopicByID(id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
-		return
-	}
-
-	// Check ownership
-	if !h.checkTopicOwnership(c, topic) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only access your own topics"})
-		return
-	}
-
-	response := models.TopicPromptsResponse{
-		ID:               topic.ID,
-		NotebooklmPrompt: topic.NotebooklmPrompt,
-		SendPromptText:   topic.SendPromptText,
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-// UpdateTopicPrompts godoc
-// @Summary Update topic prompts
-// @Description Update notebooklm_prompt and send_prompt_text for a topic (requires topic_user or topic_creator role and ownership)
-// @Tags topics
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param id path string true "Topic ID"
-// @Param request body models.UpdateTopicPromptsRequest true "Topic prompts update request"
-// @Success 200 {object} models.TopicResponse
-// @Failure 400 {object} map[string]interface{}
-// @Failure 403 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Failure 500 {object} map[string]interface{}
-// @Router /api/v1/topics/{id}/prompts [put]
-func (h *TopicHandler) UpdateTopicPrompts(c *gin.Context) {
-	userID := c.MustGet("user_id").(string)
-	id := c.Param("id")
-
-	// Check if user has permission to access topics
-	hasPermission, err := h.checkTopicPermission(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check permissions", "details": err.Error()})
-		return
-	}
-	if !hasPermission {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You need 'topic_user' or 'topic_creator' role to update topics"})
-		return
-	}
-
-	// Check ownership before updating
-	topic, err := h.topicService.GetTopicByID(id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
-		return
-	}
-	if !h.checkTopicOwnership(c, topic) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Permission denied. You can only update your own topics"})
-		return
-	}
-
-	var req models.UpdateTopicPromptsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
-		return
-	}
-
-	topic, err = h.topicService.UpdateTopicPrompts(id, &req)
-	if err != nil {
-		if err.Error() == "topic not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update topic prompts", "details": err.Error()})
-		return
-	}
-
-	response := h.topicToResponse(topic)
-	c.JSON(http.StatusOK, response)
-}
-
 // DeleteTopic godoc
 // @Summary Delete a topic
 // @Description Delete a topic by its ID (requires topic_user or topic_creator role and ownership)
@@ -438,8 +328,6 @@ func (h *TopicHandler) topicToResponse(topic *models.Topic) models.TopicResponse
 		Description:      topic.Description,
 		Instructions:     topic.Instructions,
 		KnowledgeFiles:   topic.KnowledgeFiles,
-		NotebooklmPrompt: topic.NotebooklmPrompt,
-		SendPromptText:   topic.SendPromptText,
 		IsActive:         topic.IsActive,
 		SyncStatus:       topic.SyncStatus,
 		SyncError:        topic.SyncError,

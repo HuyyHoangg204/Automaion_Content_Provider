@@ -234,12 +234,6 @@ definitions:
       name:
         example: Lịch sử
         type: string
-      notebooklm_prompt:
-        example: Tóm tắt chi tiết...
-        type: string
-      send_prompt_text:
-        example: Prompt text to send...
-        type: string
     required:
     - name
     type: object
@@ -284,6 +278,7 @@ definitions:
       created_at:
         type: string
       email:
+        description: Unique với MachineID
         type: string
       gemini_accessible:
         type: boolean
@@ -626,6 +621,11 @@ definitions:
       password:
         minLength: 6
         type: string
+      role_id:
+        description: 'Optional: Role ID to assign to user. If not provided, defaults
+          to "topic_user"'
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
       username:
         maxLength: 50
         minLength: 3
@@ -669,6 +669,135 @@ definitions:
         items:
           $ref: '#/definitions/models.User'
         type: array
+    type: object
+  models.SaveScriptRequest:
+    properties:
+      edges:
+        items:
+          $ref: '#/definitions/models.ScriptEdgeRequest'
+        type: array
+      projects:
+        items:
+          $ref: '#/definitions/models.ScriptProjectRequest'
+        minItems: 1
+        type: array
+    required:
+    - edges
+    - projects
+    type: object
+  models.ScriptEdgeRequest:
+    properties:
+      id:
+        description: Frontend ID (format "edge-{source}-{target}")
+        type: string
+      source:
+        description: project_id
+        type: string
+      sourceName:
+        type: string
+      target:
+        description: project_id
+        type: string
+      targetName:
+        type: string
+    required:
+    - id
+    - source
+    - target
+    type: object
+  models.ScriptEdgeResponse:
+    properties:
+      edge_id:
+        description: Frontend ID
+        type: string
+      id:
+        description: UUID từ DB
+        type: string
+      source:
+        type: string
+      sourceName:
+        type: string
+      target:
+        type: string
+      targetName:
+        type: string
+    type: object
+  models.ScriptProjectRequest:
+    properties:
+      created_at:
+        description: ISO 8601 timestamp
+        type: string
+      id:
+        description: Frontend ID (timestamp)
+        type: string
+      name:
+        type: string
+      prompts:
+        items:
+          $ref: '#/definitions/models.ScriptPromptRequest'
+        minItems: 1
+        type: array
+    required:
+    - created_at
+    - id
+    - name
+    - prompts
+    type: object
+  models.ScriptProjectResponse:
+    properties:
+      created_at:
+        description: Từ frontend
+        type: string
+      name:
+        type: string
+      project_id:
+        description: Frontend ID (timestamp) - chỉ cần field này
+        type: string
+      prompts:
+        items:
+          $ref: '#/definitions/models.ScriptPromptResponse'
+        type: array
+    type: object
+  models.ScriptPromptRequest:
+    properties:
+      exit:
+        type: boolean
+      text:
+        type: string
+    required:
+    - text
+    type: object
+  models.ScriptPromptResponse:
+    properties:
+      exit:
+        type: boolean
+      id:
+        type: string
+      prompt_order:
+        type: integer
+      text:
+        type: string
+    type: object
+  models.ScriptResponse:
+    properties:
+      created_at:
+        type: string
+      edges:
+        items:
+          $ref: '#/definitions/models.ScriptEdgeResponse'
+        type: array
+      id:
+        type: string
+      projects:
+        items:
+          $ref: '#/definitions/models.ScriptProjectResponse'
+        type: array
+      topic_id:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
     type: object
   models.SetupGeminiAccountRequest:
     properties:
@@ -756,12 +885,6 @@ definitions:
         description: Basic info
         example: Lịch sử
         type: string
-      notebooklm_prompt:
-        example: Tóm tắt chi tiết...
-        type: string
-      send_prompt_text:
-        example: Prompt text to send...
-        type: string
       sync_error:
         example: API returned status 404
         type: string
@@ -776,18 +899,6 @@ definitions:
         - $ref: '#/definitions/models.UserProfile'
         description: Relationships
       user_profile_id:
-        type: string
-    type: object
-  models.TopicPromptsResponse:
-    properties:
-      id:
-        example: 550e8400-e29b-41d4-a716-446655440000
-        type: string
-      notebooklm_prompt:
-        example: Tóm tắt chi tiết...
-        type: string
-      send_prompt_text:
-        example: Prompt text to send...
         type: string
     type: object
   models.TopicResponse:
@@ -820,12 +931,6 @@ definitions:
         type: string
       name:
         example: Lịch sử
-        type: string
-      notebooklm_prompt:
-        example: Tóm tắt chi tiết...
-        type: string
-      send_prompt_text:
-        example: Prompt text to send...
         type: string
       sync_error:
         example: ""
@@ -883,15 +988,6 @@ definitions:
     required:
     - name
     type: object
-  models.UpdateTopicPromptsRequest:
-    properties:
-      notebooklm_prompt:
-        example: Tóm tắt chi tiết...
-        type: string
-      send_prompt_text:
-        example: Prompt text to send...
-        type: string
-    type: object
   models.UpdateTopicRequest:
     properties:
       description:
@@ -912,12 +1008,6 @@ definitions:
         type: array
       name:
         example: Lịch sử Việt Nam
-        type: string
-      notebooklm_prompt:
-        example: Tóm tắt chi tiết...
-        type: string
-      send_prompt_text:
-        example: Prompt text to send...
         type: string
     type: object
   models.UpdateTunnelURLRequest:
@@ -1199,9 +1289,11 @@ paths:
       consumes:
       - application/json
       description: Register a new user account with username and password (Admin privileges
-        required)
+        required). Role can be specified via role_id field. If not provided, defaults
+        to "topic_user".
       parameters:
-      - description: Registration request (username, password, first_name, last_name)
+      - description: Registration request (username, password, first_name, last_name,
+          role_id)
         in: body
         name: request
         required: true
@@ -3869,12 +3961,11 @@ paths:
       summary: Update a topic
       tags:
       - topics
-  /api/v1/topics/{id}/prompts:
-    get:
+  /api/v1/topics/{id}/scripts:
+    delete:
       consumes:
       - application/json
-      description: Get notebooklm_prompt and send_prompt_text for a topic (requires
-        topic_user or topic_creator role and ownership)
+      description: Delete a script (projects + edges) for a topic and current user
       parameters:
       - description: Topic ID
         in: path
@@ -3886,10 +3977,6 @@ paths:
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/models.TopicPromptsResponse'
-        "403":
-          description: Forbidden
           schema:
             additionalProperties: true
             type: object
@@ -3905,43 +3992,70 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Get topic prompts
+      summary: Delete a script for a topic
       tags:
-      - topics
-    put:
+      - scripts
+    get:
       consumes:
       - application/json
-      description: Update notebooklm_prompt and send_prompt_text for a topic (requires
-        topic_user or topic_creator role and ownership)
+      description: Get a script (projects + edges) for a topic and current user
       parameters:
       - description: Topic ID
         in: path
         name: id
         required: true
         type: string
-      - description: Topic prompts update request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/models.UpdateTopicPromptsRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.TopicResponse'
+            $ref: '#/definitions/models.ScriptResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a script for a topic
+      tags:
+      - scripts
+    post:
+      consumes:
+      - application/json
+      description: Save or update a script (projects + edges) for a topic. 1 script
+        = 1 user + 1 topic (1-1 relationship)
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Script data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.SaveScriptRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ScriptResponse'
         "400":
           description: Bad Request
           schema:
             additionalProperties: true
             type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties: true
-            type: object
         "404":
           description: Not Found
           schema:
@@ -3954,9 +4068,9 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: Update topic prompts
+      summary: Save or update a script for a topic
       tags:
-      - topics
+      - scripts
 securityDefinitions:
   BearerAuth:
     description: Enter `Bearer ` followed by your JWT token (e.g. "Bearer <token>")
