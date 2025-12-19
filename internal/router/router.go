@@ -28,6 +28,16 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
+// getEnvAsInt gets environment variable as int or returns default value
+func getEnvAsInt(key string, defaultValue int) int {
+	valueStr := getEnv(key, fmt.Sprintf("%d", defaultValue))
+	var value int
+	if _, err := fmt.Sscanf(valueStr, "%d", &value); err != nil {
+		return defaultValue
+	}
+	return value
+}
+
 // SetupRouter configures the Gin router with user authentication routes
 func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub *services.SSEHub, basePath string) *gin.Engine {
 	// Set Gin mode
@@ -101,6 +111,33 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	// Create ScriptService
 	scriptRepo := repository.NewScriptRepository(db)
 	scriptService := services.NewScriptService(scriptRepo, topicRepo)
+	
+	// Create ScriptExecutionService
+	scriptExecutionService := services.NewScriptExecutionService(
+		scriptRepo,
+		topicRepo,
+		userProfileRepo,
+		chromeProfileService,
+		rabbitMQService,
+	)
+
+	// Inject ScriptExecutionService into ProcessLogService
+	processLogService.SetScriptExecutionService(scriptExecutionService)
+
+	// Start ProcessLogService RabbitMQ consumer (sau khi inject ScriptExecutionService)
+	if rabbitMQService != nil {
+		if err := processLogService.StartRabbitMQConsumer(); err != nil {
+			logrus.Warnf("[Router] Failed to start RabbitMQ log consumer: %v", err)
+		} else {
+			logrus.Info("[Router] ✅ RabbitMQ log consumer started (with ScriptExecutionService)")
+		}
+
+		// Start log cleanup service (cleanup every 6 hours, keep logs for 1 day)
+		logRetentionDays := getEnvAsInt("LOG_RETENTION_DAYS", 1)
+		cleanupInterval := 6 * time.Hour
+		processLogService.StartLogCleanup(cleanupInterval, logRetentionDays)
+		logrus.Infof("[Router] Log cleanup service started (retention: %d days)", logRetentionDays)
+	}
 
 	// Create handlers with services
 	authHandler := handlers.NewAuthHandler(authService, roleService)
@@ -114,10 +151,10 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
 	geminiHandler := handlers.NewGeminiHandler(geminiService)
 	geminiAccountHandler := handlers.NewGeminiAccountHandler(geminiAccountService, topicService)
-	scriptHandler := handlers.NewScriptHandler(scriptService, topicService)
+	scriptHandler := handlers.NewScriptHandler(scriptService, scriptExecutionService, topicService)
 
 	// Create admin handler with services
-	adminHandler := handlers.NewAdminHandler(authService, db, topicService)
+	adminHandler := handlers.NewAdminHandler(authService, db, topicService, scriptService)
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	logrus.Info("Swagger UI endpoint registered at /swagger/index.html")
@@ -212,6 +249,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 				topics.POST("/:id/scripts", scriptHandler.SaveScript)
 				topics.GET("/:id/scripts", scriptHandler.GetScript)
 				topics.DELETE("/:id/scripts", scriptHandler.DeleteScript)
+				topics.POST("/:id/scripts/execute", scriptHandler.ExecuteScript)
 				
 				topics.GET("/:id", topicHandler.GetTopicByID)
 				topics.PUT("/:id", topicHandler.UpdateTopic)
@@ -286,6 +324,30 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 			}
 		}
 
+	}
+
+	// Start script execution workers if RabbitMQ is available
+	if rabbitMQService != nil {
+		logrus.Info("[Router] RabbitMQ available, starting workers...")
+
+		// Start project worker (new event-driven approach)
+		if err := scriptExecutionService.StartProjectWorker(); err != nil {
+			logrus.Errorf("[Router] Failed to start script project worker: %v", err)
+		} else {
+			logrus.Info("[Router] ✅ Script project worker started successfully")
+		}
+
+		// Start old execution worker (for backward compatibility, can be removed later)
+		if err := scriptExecutionService.StartWorker(); err != nil {
+			logrus.Errorf("[Router] Failed to start script execution worker: %v", err)
+		} else {
+			logrus.Info("[Router] ✅ Script execution worker started successfully")
+		}
+
+		// NOTE: Không dùng defer StopWorker() ở đây vì nó sẽ stop workers ngay khi SetupRouter() return!
+		// Workers sẽ chạy trong background cho đến khi server shutdown
+	} else {
+		logrus.Warn("[Router] RabbitMQ not available, workers not started")
 	}
 
 	return r

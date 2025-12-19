@@ -17,21 +17,21 @@ import (
 
 // ChromeProfileService manages Chrome profile launching with lock mechanism
 type ChromeProfileService struct {
-	userProfileRepo    *repository.UserProfileRepository
-	appRepo             *repository.AppRepository
-	boxRepo             *repository.BoxRepository
-	geminiAccountRepo   *repository.GeminiAccountRepository
-	topicRepo           *repository.TopicRepository
+	userProfileRepo   *repository.UserProfileRepository
+	appRepo           *repository.AppRepository
+	boxRepo           *repository.BoxRepository
+	geminiAccountRepo *repository.GeminiAccountRepository
+	topicRepo         *repository.TopicRepository
 }
 
 // NewChromeProfileService creates a new ChromeProfileService
 func NewChromeProfileService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, geminiAccountRepo *repository.GeminiAccountRepository, topicRepo *repository.TopicRepository) *ChromeProfileService {
 	return &ChromeProfileService{
-		userProfileRepo:  userProfileRepo,
-		appRepo:          appRepo,
-		boxRepo:          boxRepo,
+		userProfileRepo:   userProfileRepo,
+		appRepo:           appRepo,
+		boxRepo:           boxRepo,
 		geminiAccountRepo: geminiAccountRepo,
-		topicRepo:        topicRepo,
+		topicRepo:         topicRepo,
 	}
 }
 
@@ -42,6 +42,7 @@ type LaunchChromeProfileRequest struct {
 	EnsureGmail   bool     `json:"ensure_gmail,omitempty"`
 	EntityType    string   `json:"entity_type,omitempty"` // For logging: "topic", "script", etc.
 	EntityID      string   `json:"entity_id,omitempty"`   // For logging: entity UUID
+	DebugPort     int      `json:"debug_port,omitempty"`  // Chrome debug port - mỗi user 1 port riêng
 }
 
 // LaunchChromeProfileResponse represents the response for Chrome launch
@@ -50,6 +51,7 @@ type LaunchChromeProfileResponse struct {
 	AppID        string `json:"app_id"`     // App/Machine ID that launched Chrome
 	MachineID    string `json:"machine_id"` // Machine ID
 	TunnelURL    string `json:"tunnel_url"` // Tunnel URL of the machine
+	DebugPort    int    `json:"debug_port"` // Chrome debug port (từ automation backend)
 	Message      string `json:"message"`
 	LockAcquired bool   `json:"lock_acquired"` // Whether lock was acquired
 }
@@ -77,6 +79,8 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 		return nil, fmt.Errorf("user profile not found: %w", err)
 	}
 
+	// TODO: Tạm thời bỏ logic check lock để cho phép nhiều Chrome instances cùng profile
+	// Sau này sẽ implement support multiple Chrome instances cho 1 profile
 	// Check if profile is already locked
 	if userProfile.CurrentAppID != nil {
 		// Check if lock is expired (more than 1 hour)
@@ -89,8 +93,10 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 				userProfile.CurrentMachineID = nil
 				userProfile.LastRunStartedAt = nil
 			} else {
-				// Profile is locked and not expired
-				return nil, fmt.Errorf("profile is currently in use by another machine (app_id: %s)", *userProfile.CurrentAppID)
+				// Profile is locked and not expired - TẠM THỜI: chỉ log warning, không block
+				// Sau này sẽ support multiple Chrome instances cho 1 profile
+				logrus.Warnf("Profile %s is currently in use by app %s, but allowing multiple instances (temporary)", userProfile.ID, *userProfile.CurrentAppID)
+				// Không return error, cho phép launch tiếp
 			}
 		} else {
 			// Lock exists but no start time, clear it
@@ -122,7 +128,7 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 		// Use normal profile-based selection
 		selectedApp, err = s.selectBestMachineForProfile(userProfile)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to select machine: %w", err)
 	}
@@ -156,6 +162,12 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 
 	if len(req.ExtraArgs) > 0 {
 		requestBody["extraArgs"] = req.ExtraArgs
+	}
+
+	// Truyền debugPort để automation backend biết mở Chrome với port nào
+	// Mỗi user sẽ có 1 port riêng, tránh conflict khi nhiều user dùng chung profile
+	if req.DebugPort > 0 {
+		requestBody["debugPort"] = req.DebugPort
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
@@ -205,20 +217,28 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 	}
 
 	// Parse response (reuse the body we already read)
+	var debugPort int
 	var responseData map[string]interface{}
 	if len(responseBodyBytes) > 0 {
 		if err := json.Unmarshal(responseBodyBytes, &responseData); err != nil {
 			logrus.Warnf("Failed to parse Chrome launch response: %v", err)
+		} else {
+			// Extract debugPort từ response
+			if dp, ok := responseData["debugPort"].(float64); ok {
+				debugPort = int(dp)
+				logrus.Infof("Got debugPort from launch response: %d", debugPort)
+			}
 		}
 	}
 
-	logrus.Infof("Successfully launched Chrome for profile %s on machine %s (app %s)", userProfile.ID, selectedApp.BoxID, selectedApp.ID)
+	logrus.Infof("Successfully launched Chrome for profile %s on machine %s (app %s), debugPort=%d", userProfile.ID, selectedApp.BoxID, selectedApp.ID, debugPort)
 
 	return &LaunchChromeProfileResponse{
 		Success:      true,
 		AppID:        selectedApp.ID,
 		MachineID:    selectedApp.BoxID,
 		TunnelURL:    tunnelURL,
+		DebugPort:    debugPort,
 		Message:      "Chrome launched successfully",
 		LockAcquired: true,
 	}, nil

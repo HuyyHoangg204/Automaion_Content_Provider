@@ -158,6 +158,7 @@ func (s *ScriptService) SaveScript(topicID, userID string, req *models.SaveScrip
 				ProjectID:   project.ProjectID, // Frontend project_id (varchar), part of composite key
 				PromptText:  promptReq.Text,
 				Exit:        promptReq.Exit,
+				Merge:       promptReq.Merge, // Map Merge from request
 				PromptOrder: order,
 			}
 			prompts = append(prompts, prompt)
@@ -272,6 +273,133 @@ func (s *ScriptService) DeleteScript(topicID, userID string) error {
 	return s.scriptRepo.DeleteByTopicIDAndUserID(topicID, userID)
 }
 
+// CloneScript clones a script from source user to target user for a specific topic
+func (s *ScriptService) CloneScript(sourceUserID, targetUserID, topicID string) error {
+	// 1. Check if source script exists
+	sourceScript, err := s.scriptRepo.GetByTopicIDAndUserID(topicID, sourceUserID)
+	if err != nil {
+		// If source script not found, nothing to clone, just return nil
+		if err.Error() == "record not found" {
+			return nil
+		}
+		return fmt.Errorf("failed to get source script: %w", err)
+	}
+
+	// 2. Check if target script already exists
+	// If exists, we might want to overwrite or skip. Current requirement implies "initial assignment", so let's overwrite/ensure it exists.
+	targetScript, err := s.scriptRepo.GetByTopicIDAndUserID(topicID, targetUserID)
+	if err != nil && err.Error() != "record not found" {
+		return fmt.Errorf("failed to check target script: %w", err)
+	}
+
+	if targetScript == nil {
+		// Create new script for target user
+		targetScript = &models.Script{
+			TopicID: topicID,
+			UserID:  targetUserID,
+		}
+		if err := s.scriptRepo.Create(targetScript); err != nil {
+			return fmt.Errorf("failed to create target script: %w", err)
+		}
+	} else {
+		// Start fresh: Delete existing projects/edges/prompts for target script
+		// Note: Cascading delete should handle child records if we delete projects/edges, but let's be explicit and clear projects first.
+		// Actually, simpler way: GetProjects and DeleteProjects. Or dependent on repository methods.
+		// Assuming cascading delete is configured in GORM models (constraint:OnDelete:CASCADE), 
+		// but GORM soft delete or manual cleanup might be safer.
+		// Let's rely on repository methods to clear current data to avoid mixing.
+		// For now, let's assume we proceed to upsert/copy over. But existing data might conflict or dupe.
+		// Ideally: Clear old data for target user's script to match source exactly.
+		
+		// Delete all projects for target script
+		projects, _ := s.scriptRepo.GetProjectsByScriptID(targetScript.ID)
+		projectIDs := make([]string, len(projects))
+		for i, p := range projects {
+			projectIDs[i] = p.ProjectID
+		}
+		if len(projectIDs) > 0 {
+			if err := s.scriptRepo.DeleteProjectsByScriptIDAndProjectIDs(targetScript.ID, projectIDs); err != nil {
+				return fmt.Errorf("failed to clear existing projects: %w", err)
+			}
+		}
+
+		// Delete all edges for target script
+		edges, _ := s.scriptRepo.GetEdgesByScriptID(targetScript.ID)
+		edgeIDs := make([]string, len(edges))
+		for i, e := range edges {
+			edgeIDs[i] = e.EdgeID
+		}
+		if len(edgeIDs) > 0 {
+			if err := s.scriptRepo.DeleteEdgesByScriptIDAndEdgeIDs(targetScript.ID, edgeIDs); err != nil {
+				return fmt.Errorf("failed to clear existing edges: %w", err)
+			}
+		}
+	}
+
+	// 3. Clone Projects
+	projectsToCreate := make([]*models.ScriptProject, 0, len(sourceScript.Projects))
+	promptsToCreate := make([]*models.ScriptPrompt, 0)
+
+	for _, p := range sourceScript.Projects {
+		newProject := &models.ScriptProject{
+			ScriptID:    targetScript.ID,
+			ProjectID:   p.ProjectID, // Keep same frontend ID to maintain Edge relationships
+			Name:        p.Name,
+			CreatedAt:   p.CreatedAt,
+			CreatedAtDB: time.Now(),
+		}
+		projectsToCreate = append(projectsToCreate, newProject)
+
+		// Prepare prompts for this project
+		for _, pr := range p.Prompts {
+			newPrompt := &models.ScriptPrompt{
+				ScriptID:    targetScript.ID,
+				ProjectID:   p.ProjectID,
+				PromptText:  pr.PromptText,
+				Exit:        pr.Exit,
+				Merge:       pr.Merge, // Copy Merge field
+				PromptOrder: pr.PromptOrder,
+			}
+			promptsToCreate = append(promptsToCreate, newPrompt)
+		}
+	}
+
+	if len(projectsToCreate) > 0 {
+		if err := s.scriptRepo.CreateProjects(projectsToCreate); err != nil {
+			return fmt.Errorf("failed to clone projects: %w", err)
+		}
+	}
+
+	// 4. Clone Prompts
+	if len(promptsToCreate) > 0 {
+		if err := s.scriptRepo.CreatePrompts(promptsToCreate); err != nil {
+			return fmt.Errorf("failed to clone prompts: %w", err)
+		}
+	}
+
+	// 5. Clone Edges
+	edgesToCreate := make([]*models.ScriptEdge, 0, len(sourceScript.Edges))
+	for _, e := range sourceScript.Edges {
+		newEdge := &models.ScriptEdge{
+			ScriptID:        targetScript.ID,
+			EdgeID:          e.EdgeID, // Keep same frontend ID
+			SourceProjectID: e.SourceProjectID,
+			TargetProjectID: e.TargetProjectID,
+			SourceName:      e.SourceName,
+			TargetName:      e.TargetName,
+		}
+		edgesToCreate = append(edgesToCreate, newEdge)
+	}
+
+	if len(edgesToCreate) > 0 {
+		if err := s.scriptRepo.CreateEdges(edgesToCreate); err != nil {
+			return fmt.Errorf("failed to clone edges: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // toScriptResponse converts Script model to ScriptResponse
 func (s *ScriptService) toScriptResponse(script *models.Script) *models.ScriptResponse {
 	projects := make([]models.ScriptProjectResponse, 0, len(script.Projects))
@@ -282,6 +410,7 @@ func (s *ScriptService) toScriptResponse(script *models.Script) *models.ScriptRe
 				ID:          prompt.ID,
 				Text:        prompt.PromptText,
 				Exit:        prompt.Exit,
+				Merge:       prompt.Merge, // Map Merge to response
 				PromptOrder: prompt.PromptOrder,
 			})
 		}

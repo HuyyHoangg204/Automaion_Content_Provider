@@ -12,13 +12,14 @@ import (
 )
 
 type ProcessLogService struct {
-	logRepo         *repository.ProcessLogRepository
-	topicRepo       *repository.TopicRepository
-	sseHub          *SSEHub
-	rabbitMQ        *RabbitMQService
-	db              *gorm.DB
-	stopChan        chan bool
-	cleanupStopChan chan bool
+	logRepo                *repository.ProcessLogRepository
+	topicRepo              *repository.TopicRepository
+	sseHub                 *SSEHub
+	rabbitMQ               *RabbitMQService
+	db                     *gorm.DB
+	scriptExecutionService *ScriptExecutionService // Optional: injected later
+	stopChan               chan bool
+	cleanupStopChan        chan bool
 }
 
 func NewProcessLogService(logRepo *repository.ProcessLogRepository, sseHub *SSEHub, rabbitMQ *RabbitMQService, db *gorm.DB) *ProcessLogService {
@@ -31,6 +32,11 @@ func NewProcessLogService(logRepo *repository.ProcessLogRepository, sseHub *SSEH
 		stopChan:        make(chan bool),
 		cleanupStopChan: make(chan bool),
 	}
+}
+
+// SetScriptExecutionService sets the script execution service (injected after creation to avoid circular dependency)
+func (s *ProcessLogService) SetScriptExecutionService(scriptExecutionService *ScriptExecutionService) {
+	s.scriptExecutionService = scriptExecutionService
 }
 
 // StartRabbitMQConsumer starts consuming logs from RabbitMQ queue
@@ -137,6 +143,9 @@ func (s *ProcessLogService) processLogMessage(body []byte) error {
 
 	s.handleTopicLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
 
+	// Handle script execution logs
+	s.handleScriptExecutionLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
+
 	return nil
 }
 
@@ -171,6 +180,9 @@ func (s *ProcessLogService) CreateLog(req *models.ProcessLogRequest) (*models.Pr
 	s.sseHub.BroadcastLog(log)
 
 	s.handleTopicLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
+
+	// Handle script execution logs
+	s.handleScriptExecutionLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
 
 	return log, nil
 }
@@ -224,6 +236,75 @@ func (s *ProcessLogService) handleTopicLog(entityType, topicID, stage, status st
 		} else {
 			logrus.Warnf("Deleted topic %s due to automation %s (%s)", topicID, stage, status)
 		}
+	}
+}
+
+// handleScriptExecutionLog xử lý log liên quan đến script execution
+// entityID ở đây là topic.ID (vì automation backend nhận X-Entity-ID = topic.ID)
+// Nếu metadata chứa execution_id → dùng trực tiếp để match đúng execution
+func (s *ProcessLogService) handleScriptExecutionLog(entityType, entityID, stage, status string, metadata map[string]interface{}) {
+	if entityType != "script_execution" {
+		return
+	}
+
+	// Handle project_completed log
+	if stage == "project_completed" && (status == "success" || status == "info") {
+		if s.scriptExecutionService == nil {
+			return
+		}
+
+		var projectID, executionID string
+		if metadata != nil {
+			if pid, ok := metadata["project_id"].(string); ok {
+				projectID = pid
+			} else if pid, ok := metadata["project"].(string); ok {
+				projectID = pid
+			}
+			if eid, ok := metadata["execution_id"].(string); ok {
+				executionID = eid
+			}
+		}
+
+		if projectID == "" {
+			return
+		}
+
+		if executionID != "" {
+			if err := s.scriptExecutionService.MarkProjectCompleted(executionID, projectID); err != nil {
+				logrus.Errorf("[Log] Failed to mark project completed: %v", err)
+			}
+		} else {
+			if err := s.scriptExecutionService.MarkProjectCompletedByTopicID(entityID, projectID); err != nil {
+				logrus.Errorf("[Log] Failed to mark project completed: %v", err)
+			}
+		}
+		return
+	}
+
+	// Handle project_failed log
+	if stage == "project_failed" && (status == "failed" || status == "error") {
+		if s.scriptExecutionService == nil {
+			return
+		}
+
+		var projectID, executionID string
+		if metadata != nil {
+			if pid, ok := metadata["project_id"].(string); ok {
+				projectID = pid
+			} else if pid, ok := metadata["project"].(string); ok {
+				projectID = pid
+			}
+			if eid, ok := metadata["execution_id"].(string); ok {
+				executionID = eid
+			}
+		}
+
+		if projectID == "" {
+			return
+		}
+
+		logrus.Warnf("[Log] Project %s failed (execution=%s)", projectID, executionID)
+		// TODO: Implement mark project as failed
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services/auth"
 	"github.com/onegreenvn/green-provider-services-backend/internal/utils"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -19,11 +20,12 @@ type AdminHandler struct {
 	appService    *services.AppService
 	roleService   *services.RoleService
 	topicService  *services.TopicService
+	scriptService *services.ScriptService // Injected ScriptService
 	topicUserRepo *repository.TopicUserRepository
 	userRepo      *repository.UserRepository
 }
 
-func NewAdminHandler(authService *auth.AuthService, db *gorm.DB, topicService *services.TopicService) *AdminHandler {
+func NewAdminHandler(authService *auth.AuthService, db *gorm.DB, topicService *services.TopicService, scriptService *services.ScriptService) *AdminHandler {
 	// Create repositories
 	userRepo := repository.NewUserRepository(db)
 	boxRepo := repository.NewBoxRepository(db)
@@ -49,6 +51,7 @@ func NewAdminHandler(authService *auth.AuthService, db *gorm.DB, topicService *s
 		appService:    appService,
 		roleService:   roleService,
 		topicService:  topicService,
+		scriptService: scriptService,
 		topicUserRepo: topicUserRepo,
 		userRepo:      userRepo,
 	}
@@ -758,6 +761,22 @@ func (h *AdminHandler) AssignTopicToUser(c *gin.Context) {
 		return
 	}
 
+	// NEW: Clone creator's script to assigned user
+	// Get creator's user ID from topic.UserProfile (need to be sure it's loaded)
+	// topic.UserProfile is loaded in GetTopicByID above
+	creatorUserID := topic.UserProfile.UserID
+	if creatorUserID != "" {
+		if err := h.scriptService.CloneScript(creatorUserID, req.UserID, topicID); err != nil {
+			logrus.Errorf("Failed to clone script from creator %s to user %s for topic %s: %v", creatorUserID, req.UserID, topicID, err)
+			// Non-critical error, so we just log it and don't fail the request?
+			// Or should we return warning? Let's just log for now to avoid breaking assignment if script fails.
+		} else {
+			logrus.Infof("Successfully cloned script from creator %s to user %s for topic %s", creatorUserID, req.UserID, topicID)
+		}
+	} else {
+		logrus.Warnf("Creator user ID not found for topic %s, skipping script clone", topicID)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":         "Topic assigned successfully",
 		"topic_id":        topicID,
@@ -886,6 +905,14 @@ func (h *AdminHandler) RemoveTopicAssignment(c *gin.Context) {
 	if err := h.topicUserRepo.Delete(topicID, userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove assignment", "details": err.Error()})
 		return
+	}
+
+	// NEW: Delete user's script for this topic
+	if err := h.scriptService.DeleteScript(topicID, userID); err != nil {
+		logrus.Errorf("Failed to delete script for user %s topic %s after unassignment: %v", userID, topicID, err)
+		// Non-critical error, just log it.
+	} else {
+		logrus.Infof("Successfully deleted script for user %s topic %s after unassignment", userID, topicID)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

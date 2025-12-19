@@ -178,6 +178,43 @@ func InitDB() (*gorm.DB, error) {
 		scriptEdgesTableExists = true // Update flag after migration
 	}
 
+	// Migrate ScriptExecution separately (depends on Script - must exist first)
+	var scriptExecutionsTableExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.tables 
+			WHERE table_schema = 'public' 
+			AND table_name = 'script_executions'
+		)
+	`).Scan(&scriptExecutionsTableExists).Error
+	if err == nil && !scriptExecutionsTableExists {
+		err = db.AutoMigrate(&models.ScriptExecution{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to migrate script_executions table: %w", err)
+		}
+		logrus.Info("Successfully migrated script_executions table")
+		scriptExecutionsTableExists = true // Update flag after migration
+	}
+
+	// Migrate ScriptProjectExecution separately (depends on ScriptExecution - must exist first)
+	var scriptProjectExecutionsTableExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.tables 
+			WHERE table_schema = 'public' 
+			AND table_name = 'script_project_executions'
+		)
+	`).Scan(&scriptProjectExecutionsTableExists).Error
+	if err == nil && !scriptProjectExecutionsTableExists {
+		err = db.AutoMigrate(&models.ScriptProjectExecution{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to migrate script_project_executions table: %w", err)
+		}
+		logrus.Info("Successfully migrated script_project_executions table")
+	}
+
 	// Note: We don't create foreign key constraints for script_prompts -> script_projects
 	// because script_projects uses composite primary key (script_id, project_id) and GORM doesn't handle composite FK well.
 	// We rely on application logic for referential integrity.
