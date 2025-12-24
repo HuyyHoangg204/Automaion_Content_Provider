@@ -643,22 +643,18 @@ func (h *AdminHandler) GetAllTopics(c *gin.Context) {
 		}
 
 		responses[i] = gin.H{
-			"id":                topic.ID,
-			"user_profile_id":   topic.UserProfileID,
-			"name":              topic.Name,
-			"gemini_gem_id":     topic.GeminiGemID,
-			"gemini_gem_name":   topic.GeminiGemName,
+			"id":              topic.ID,
+			"user_profile_id": topic.UserProfileID,
+			"name":            topic.Name,
 			"description":     topic.Description,
-			"instructions":    topic.Instructions,
-			"knowledge_files": topic.KnowledgeFiles,
 			"is_active":       topic.IsActive,
-			"sync_status":       topic.SyncStatus,
-			"sync_error":        topic.SyncError,
-			"created_at":        topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			"updated_at":        topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-			"last_synced_at":    lastSyncedAt,
-			"creator":           creatorInfo,
-			"assigned_users":    assignedUsers,
+			"sync_status":     topic.SyncStatus,
+			"sync_error":      topic.SyncError,
+			"created_at":      topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"updated_at":      topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			"last_synced_at":  lastSyncedAt,
+			"creator":         creatorInfo,
+			"assigned_users":  assignedUsers,
 		}
 	}
 

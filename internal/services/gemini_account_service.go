@@ -272,12 +272,14 @@ func (s *GeminiAccountService) GetAvailableAccountForMachine(machineID string) (
 	}
 
 	// Reload account to get updated values
-	account, err = s.geminiAccountRepo.GetByID(account.ID)
+	reloadedAccount, err := s.geminiAccountRepo.GetByID(account.ID)
 	if err != nil {
 		logrus.Warnf("Failed to reload account %s: %v", account.ID, err)
+		// Return original account if reload fails (still has all necessary data)
+		return account, nil
 	}
 
-	return account, nil
+	return reloadedAccount, nil
 }
 
 // LockAccount locks a Gemini account and deletes all topics created with it

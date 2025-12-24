@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
@@ -14,6 +15,7 @@ import (
 type ProcessLogService struct {
 	logRepo                *repository.ProcessLogRepository
 	topicRepo              *repository.TopicRepository
+	scriptRepo             *repository.ScriptRepository // Để xóa project khi lỗi
 	sseHub                 *SSEHub
 	rabbitMQ               *RabbitMQService
 	db                     *gorm.DB
@@ -26,6 +28,7 @@ func NewProcessLogService(logRepo *repository.ProcessLogRepository, sseHub *SSEH
 	return &ProcessLogService{
 		logRepo:         logRepo,
 		topicRepo:       repository.NewTopicRepository(db),
+		scriptRepo:      repository.NewScriptRepository(db),
 		sseHub:          sseHub,
 		rabbitMQ:        rabbitMQ,
 		db:              db,
@@ -141,7 +144,7 @@ func (s *ProcessLogService) processLogMessage(body []byte) error {
 	// Broadcast via SSE
 	s.sseHub.BroadcastLog(log)
 
-	s.handleTopicLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
+	s.handleTopicLog(req.EntityType, req.EntityID, req.UserID, req.Stage, req.Status, req.Metadata)
 
 	// Handle script execution logs
 	s.handleScriptExecutionLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
@@ -179,7 +182,7 @@ func (s *ProcessLogService) CreateLog(req *models.ProcessLogRequest) (*models.Pr
 	// Broadcast via SSE
 	s.sseHub.BroadcastLog(log)
 
-	s.handleTopicLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
+	s.handleTopicLog(req.EntityType, req.EntityID, req.UserID, req.Stage, req.Status, req.Metadata)
 
 	// Handle script execution logs
 	s.handleScriptExecutionLog(req.EntityType, req.EntityID, req.Stage, req.Status, req.Metadata)
@@ -196,18 +199,11 @@ func (s *ProcessLogService) updateTopicOnCompletion(topicID string, metadata map
 		return
 	}
 
-	// Update SyncStatus
+	// Update SyncStatus (topic is just a container now; gem info lives on ScriptProject)
 	topic.SyncStatus = "synced"
 	now := time.Now()
 	topic.LastSyncedAt = &now
 	topic.SyncError = ""
-
-	// Update GeminiGemName từ metadata nếu có
-	if metadata != nil {
-		if gemName, ok := metadata["gem_name"].(string); ok && gemName != "" {
-			topic.GeminiGemName = gemName
-		}
-	}
 
 	// Save to database
 	if err := s.topicRepo.Update(topic); err != nil {
@@ -218,7 +214,8 @@ func (s *ProcessLogService) updateTopicOnCompletion(topicID string, metadata map
 }
 
 // handleTopicLog xử lý log liên quan đến topic (thành công hoặc thất bại)
-func (s *ProcessLogService) handleTopicLog(entityType, topicID, stage, status string, metadata map[string]interface{}) {
+// Nếu metadata có projectID hoặc gemName → đây là log của project, xóa project thay vì topic
+func (s *ProcessLogService) handleTopicLog(entityType, topicID, userID, stage, status string, metadata map[string]interface{}) {
 	if entityType != "topic" {
 		return
 	}
@@ -229,12 +226,55 @@ func (s *ProcessLogService) handleTopicLog(entityType, topicID, stage, status st
 		return
 	}
 
-	// Thất bại → xóa topic
+	// Thất bại → xóa project nếu có projectID trong metadata hoặc gemName, nếu không thì xóa topic
 	if status == "failed" || status == "error" {
-		if deleteErr := s.topicRepo.Delete(topicID); deleteErr != nil {
-			logrus.Errorf("Failed to delete topic %s after automation %s (%s): %v", topicID, stage, status, deleteErr)
+		// Check nếu đây là log của project
+		var projectID string
+		if metadata != nil {
+			// Ưu tiên lấy từ metadata (automation backend gửi)
+			if pid, ok := metadata["projectID"].(string); ok {
+				projectID = pid
+			} else if pid, ok := metadata["project_id"].(string); ok {
+				projectID = pid
+			} else if gemName, ok := metadata["gemName"].(string); ok {
+				// Extract projectID từ gemName (format: {projectID}_{name})
+				// Tìm phần đầu tiên trước dấu "_" cuối cùng
+				if idx := strings.LastIndex(gemName, "_"); idx > 0 {
+					// Lấy phần đầu (projectID) - nhưng cần check xem có phải là projectID không
+					// ProjectID là timestamp (số), nên check xem phần đầu có phải là số không
+					potentialProjectID := gemName[:idx]
+					// Nếu là số (timestamp) thì đó là projectID
+					if len(potentialProjectID) > 10 { // Timestamp thường > 10 chữ số
+						projectID = potentialProjectID
+					}
+				}
+			}
+		}
+
+		if projectID != "" {
+			// Đây là log của project → xóa project
+			// Tìm script bằng topicID và userID từ log
+			if userID != "" {
+				script, err := s.scriptRepo.GetByTopicIDAndUserID(topicID, userID)
+				if err == nil && script != nil {
+					if deleteErr := s.scriptRepo.DeleteProjectsByScriptIDAndProjectIDs(script.ID, []string{projectID}); deleteErr != nil {
+						logrus.Errorf("Failed to delete project %s after automation %s (%s): %v", projectID, stage, status, deleteErr)
+					} else {
+						logrus.Warnf("Deleted project %s due to automation %s (%s)", projectID, stage, status)
+					}
+				} else {
+					logrus.Warnf("Failed to find script for topic %s, user %s to delete project %s: %v", topicID, userID, projectID, err)
+				}
+			} else {
+				logrus.Warnf("Cannot delete project %s: userID is empty in log", projectID)
+			}
 		} else {
-			logrus.Warnf("Deleted topic %s due to automation %s (%s)", topicID, stage, status)
+			// Đây là log của topic (không phải project) → xóa topic (logic cũ)
+			if deleteErr := s.topicRepo.Delete(topicID); deleteErr != nil {
+				logrus.Errorf("Failed to delete topic %s after automation %s (%s): %v", topicID, stage, status, deleteErr)
+			} else {
+				logrus.Warnf("Deleted topic %s due to automation %s (%s)", topicID, stage, status)
+			}
 		}
 	}
 }

@@ -110,7 +110,15 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	
 	// Create ScriptService
 	scriptRepo := repository.NewScriptRepository(db)
-	scriptService := services.NewScriptService(scriptRepo, topicRepo)
+	scriptService := services.NewScriptService(
+		scriptRepo,
+		topicRepo,
+		userProfileRepo,
+		boxRepo,
+		chromeProfileService,
+		geminiAccountService,
+		fileService,
+	)
 	
 	// Create ScriptExecutionService
 	scriptExecutionService := services.NewScriptExecutionService(
@@ -148,7 +156,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 	machineHandler := handlers.NewMachineHandler(db)
 	topicHandler := handlers.NewTopicHandler(topicService, roleService)
 	processLogHandler := handlers.NewProcessLogHandler(db, sseHub, rabbitMQService)
-	fileHandler := handlers.NewFileHandler(db, baseURL, topicService)
+	fileHandler := handlers.NewFileHandler(db, baseURL, scriptService)
 	geminiHandler := handlers.NewGeminiHandler(geminiService)
 	geminiAccountHandler := handlers.NewGeminiAccountHandler(geminiAccountService, topicService)
 	scriptHandler := handlers.NewScriptHandler(scriptService, scriptExecutionService, topicService)
@@ -246,6 +254,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 				topics.GET("", topicHandler.GetAllTopics)
 				
 				// Script routes (1-1 với user + topic) - phải đặt trước /:id để tránh conflict
+				topics.POST("/:id/projects", scriptHandler.CreateProject) // New: Create project (and gem)
 				topics.POST("/:id/scripts", scriptHandler.SaveScript)
 				topics.GET("/:id/scripts", scriptHandler.GetScript)
 				topics.DELETE("/:id/scripts", scriptHandler.DeleteScript)

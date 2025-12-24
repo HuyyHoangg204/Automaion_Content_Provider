@@ -67,112 +67,101 @@ func (s *TopicService) CreateTopic(userID string, req *models.CreateTopicRequest
 		return nil, fmt.Errorf("user profile not found: %w", err)
 	}
 
-	// Bỏ field KnowledgeFiles khỏi Topic model
-	// Files sẽ được lấy tự động khi tạo Gem
-	emptyArray := []interface{}{}
-	knowledgeFilesBytes, _ := json.Marshal(emptyArray)
-	var knowledgeFilesJSON models.JSON
-	json.Unmarshal(knowledgeFilesBytes, &knowledgeFilesJSON)
-
 	// Create topic in database (initially with sync_status = "pending")
 	topic := &models.Topic{
-		UserProfileID:  userProfile.ID,
-		Name:           req.Name,
-		Description:    req.Description,
-		Instructions:   req.Instructions,
-		KnowledgeFiles: knowledgeFilesJSON, // Luôn là empty array, không lưu files
-		IsActive:       true,
-		SyncStatus:     "pending",
+		UserProfileID: userProfile.ID,
+		Name:          req.Name,
+		Description:   req.Description,
+		IsActive:      true,
+		SyncStatus:    "pending",
 	}
 
 	if err := s.topicRepo.Create(topic); err != nil {
 		return nil, fmt.Errorf("failed to create topic: %w", err)
 	}
 
-	// Call Gemini API to create Gem (in background)
-	// First launch Chrome, then create Gem
-	// NOTE: Tất cả log sẽ được gửi từ automation backend, không tạo log ở đây
-	go func() {
-		// Step 1: Launch Chrome with lock
-		launchReq := &LaunchChromeProfileRequest{
-			UserProfileID: userProfile.ID,
-			EnsureGmail:   true, // Mặc định true để đảm bảo Gmail đã login
-			EntityType:    "topic",
-			EntityID:      topic.ID,
-		}
-
-		launchResp, err := s.chromeProfileService.LaunchChromeProfile(userID, launchReq)
-		if err != nil {
-			logrus.Errorf("Failed to launch Chrome for topic %s: %v", topic.ID, err)
-			// Xóa topic khi automation fail
-			if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
-				logrus.Errorf("Failed to delete topic %s after Chrome launch failure: %v", topic.ID, deleteErr)
-			} else {
-				logrus.Infof("Deleted topic %s due to Chrome launch failure", topic.ID)
+	// NOTE: Logic tạo gem đã được chuyển sang API tạo project (SaveScript)
+	// Mỗi project trong script sẽ tương ứng với 1 gem
+	// Comment lại logic cũ để không gọi automation backend khi tạo topic
+	/*
+		// Call Gemini API to create Gem (in background)
+		// First launch Chrome, then create Gem
+		// NOTE: Tất cả log sẽ được gửi từ automation backend, không tạo log ở đây
+		go func() {
+			// Step 1: Launch Chrome with lock
+			launchReq := &LaunchChromeProfileRequest{
+				UserProfileID: userProfile.ID,
+				EnsureGmail:   true, // Mặc định true để đảm bảo Gmail đã login
+				EntityType:    "topic",
+				EntityID:      topic.ID,
 			}
-			return
-		}
 
-		// Step 1.5: Get Gemini account for this machine (if available)
-		var geminiAccountID *string
-		var geminiAccount *models.GeminiAccount
-		if s.geminiAccountService != nil && launchResp.MachineID != "" {
-			// Get Box to get machine_id (string) from BoxID (UUID)
-			box, err := s.boxRepo.GetByID(launchResp.MachineID)
-			if err == nil && box != nil {
-				// Get available Gemini account for this machine
-				account, err := s.geminiAccountService.GetAvailableAccountForMachine(box.MachineID)
-				if err == nil && account != nil {
-					geminiAccountID = &account.ID
-					geminiAccount = account
-					// Update account: increment topics_count and last_used_at (will be done in service method)
-					logrus.Infof("Using Gemini account %s (email: %s) for topic %s on machine %s", account.ID, account.Email, topic.ID, box.MachineID)
-				} else {
-					logrus.Warnf("No available Gemini account found for machine %s, topic will be created without account association", box.MachineID)
-				}
-			}
-		}
-
-		// Step 2: Trigger Gem creation on Gemini (fire-and-forget)
-		// Automation backend sẽ xử lý việc tạo Gem và gửi log qua RabbitMQ
-		// Chỉ xóa topic khi nhận log "failed" từ automation backend, không xóa khi API timeout
-		err = s.triggerGemCreation(userProfile, req, launchResp.TunnelURL, userID, geminiAccount)
-		if err != nil {
-			// Chỉ xóa topic nếu không gửi được request (network error, không phải timeout)
-			// Nếu timeout → automation backend vẫn đang chạy, sẽ gửi log sau
-			if isNetworkError(err) {
-				logrus.Errorf("Failed to trigger Gem creation for topic %s (network error): %v", topic.ID, err)
-				// Release lock on error
-				s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
-					UserProfileID: userProfile.ID,
-				})
-				// Xóa topic khi không gửi được request
+			launchResp, err := s.chromeProfileService.LaunchChromeProfile(userID, launchReq)
+			if err != nil {
+				logrus.Errorf("Failed to launch Chrome for topic %s: %v", topic.ID, err)
+				// Xóa topic khi automation fail
 				if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
-					logrus.Errorf("Failed to delete topic %s after trigger failure: %v", topic.ID, deleteErr)
+					logrus.Errorf("Failed to delete topic %s after Chrome launch failure: %v", topic.ID, deleteErr)
 				} else {
-					logrus.Infof("Deleted topic %s due to trigger failure (network error)", topic.ID)
+					logrus.Infof("Deleted topic %s due to Chrome launch failure", topic.ID)
 				}
 				return
 			}
-			// Timeout hoặc lỗi khác → automation backend có thể vẫn đang chạy
-			// Không xóa topic, đợi log từ automation backend
-			logrus.Warnf("Gem creation trigger returned error for topic %s (may be timeout, automation backend still running): %v", topic.ID, err)
-			logrus.Infof("Topic %s will be updated/deleted based on logs from automation backend", topic.ID)
-		}
 
-		// Step 3: Release lock (automation backend sẽ xử lý việc tạo Gem và gửi log)
-		if err := s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
-			UserProfileID: userProfile.ID,
-		}); err != nil {
-			logrus.Warnf("Failed to release lock for topic %s: %v", topic.ID, err)
-		}
+			// Step 1.5: Get Gemini account for this machine (if available)
+			var geminiAccount *models.GeminiAccount
+			if s.geminiAccountService != nil && launchResp.MachineID != "" {
+				// Get Box to get machine_id (string) from BoxID (UUID)
+				box, err := s.boxRepo.GetByID(launchResp.MachineID)
+				if err == nil && box != nil {
+					// Get available Gemini account for this machine
+					account, err := s.geminiAccountService.GetAvailableAccountForMachine(box.MachineID)
+					if err == nil && account != nil {
+						geminiAccount = account
+						// Update account: increment topics_count and last_used_at (will be done in service method)
+						logrus.Infof("Using Gemini account %s (email: %s) for topic %s on machine %s", account.ID, account.Email, topic.ID, box.MachineID)
+					} else {
+						logrus.Warnf("No available Gemini account found for machine %s, topic will be created without account association", box.MachineID)
+					}
+				}
+			}
 
-		// Update gemini_account_id (gemName sẽ được update từ log của automation backend)
-		if err := s.topicRepo.UpdateGeminiInfo(topic.ID, "", geminiAccountID); err != nil {
-			logrus.Errorf("Failed to update topic %s gemini account: %v", topic.ID, err)
-		}
+			// Step 2: Trigger Gem creation on Gemini (fire-and-forget)
+			// Automation backend sẽ xử lý việc tạo Gem và gửi log qua RabbitMQ
+			// Chỉ xóa topic khi nhận log "failed" từ automation backend, không xóa khi API timeout
+			err = s.triggerGemCreation(userProfile, req, launchResp.TunnelURL, userID, geminiAccount)
+			if err != nil {
+				// Chỉ xóa topic nếu không gửi được request (network error, không phải timeout)
+				// Nếu timeout → automation backend vẫn đang chạy, sẽ gửi log sau
+				if isNetworkError(err) {
+					logrus.Errorf("Failed to trigger Gem creation for topic %s (network error): %v", topic.ID, err)
+					// Release lock on error
+					s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
+						UserProfileID: userProfile.ID,
+					})
+					// Xóa topic khi không gửi được request
+					if deleteErr := s.topicRepo.Delete(topic.ID); deleteErr != nil {
+						logrus.Errorf("Failed to delete topic %s after trigger failure: %v", topic.ID, deleteErr)
+					} else {
+						logrus.Infof("Deleted topic %s due to trigger failure (network error)", topic.ID)
+					}
+					return
+				}
+				// Timeout hoặc lỗi khác → automation backend có thể vẫn đang chạy
+				// Không xóa topic, đợi log từ automation backend
+				logrus.Warnf("Gem creation trigger returned error for topic %s (may be timeout, automation backend still running): %v", topic.ID, err)
+				logrus.Infof("Topic %s will be updated/deleted based on logs from automation backend", topic.ID)
+			}
 
-	}()
+			// Step 3: Release lock (automation backend sẽ xử lý việc tạo Gem và gửi log)
+			if err := s.chromeProfileService.ReleaseChromeProfile(userID, &ReleaseChromeProfileRequest{
+				UserProfileID: userProfile.ID,
+			}); err != nil {
+				logrus.Warnf("Failed to release lock for topic %s: %v", topic.ID, err)
+			}
+
+		}()
+	*/
 
 	return topic, nil
 }
@@ -304,7 +293,6 @@ func (s *TopicService) triggerGemCreation(userProfile *models.UserProfile, req *
 		"profileDirName": userProfile.ProfileDirName, // Chỉ gửi profileDirName, backend tự resolve path
 		"gemName":        prefixedGemName,            // Gem name với tiền tố username
 		"description":    req.Description,
-		"instructions":   req.Instructions,
 		"knowledgeFiles": knowledgeFiles, // URLs để automation backend download (always array, never null)
 	}
 
@@ -451,11 +439,6 @@ func (s *TopicService) GetTopicByID(id string) (*models.Topic, error) {
 	return s.topicRepo.GetByID(id)
 }
 
-// GetTopicsByGeminiAccountID retrieves all topics created with a specific Gemini account
-func (s *TopicService) GetTopicsByGeminiAccountID(geminiAccountID string) ([]*models.Topic, error) {
-	return s.topicRepo.GetByGeminiAccountID(geminiAccountID)
-}
-
 // GetAllTopicsPaginated retrieves all topics with pagination, search, and filters (admin only)
 // search: searches in topic name, description, and creator username
 // creatorID: filter by creator user ID
@@ -478,13 +461,6 @@ func (s *TopicService) UpdateTopic(id string, req *models.UpdateTopicRequest) (*
 	}
 	if req.Description != "" {
 		topic.Description = req.Description
-	}
-	if req.Instructions != "" {
-		topic.Instructions = req.Instructions
-	}
-	if req.KnowledgeFiles != nil {
-		knowledgeFilesBytes, _ := json.Marshal(req.KnowledgeFiles)
-		json.Unmarshal(knowledgeFilesBytes, &topic.KnowledgeFiles)
 	}
 	if req.IsActive != nil {
 		topic.IsActive = *req.IsActive

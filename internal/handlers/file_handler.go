@@ -14,17 +14,17 @@ import (
 )
 
 type FileHandler struct {
-	fileService  *services.FileService
-	topicService *services.TopicService // Để cache file IDs sau khi upload
+	fileService   *services.FileService
+	scriptService *services.ScriptService // Để cache file IDs sau khi upload (cho project)
 }
 
-func NewFileHandler(db *gorm.DB, baseURL string, topicService *services.TopicService) *FileHandler {
+func NewFileHandler(db *gorm.DB, baseURL string, scriptService *services.ScriptService) *FileHandler {
 	fileRepo := repository.NewFileRepository(db)
 	fileService := services.NewFileService(fileRepo, baseURL)
 
 	return &FileHandler{
-		fileService:  fileService,
-		topicService: topicService,
+		fileService:   fileService,
+		scriptService: scriptService,
 	}
 }
 
@@ -105,9 +105,9 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 			return
 		}
 
-		// Cache file ID để dùng khi tạo topic
-		if h.topicService != nil {
-			h.topicService.AddUploadedFiles(userID, []string{file.ID})
+		// Cache file ID để dùng khi tạo project
+		if h.scriptService != nil {
+			h.scriptService.AddUploadedFiles(userID, []string{file.ID})
 		}
 
 		response := h.fileService.FileToResponse(file)
@@ -140,9 +140,9 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	// Cache file IDs để dùng khi tạo topic
-	if h.topicService != nil && len(uploadedFileIDs) > 0 {
-		h.topicService.AddUploadedFiles(userID, uploadedFileIDs)
+	// Cache file IDs để dùng khi tạo project
+	if h.scriptService != nil && len(uploadedFileIDs) > 0 {
+		h.scriptService.AddUploadedFiles(userID, uploadedFileIDs)
 	}
 
 	// Return results - include errors if some files failed

@@ -474,10 +474,9 @@ func (s *ScriptExecutionService) processProjectMessage(msg amqp.Delivery) error 
 	}
 
 	profileDirName := ownerProfile.ProfileDirName
-	gemName := topic.GeminiGemName
-	if gemName == "" {
-		gemName = fmt.Sprintf("%s_%s", normalizeUsername(ownerProfile.User.Username), topic.Name)
-	}
+	// Generate gemName từ projectID và name để đảm bảo unique cho mỗi project (không lưu trong DB nữa)
+	// Format: {projectID}_{name}
+	gemName := fmt.Sprintf("%s_%s", project.ProjectID, project.Name)
 
 	// Get prompts for this project
 	prompts := s.getPromptsForProject(script.Projects, project.ProjectID)
@@ -512,22 +511,32 @@ func (s *ScriptExecutionService) callAutomationBackendProjectAsync(
 	promptList := make([]map[string]interface{}, 0, len(prompts))
 	for _, prompt := range prompts {
 		promptMap := map[string]interface{}{
-			"prompt":    prompt.PromptText,
-			"exit":      prompt.Exit,
-			"merge":     prompt.Merge, // Pass merge flag to automation backend
-			"prompt_id": prompt.ID,
+			"prompt":      prompt.PromptText,
+			"output":      prompt.Filename,   // Chỉ file name, không có extension
+			"input_files": prompt.InputFiles, // Chỉ file name
+			"prompt_id":   prompt.ID,
+		}
+		// Chỉ thêm merge nếu true
+		if prompt.Merge {
+			promptMap["merge"] = true
+		}
+		// Chỉ thêm exit nếu true
+		if prompt.Exit {
+			promptMap["exit"] = true
 		}
 		promptList = append(promptList, promptMap)
 	}
 
 	requestBody := map[string]interface{}{
-		"name":           project.Name,
-		"profileDirName": profileDirName,
-		"project":        project.ProjectID,
-		"gemName":        gemName,
-		"prompts":        promptList,
-		"execution_id":   execution.ID, // Truyền execution_id để automation backend gửi lại trong log
-		"debugPort":      debugPort,    // Chrome debug port để automation backend connect đúng Chrome
+		"execution_id": execution.ID,
+		"project":      project.ProjectID,
+		"gemName":      gemName,
+		"prompts":      promptList,
+		"debugPort":    debugPort, // Chrome debug port để automation backend connect đúng Chrome
+	}
+	// Thêm output_merge nếu project có filename (project level, không có extension)
+	if project.Filename != "" {
+		requestBody["output_merge"] = project.Filename
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
@@ -818,10 +827,6 @@ func (s *ScriptExecutionService) executeScript(execution *models.ScriptExecution
 
 	tunnelURL := launchResp.TunnelURL
 	profileDirName := ownerProfile.ProfileDirName
-	gemName := topic.GeminiGemName
-	if gemName == "" {
-		gemName = fmt.Sprintf("%s_%s", normalizeUsername(ownerProfile.User.Username), topic.Name)
-	}
 
 	// Execute each project in order
 	for i, projectID := range executionOrder {
@@ -829,6 +834,10 @@ func (s *ScriptExecutionService) executeScript(execution *models.ScriptExecution
 		if project == nil {
 			return fmt.Errorf("project %s not found", projectID)
 		}
+
+		// Generate gemName từ projectID và name để đảm bảo unique cho mỗi project (không lưu trong DB nữa)
+		// Format: {projectID}_{name}
+		gemName := fmt.Sprintf("%s_%s", project.ProjectID, project.Name)
 
 		// Update current project
 		execution.CurrentProjectID = &project.ProjectID
@@ -865,22 +874,33 @@ func (s *ScriptExecutionService) callAutomationBackendProject(
 	promptList := make([]map[string]interface{}, 0, len(prompts))
 	for _, prompt := range prompts {
 		promptMap := map[string]interface{}{
-			"prompt":    prompt.PromptText,
-			"exit":      prompt.Exit,
-			"prompt_id": prompt.ID, // ✅ Gửi kèm prompt_id để mapping
+			"prompt":      prompt.PromptText,
+			"output":      prompt.Filename,   // Chỉ file name, không có extension
+			"input_files": prompt.InputFiles, // Chỉ file name
+			"prompt_id":   prompt.ID,
+		}
+		// Chỉ thêm merge nếu true
+		if prompt.Merge {
+			promptMap["merge"] = true
+		}
+		// Chỉ thêm exit nếu true
+		if prompt.Exit {
+			promptMap["exit"] = true
 		}
 		promptList = append(promptList, promptMap)
 	}
 
 	// Build request body theo format của API /gemini/projects
 	requestBody := map[string]interface{}{
-		"name":           project.Name,
-		"profileDirName": profileDirName,
-		"project":        project.ProjectID,
-		"gemName":        gemName,
-		"prompts":        promptList,
-		"execution_id":   execution.ID,
-		"debugPort":      debugPort, // Chrome debug port để automation backend connect đúng Chrome
+		"execution_id": execution.ID,
+		"project":      project.ProjectID,
+		"gemName":      gemName,
+		"prompts":      promptList,
+		"debugPort":    debugPort, // Chrome debug port để automation backend connect đúng Chrome
+	}
+	// Thêm output_merge nếu project có filename (project level, không có extension)
+	if project.Filename != "" {
+		requestBody["output_merge"] = project.Filename
 	}
 
 	jsonBody, err := json.Marshal(requestBody)

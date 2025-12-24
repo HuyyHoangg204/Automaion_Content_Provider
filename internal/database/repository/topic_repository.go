@@ -146,28 +146,8 @@ func (r *TopicRepository) GetByUserIDIncludingAssignedPaginated(userID string, a
 	return topics, total, nil
 }
 
-// GetByGeminiGemID retrieves a topic by Gemini Gem ID
-func (r *TopicRepository) GetByGeminiGemID(geminiGemID string) (*models.Topic, error) {
-	var topic models.Topic
-	err := r.db.Preload("UserProfile").Where("gemini_gem_id = ?", geminiGemID).First(&topic).Error
-	if err != nil {
-		return nil, err
-	}
-	return &topic, nil
-}
-
 func (r *TopicRepository) Update(topic *models.Topic) error {
 	return r.db.Save(topic).Error
-}
-
-// UpdateGeminiInfo updates Gemini info safely (prevents re-insertion if deleted)
-func (r *TopicRepository) UpdateGeminiInfo(id string, geminiGemName string, geminiAccountID *string) error {
-	return r.db.Model(&models.Topic{}).Where("id = ?", id).Updates(map[string]interface{}{
-		"gemini_gem_id":     nil,
-		"gemini_gem_name":   geminiGemName,
-		"gemini_account_id": geminiAccountID,
-		"sync_error":        "",
-	}).Error
 }
 
 // Delete deletes a topic
@@ -260,15 +240,5 @@ func (r *TopicRepository) GetAllPaginated(page, pageSize int, search, creatorID,
 func (r *TopicRepository) GetBySyncStatus(syncStatus string) ([]*models.Topic, error) {
 	var topics []*models.Topic
 	err := r.db.Where("sync_status = ?", syncStatus).Find(&topics).Error
-	return topics, err
-}
-
-// GetByGeminiAccountID retrieves all topics created with a specific Gemini account
-func (r *TopicRepository) GetByGeminiAccountID(geminiAccountID string) ([]*models.Topic, error) {
-	var topics []*models.Topic
-	err := r.db.Where("gemini_account_id = ?", geminiAccountID).
-		Preload("UserProfile").Preload("UserProfile.User").
-		Order("created_at DESC").
-		Find(&topics).Error
 	return topics, err
 }

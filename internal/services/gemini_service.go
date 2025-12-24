@@ -69,26 +69,18 @@ func (s *GeminiService) GenerateOutlineAndUpload(userID string, topicID string, 
 	profileDirName := ownerProfile.ProfileDirName
 	logrus.Infof("Using owner profile: name=%s, dirName=%s", ownerProfile.Name, profileDirName)
 
-	// Use gem name from topic (already stored in DB when topic was created)
-	gemName := topic.GeminiGemName
-	if gemName == "" {
-		// Fallback: Create gem name if not stored yet (should not happen for synced topics)
-		// Use owner's username for gem name
-		username := "user" // Default fallback
-		if ownerProfile.User.ID != "" {
-			if ownerProfile.User.Username != "" {
-				username = s.normalizeUsername(ownerProfile.User.Username)
-			} else {
-				logrus.Warnf("Owner User.Username is empty for userID %s, using default 'user' prefix", ownerProfile.UserID)
-			}
+	// Generate gem name dynamically from owner's username + topic name (topic no longer stores a single gem name)
+	username := "user" // Default fallback
+	if ownerProfile.User.ID != "" {
+		if ownerProfile.User.Username != "" {
+			username = s.normalizeUsername(ownerProfile.User.Username)
 		} else {
-			logrus.Warnf("Owner User not preloaded for profileID %s, using default 'user' prefix", ownerProfile.ID)
+			logrus.Warnf("Owner User.Username is empty for userID %s, using default 'user' prefix", ownerProfile.UserID)
 		}
-		gemName = fmt.Sprintf("%s_%s", username, topic.Name)
-		logrus.Warnf("Topic %s does not have gemini_gem_name, generated fallback: '%s'", topic.ID, gemName)
 	} else {
-		logrus.Infof("Using gem name from topic: '%s'", gemName)
+		logrus.Warnf("Owner User not preloaded for profileID %s, using default 'user' prefix", ownerProfile.ID)
 	}
+	gemName := fmt.Sprintf("%s_%s", username, topic.Name)
 
 	// Use owner's profile to launch Chrome (ensures correct Gemini account login)
 	launchReq := &LaunchChromeProfileRequest{

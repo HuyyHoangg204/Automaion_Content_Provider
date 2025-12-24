@@ -197,6 +197,29 @@ func InitDB() (*gorm.DB, error) {
 		scriptExecutionsTableExists = true // Update flag after migration
 	}
 
+	// Migration: Add debug_port column to script_executions table if it doesn't exist
+	var debugPortColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'script_executions' 
+			AND column_name = 'debug_port'
+		)
+	`).Scan(&debugPortColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if debug_port column exists: %v", err)
+	} else if !debugPortColumnExists {
+		logrus.Info("Adding debug_port column to script_executions table...")
+		err = db.Exec("ALTER TABLE script_executions ADD COLUMN IF NOT EXISTS debug_port INTEGER DEFAULT 0").Error
+		if err != nil {
+			logrus.Warnf("Failed to add debug_port column: %v", err)
+		} else {
+			logrus.Info("Successfully added debug_port column")
+		}
+	}
+
 	// Migrate ScriptProjectExecution separately (depends on ScriptExecution - must exist first)
 	var scriptProjectExecutionsTableExists bool
 	err = db.Raw(`
@@ -316,41 +339,16 @@ func InitDB() (*gorm.DB, error) {
 		}
 	}
 
-	// Migration: Add gemini_account_id column to topics table if it doesn't exist
-	var geminiAccountIDColumnExists bool
-	err = db.Raw(`
-		SELECT EXISTS (
-			SELECT 1 
-			FROM information_schema.columns 
-			WHERE table_schema = 'public' 
-			AND table_name = 'topics' 
-			AND column_name = 'gemini_account_id'
-		)
-	`).Scan(&geminiAccountIDColumnExists).Error
+	// Migration: Drop legacy Gemini-related columns from topics (moved to script_projects in new model)
+	var legacyCols []string
+	err = db.Raw(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'topics' AND column_name IN ('gemini_gem_id', 'gemini_gem_name', 'gemini_account_id')`).Scan(&legacyCols).Error
 	if err != nil {
-		logrus.Warnf("Failed to check if gemini_account_id column exists: %v", err)
-	} else if !geminiAccountIDColumnExists {
-		logrus.Info("Adding gemini_account_id column to topics table...")
-		err = db.Exec("ALTER TABLE topics ADD COLUMN IF NOT EXISTS gemini_account_id UUID").Error
-		if err != nil {
-			logrus.Warnf("Failed to add gemini_account_id column: %v", err)
-		} else {
-			logrus.Info("Successfully added gemini_account_id column")
-			// Create index
-			err = db.Exec("CREATE INDEX IF NOT EXISTS idx_topics_gemini_account_id ON topics(gemini_account_id)").Error
-			if err != nil {
-				logrus.Warnf("Failed to create index on gemini_account_id: %v", err)
-			}
-			// Add foreign key constraint
-			err = db.Exec(`
-				ALTER TABLE topics 
-				ADD CONSTRAINT fk_topics_gemini_account 
-				FOREIGN KEY (gemini_account_id) 
-				REFERENCES gemini_accounts(id) 
-				ON DELETE SET NULL
-			`).Error
-			if err != nil {
-				logrus.Warnf("Failed to add foreign key constraint: %v", err)
+		logrus.Warnf("Failed to check for legacy gemini columns on topics: %v", err)
+	} else {
+		for _, col := range legacyCols {
+			logrus.Infof("Dropping legacy column %s from topics table...", col)
+			if err := db.Exec(fmt.Sprintf("ALTER TABLE topics DROP COLUMN IF EXISTS %s CASCADE", col)).Error; err != nil {
+				logrus.Warnf("Failed to drop legacy column %s from topics: %v", col, err)
 			}
 		}
 	}
@@ -425,10 +423,10 @@ func InitDB() (*gorm.DB, error) {
 		// Drop unique constraint on (machine_id, account_index) if exists
 		err = db.Exec("ALTER TABLE gemini_accounts DROP CONSTRAINT IF EXISTS gemini_accounts_machine_id_account_index_key").Error
 		if err != nil {
-			logrus.Warnf("Failed to drop unique constraint: %v", err)
+			logrus.Warnf("Failed to drop unique index on (machine_id, account_index): %v", err)
 		}
 		// Drop column
-		err = db.Exec("ALTER TABLE gemini_accounts DROP COLUMN IF EXISTS account_index").Error
+		err = db.Exec("ALTER TABLE gemini_accounts DROP COLUMN IF NOT EXISTS account_index").Error
 		if err != nil {
 			logrus.Warnf("Failed to drop account_index column: %v", err)
 		} else {
@@ -495,6 +493,166 @@ func InitDB() (*gorm.DB, error) {
 			logrus.Warnf("Failed to create unique index on scripts (topic_id, user_id): %v", err)
 		} else {
 			logrus.Info("Successfully created unique index on scripts (topic_id, user_id)")
+		}
+	}
+
+	// Migration: Add filename column to script_projects table if it doesn't exist
+	var scriptProjectsFilenameColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'script_projects'
+			AND column_name = 'filename'
+		)
+	`).Scan(&scriptProjectsFilenameColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if filename column exists on script_projects: %v", err)
+	} else if !scriptProjectsFilenameColumnExists {
+		logrus.Info("Adding filename column to script_projects table...")
+		err = db.Exec("ALTER TABLE script_projects ADD COLUMN IF NOT EXISTS filename VARCHAR(255)").Error
+		if err != nil {
+			logrus.Warnf("Failed to add filename column to script_projects: %v", err)
+		} else {
+			logrus.Info("Successfully added filename column to script_projects")
+		}
+	}
+
+	// Migration: Drop gem_name column from script_projects table (không lưu trong DB nữa, generate từ name khi cần)
+	var scriptProjectsGemNameColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'script_projects'
+			AND column_name = 'gem_name'
+		)
+	`).Scan(&scriptProjectsGemNameColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if gem_name column exists on script_projects: %v", err)
+	} else if scriptProjectsGemNameColumnExists {
+		logrus.Info("Dropping gem_name column from script_projects table (no longer stored in DB)...")
+		err = db.Exec("ALTER TABLE script_projects DROP COLUMN IF EXISTS gem_name").Error
+		if err != nil {
+			logrus.Warnf("Failed to drop gem_name column from script_projects: %v", err)
+		} else {
+			logrus.Info("Successfully dropped gem_name column from script_projects")
+		}
+	}
+
+	// Migration: Add gemini_account_id column to script_projects table if it doesn't exist
+	var scriptProjectsGeminiAccountColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'script_projects'
+			AND column_name = 'gemini_account_id'
+		)
+	`).Scan(&scriptProjectsGeminiAccountColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if gemini_account_id column exists on script_projects: %v", err)
+	} else if !scriptProjectsGeminiAccountColumnExists {
+		logrus.Info("Adding gemini_account_id column to script_projects table...")
+		err = db.Exec("ALTER TABLE script_projects ADD COLUMN IF NOT EXISTS gemini_account_id UUID").Error
+		if err != nil {
+			logrus.Warnf("Failed to add gemini_account_id column to script_projects: %v", err)
+		} else {
+			logrus.Info("Successfully added gemini_account_id column to script_projects")
+		}
+	}
+
+	// Migration: Add description and instructions columns to script_projects table if they don't exist
+	var projectDescriptionColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'script_projects' 
+			AND column_name = 'description'
+		)
+	`).Scan(&projectDescriptionColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if description column exists on script_projects: %v", err)
+	} else if !projectDescriptionColumnExists {
+		logrus.Info("Adding description column to script_projects table...")
+		err = db.Exec("ALTER TABLE script_projects ADD COLUMN IF NOT EXISTS description TEXT").Error
+		if err != nil {
+			logrus.Warnf("Failed to add description column to script_projects: %v", err)
+		} else {
+			logrus.Info("Successfully added description column to script_projects")
+		}
+	}
+
+	var projectInstructionsColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = 'script_projects' 
+			AND column_name = 'instructions'
+		)
+	`).Scan(&projectInstructionsColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if instructions column exists on script_projects: %v", err)
+	} else if !projectInstructionsColumnExists {
+		logrus.Info("Adding instructions column to script_projects table...")
+		err = db.Exec("ALTER TABLE script_projects ADD COLUMN IF NOT EXISTS instructions TEXT").Error
+		if err != nil {
+			logrus.Warnf("Failed to add instructions column to script_projects: %v", err)
+		} else {
+			logrus.Info("Successfully added instructions column to script_projects")
+		}
+	}
+
+	// Migration: Add filename column to script_prompts table if it doesn't exist
+	var scriptPromptsFilenameColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'script_prompts'
+			AND column_name = 'filename'
+		)
+	`).Scan(&scriptPromptsFilenameColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if filename column exists on script_prompts: %v", err)
+	} else if !scriptPromptsFilenameColumnExists {
+		logrus.Info("Adding filename column to script_prompts table...")
+		err = db.Exec("ALTER TABLE script_prompts ADD COLUMN IF NOT EXISTS filename VARCHAR(255)").Error
+		if err != nil {
+			logrus.Warnf("Failed to add filename column to script_prompts: %v", err)
+		} else {
+			logrus.Info("Successfully added filename column to script_prompts")
+		}
+	}
+
+	// Migration: Add input_files column to script_prompts table if it doesn't exist
+	var scriptPromptsInputFilesColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'script_prompts'
+			AND column_name = 'input_files'
+		)
+	`).Scan(&scriptPromptsInputFilesColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if input_files column exists on script_prompts: %v", err)
+	} else if !scriptPromptsInputFilesColumnExists {
+		logrus.Info("Adding input_files column to script_prompts table...")
+		err = db.Exec("ALTER TABLE script_prompts ADD COLUMN IF NOT EXISTS input_files JSONB").Error
+		if err != nil {
+			logrus.Warnf("Failed to add input_files column to script_prompts: %v", err)
+		} else {
+			logrus.Info("Successfully added input_files column to script_prompts")
 		}
 	}
 
