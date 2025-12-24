@@ -260,9 +260,10 @@ func (h *GeminiAccountHandler) UnlockAccount(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Account unlocked successfully"})
 }
 
-// GetTopicsByAccountID retrieves all topics created with a specific Gemini account
-// @Summary Get topics by Gemini account ID
-// @Description Get all topics that were created using a specific Gemini account
+// GetTopicsByAccountID (legacy) - in the new model, gems are attached to ScriptProjects, not Topics.
+// This endpoint is kept for backward compatibility but now returns an empty topics list.
+// @Summary Get topics by Gemini account ID (deprecated)
+// @Description [DEPRECATED] Topics are no longer directly bound to Gemini accounts. Use project-level APIs instead.
 // @Tags gemini-accounts
 // @Produce json
 // @Security BearerAuth
@@ -281,37 +282,11 @@ func (h *GeminiAccountHandler) GetTopicsByAccountID(c *gin.Context) {
 		return
 	}
 
-	// Get topics using TopicService
-	topics, err := h.topicService.GetTopicsByGeminiAccountID(accountID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get topics", "details": err.Error()})
-		return
-	}
-
-	// Convert to response format
-	responses := make([]gin.H, len(topics))
-	for i, topic := range topics {
-		responses[i] = gin.H{
-			"id":                topic.ID,
-			"user_profile_id":   topic.UserProfileID,
-			"name":              topic.Name,
-			"gemini_gem_id":     topic.GeminiGemID,
-			"gemini_gem_name":   topic.GeminiGemName,
-			"gemini_account_id": topic.GeminiAccountID,
-			"description":      topic.Description,
-			"instructions":      topic.Instructions,
-			"is_active":         topic.IsActive,
-			"sync_status":       topic.SyncStatus,
-			"created_at":       topic.CreatedAt.Format(time.RFC3339),
-			"updated_at":        topic.UpdatedAt.Format(time.RFC3339),
-		}
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"account_id": account.ID,
 		"email":      account.Email,
-		"topics":     responses,
-		"total":      len(responses),
+		"topics":     []gin.H{},
+		"total":      0,
 	})
 }
 

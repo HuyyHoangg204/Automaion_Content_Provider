@@ -17,21 +17,21 @@ import (
 
 // ChromeProfileService manages Chrome profile launching with lock mechanism
 type ChromeProfileService struct {
-	userProfileRepo    *repository.UserProfileRepository
-	appRepo             *repository.AppRepository
-	boxRepo             *repository.BoxRepository
-	geminiAccountRepo   *repository.GeminiAccountRepository
-	topicRepo           *repository.TopicRepository
+	userProfileRepo   *repository.UserProfileRepository
+	appRepo           *repository.AppRepository
+	boxRepo           *repository.BoxRepository
+	geminiAccountRepo *repository.GeminiAccountRepository
+	topicRepo         *repository.TopicRepository
 }
 
 // NewChromeProfileService creates a new ChromeProfileService
 func NewChromeProfileService(userProfileRepo *repository.UserProfileRepository, appRepo *repository.AppRepository, boxRepo *repository.BoxRepository, geminiAccountRepo *repository.GeminiAccountRepository, topicRepo *repository.TopicRepository) *ChromeProfileService {
 	return &ChromeProfileService{
-		userProfileRepo:  userProfileRepo,
-		appRepo:          appRepo,
-		boxRepo:          boxRepo,
+		userProfileRepo:   userProfileRepo,
+		appRepo:           appRepo,
+		boxRepo:           boxRepo,
 		geminiAccountRepo: geminiAccountRepo,
-		topicRepo:        topicRepo,
+		topicRepo:         topicRepo,
 	}
 }
 
@@ -42,6 +42,7 @@ type LaunchChromeProfileRequest struct {
 	EnsureGmail   bool     `json:"ensure_gmail,omitempty"`
 	EntityType    string   `json:"entity_type,omitempty"` // For logging: "topic", "script", etc.
 	EntityID      string   `json:"entity_id,omitempty"`   // For logging: entity UUID
+	DebugPort     int      `json:"debug_port,omitempty"`  // Chrome debug port - mỗi user 1 port riêng
 }
 
 // LaunchChromeProfileResponse represents the response for Chrome launch
@@ -50,6 +51,7 @@ type LaunchChromeProfileResponse struct {
 	AppID        string `json:"app_id"`     // App/Machine ID that launched Chrome
 	MachineID    string `json:"machine_id"` // Machine ID
 	TunnelURL    string `json:"tunnel_url"` // Tunnel URL of the machine
+	DebugPort    int    `json:"debug_port"` // Chrome debug port (từ automation backend)
 	Message      string `json:"message"`
 	LockAcquired bool   `json:"lock_acquired"` // Whether lock was acquired
 }
@@ -77,6 +79,8 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 		return nil, fmt.Errorf("user profile not found: %w", err)
 	}
 
+	// TODO: Tạm thời bỏ logic check lock để cho phép nhiều Chrome instances cùng profile
+	// Sau này sẽ implement support multiple Chrome instances cho 1 profile
 	// Check if profile is already locked
 	if userProfile.CurrentAppID != nil {
 		// Check if lock is expired (more than 1 hour)
@@ -89,8 +93,10 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 				userProfile.CurrentMachineID = nil
 				userProfile.LastRunStartedAt = nil
 			} else {
-				// Profile is locked and not expired
-				return nil, fmt.Errorf("profile is currently in use by another machine (app_id: %s)", *userProfile.CurrentAppID)
+				// Profile is locked and not expired - TẠM THỜI: chỉ log warning, không block
+				// Sau này sẽ support multiple Chrome instances cho 1 profile
+				logrus.Warnf("Profile %s is currently in use by app %s, but allowing multiple instances (temporary)", userProfile.ID, *userProfile.CurrentAppID)
+				// Không return error, cho phép launch tiếp
 			}
 		} else {
 			// Lock exists but no start time, clear it
@@ -100,29 +106,11 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 	}
 
 	// Get available machines using load balancing (weighted score)
-	// If EntityType is "topic" or "gemini" and EntityID is provided, use selectBestMachineForTopic
+	// In the new model, machine selection is based on user profile (and per-project gem accounts for scripts),
+	// so for topics/gemini we always use profile-based selection.
 	var selectedApp *models.App
-	if (req.EntityType == "topic" || req.EntityType == "gemini") && req.EntityID != "" {
-		// Get topic to filter machines by GeminiAccount
-		topic, err := s.topicRepo.GetByID(req.EntityID)
-		if err == nil && topic != nil {
-			// Use selectBestMachineForTopic to filter by GeminiAccount
-			selectedApp, err = s.selectBestMachineForTopic(userProfile, topic)
-			if err != nil {
-				logrus.Warnf("Failed to select machine for topic %s: %v, falling back to selectBestMachineForProfile", req.EntityID, err)
-				// Fallback to selectBestMachineForProfile
-				selectedApp, err = s.selectBestMachineForProfile(userProfile)
-			}
-		} else {
-			logrus.Warnf("Failed to get topic %s: %v, falling back to selectBestMachineForProfile", req.EntityID, err)
-			// Fallback to selectBestMachineForProfile
-			selectedApp, err = s.selectBestMachineForProfile(userProfile)
-		}
-	} else {
-		// Use normal profile-based selection
-		selectedApp, err = s.selectBestMachineForProfile(userProfile)
-	}
-	
+	selectedApp, err = s.selectBestMachineForProfile(userProfile)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to select machine: %w", err)
 	}
@@ -156,6 +144,12 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 
 	if len(req.ExtraArgs) > 0 {
 		requestBody["extraArgs"] = req.ExtraArgs
+	}
+
+	// Truyền debugPort để automation backend biết mở Chrome với port nào
+	// Mỗi user sẽ có 1 port riêng, tránh conflict khi nhiều user dùng chung profile
+	if req.DebugPort > 0 {
+		requestBody["debugPort"] = req.DebugPort
 	}
 
 	jsonBody, err := json.Marshal(requestBody)
@@ -205,20 +199,28 @@ func (s *ChromeProfileService) LaunchChromeProfile(userID string, req *LaunchChr
 	}
 
 	// Parse response (reuse the body we already read)
+	var debugPort int
 	var responseData map[string]interface{}
 	if len(responseBodyBytes) > 0 {
 		if err := json.Unmarshal(responseBodyBytes, &responseData); err != nil {
 			logrus.Warnf("Failed to parse Chrome launch response: %v", err)
+		} else {
+			// Extract debugPort từ response
+			if dp, ok := responseData["debugPort"].(float64); ok {
+				debugPort = int(dp)
+				logrus.Infof("Got debugPort from launch response: %d", debugPort)
+			}
 		}
 	}
 
-	logrus.Infof("Successfully launched Chrome for profile %s on machine %s (app %s)", userProfile.ID, selectedApp.BoxID, selectedApp.ID)
+	logrus.Infof("Successfully launched Chrome for profile %s on machine %s (app %s), debugPort=%d", userProfile.ID, selectedApp.BoxID, selectedApp.ID, debugPort)
 
 	return &LaunchChromeProfileResponse{
 		Success:      true,
 		AppID:        selectedApp.ID,
 		MachineID:    selectedApp.BoxID,
 		TunnelURL:    tunnelURL,
+		DebugPort:    debugPort,
 		Message:      "Chrome launched successfully",
 		LockAcquired: true,
 	}, nil
@@ -395,116 +397,8 @@ func (s *ChromeProfileService) selectBestMachineForProfile(userProfile *models.U
 	return s.selectBestMachine(candidateApps, userProfile)
 }
 
-// selectBestMachineForTopic selects the best machine for a specific topic
-// Filters machines that have the same GeminiAccount as the topic, then applies load balancing
-func (s *ChromeProfileService) selectBestMachineForTopic(userProfile *models.UserProfile, topic *models.Topic) (*models.App, error) {
-	// If topic doesn't have GeminiAccountID, fallback to selectBestMachineForProfile
-	if topic.GeminiAccountID == nil {
-		logrus.Warnf("Topic %s does not have GeminiAccountID, falling back to selectBestMachineForProfile", topic.ID)
-		return s.selectBestMachineForProfile(userProfile)
-	}
-
-	// Get all machines that have the same GeminiAccount (same email)
-	// First get the account to get its email
-	account, err := s.geminiAccountRepo.GetByID(*topic.GeminiAccountID)
-	if err != nil {
-		logrus.Warnf("Failed to get GeminiAccount %s for topic %s: %v, falling back to selectBestMachineForProfile", *topic.GeminiAccountID, topic.ID, err)
-		return s.selectBestMachineForProfile(userProfile)
-	}
-
-	// Get all active accounts with the same email (có thể trên nhiều machines)
-	accountsWithSameEmail, err := s.geminiAccountRepo.GetActiveByEmail(account.Email)
-	if err != nil {
-		logrus.Warnf("Failed to get accounts with email %s: %v, falling back to selectBestMachineForProfile", account.Email, err)
-		return s.selectBestMachineForProfile(userProfile)
-	}
-
-	if len(accountsWithSameEmail) == 0 {
-		logrus.Warnf("No active accounts found with email %s, falling back to selectBestMachineForProfile", account.Email)
-		return s.selectBestMachineForProfile(userProfile)
-	}
-
-	// Get all machine IDs that have this account
-	machineIDs := make(map[string]bool)
-	for _, acc := range accountsWithSameEmail {
-		machineIDs[acc.MachineID] = true
-	}
-
-	// Get all automation apps
-	allApps, err := s.appRepo.GetAll()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get apps: %w", err)
-	}
-
-	// Filter online automation apps with tunnel URLs AND have the GeminiAccount
-	var candidateApps []*models.App
-	for _, app := range allApps {
-		if app.TunnelURL == nil || *app.TunnelURL == "" {
-			continue
-		}
-		if strings.ToLower(app.Name) != "automation" {
-			continue
-		}
-
-		// Get box to check online status and machine_id
-		box, err := s.boxRepo.GetByID(app.BoxID)
-		if err != nil {
-			continue
-		}
-
-		// Only consider online machines
-		if !box.IsOnline {
-			continue
-		}
-
-		// Check if this machine has the GeminiAccount (same email)
-		if !machineIDs[box.MachineID] {
-			continue // Machine doesn't have the GeminiAccount
-		}
-
-		// Check if profile is deployed on this machine
-		deployedMachines := userProfile.DeployedMachines
-		if len(deployedMachines) > 0 {
-			appIDStr := app.ID
-			found := false
-
-			// DeployedMachines is a JSON map, check if app ID exists in values
-			for _, value := range deployedMachines {
-				// Value could be a string or an array of strings
-				if strValue, ok := value.(string); ok && strValue == appIDStr {
-					found = true
-					break
-				}
-				// If value is an array, check each element
-				if arrValue, ok := value.([]interface{}); ok {
-					for _, item := range arrValue {
-						if itemStr, ok := item.(string); ok && itemStr == appIDStr {
-							found = true
-							break
-						}
-					}
-					if found {
-						break
-					}
-				}
-			}
-
-			if !found {
-				continue // Profile not deployed on this machine
-			}
-		}
-
-		candidateApps = append(candidateApps, app)
-	}
-
-	if len(candidateApps) == 0 {
-		return nil, errors.New("no online automation machines available with GeminiAccount and profile deployed")
-	}
-
-	// Select best machine using weighted score
-	logrus.Infof("Found %d machines with GeminiAccount (email: %s) for topic %s, applying load balancing", len(candidateApps), account.Email, topic.ID)
-	return s.selectBestMachine(candidateApps, userProfile)
-}
+// selectBestMachineForTopic is deprecated in the new model (topics no longer bind to a single Gemini account/gem).
+// Machine selection is handled per user profile (and per project for scripts).
 
 // selectBestMachine selects machine with lowest weighted score
 // Weighted Score = RunningProfiles * 10 + (CPUUsage / 10) - (MemoryFreeGB * 2)

@@ -88,23 +88,8 @@ func main() {
 	} else {
 		logrus.Info("RabbitMQ service initialized")
 		defer rabbitMQService.Close()
-
-		// Initialize ProcessLogService and start RabbitMQ consumer
-		logRepo := repository.NewProcessLogRepository(db)
-		processLogService := services.NewProcessLogService(logRepo, sseHub, rabbitMQService, db)
-
-		if err := processLogService.StartRabbitMQConsumer(); err != nil {
-			logrus.Warnf("Failed to start RabbitMQ log consumer: %v", err)
-		} else {
-			logrus.Info("RabbitMQ log consumer started")
-			defer processLogService.StopRabbitMQConsumer()
-		}
-
-		// Start log cleanup service (cleanup every 6 hours, keep logs for 1 day)
-		logRetentionDays := getEnvAsInt("LOG_RETENTION_DAYS", 1)
-		cleanupInterval := 6 * time.Hour
-		processLogService.StartLogCleanup(cleanupInterval, logRetentionDays)
-		defer processLogService.StopLogCleanup()
+		// NOTE: ProcessLogService RabbitMQ consumer và cleanup được start trong router.SetupRouter()
+		// để đảm bảo ScriptExecutionService đã được inject trước khi consumer chạy
 	}
 
 	// Create admin user if not exists

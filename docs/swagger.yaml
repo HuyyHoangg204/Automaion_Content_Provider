@@ -237,6 +237,19 @@ definitions:
     required:
     - name
     type: object
+  models.ExecuteScriptResponse:
+    properties:
+      execution_id:
+        type: string
+      message:
+        type: string
+      script_id:
+        type: string
+      status:
+        type: string
+      topic_id:
+        type: string
+    type: object
   models.FileResponse:
     properties:
       created_at:
@@ -4069,6 +4082,45 @@ paths:
       security:
       - BearerAuth: []
       summary: Save or update a script for a topic
+      tags:
+      - scripts
+  /api/v1/topics/{id}/scripts/execute:
+    post:
+      consumes:
+      - application/json
+      description: Execute a script by running projects in topological order. Execution
+        is queued and processed asynchronously.
+      parameters:
+      - description: Topic ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/models.ExecuteScriptResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Execute a script
       tags:
       - scripts
 securityDefinitions:

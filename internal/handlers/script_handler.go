@@ -10,14 +10,16 @@ import (
 )
 
 type ScriptHandler struct {
-	scriptService *services.ScriptService
-	topicService   *services.TopicService
+	scriptService         *services.ScriptService
+	scriptExecutionService *services.ScriptExecutionService
+	topicService          *services.TopicService
 }
 
-func NewScriptHandler(scriptService *services.ScriptService, topicService *services.TopicService) *ScriptHandler {
+func NewScriptHandler(scriptService *services.ScriptService, scriptExecutionService *services.ScriptExecutionService, topicService *services.TopicService) *ScriptHandler {
 	return &ScriptHandler{
-		scriptService: scriptService,
-		topicService:  topicService,
+		scriptService:         scriptService,
+		scriptExecutionService: scriptExecutionService,
+		topicService:          topicService,
 	}
 }
 
@@ -143,5 +145,92 @@ func (h *ScriptHandler) DeleteScript(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Script deleted successfully"})
+}
+
+// ExecuteScript godoc
+// @Summary Execute a script
+// @Description Execute a script by running projects in topological order. Execution is queued and processed asynchronously.
+// @Tags scripts
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Topic ID"
+// @Success 202 {object} models.ExecuteScriptResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/topics/{id}/scripts/execute [post]
+func (h *ScriptHandler) ExecuteScript(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	topicID := c.Param("id")
+
+	// Check if user has permission to access this topic
+	canAccess, _, err := h.topicService.CanUserAccessTopic(userID, topicID, false)
+	if err != nil {
+		logrus.Errorf("Failed to check topic access for user %s, topic %s: %v", userID, topicID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check topic access", "details": err.Error()})
+		return
+	}
+	if !canAccess {
+		logrus.Errorf("User %s does not have permission to access topic %s", userID, topicID)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+
+	response, err := h.scriptExecutionService.ExecuteScript(topicID, userID)
+	if err != nil {
+		logrus.Errorf("Failed to execute script for user %s, topic %s: %v", userID, topicID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to execute script", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, response)
+}
+
+// CreateProject godoc
+// @Summary Create a new project (and its gem)
+// @Description Create a new project for a topic and automatically create a Gem on Gemini
+// @Tags projects
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Topic ID"
+// @Param request body models.CreateProjectRequest true "Project creation request"
+// @Success 201 {object} models.CreateProjectResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/topics/{id}/projects [post]
+func (h *ScriptHandler) CreateProject(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	topicID := c.Param("id")
+
+	// Check if user has permission to access this topic
+	canAccess, _, err := h.topicService.CanUserAccessTopic(userID, topicID, false)
+	if err != nil {
+		logrus.Errorf("Failed to check topic access for user %s, topic %s: %v", userID, topicID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check topic access", "details": err.Error()})
+		return
+	}
+	if !canAccess {
+		logrus.Errorf("User %s does not have permission to access topic %s", userID, topicID)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Topic not found"})
+		return
+	}
+
+	var req models.CreateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data", "details": err.Error()})
+		return
+	}
+
+	response, err := h.scriptService.CreateProject(topicID, userID, &req)
+	if err != nil {
+		logrus.Errorf("Failed to create project for user %s, topic %s: %v", userID, topicID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create project", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 

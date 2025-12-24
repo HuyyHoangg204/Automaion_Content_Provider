@@ -21,7 +21,8 @@ func (r *GeminiAccountRepository) Create(account *models.GeminiAccount) error {
 // GetByID retrieves a Gemini account by ID
 func (r *GeminiAccountRepository) GetByID(id string) (*models.GeminiAccount, error) {
 	var account models.GeminiAccount
-	err := r.db.Preload("App").Preload("Topics").First(&account, "id = ?", id).Error
+	// Note: Topics relationship đã bị xóa khỏi GeminiAccount model
+	err := r.db.Preload("App").First(&account, "id = ?", id).Error
 	if err != nil {
 		return nil, err
 	}

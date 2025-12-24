@@ -25,8 +25,7 @@ type GeminiAccount struct {
 	UpdatedAt        time.Time  `json:"updated_at"`
 
 	// Relationships
-	App    *App    `json:"app,omitempty" gorm:"foreignKey:AppID;references:ID;constraint:OnDelete:SET NULL"`
-	Topics []Topic `json:"topics,omitempty" gorm:"foreignKey:GeminiAccountID;references:ID;constraint:OnDelete:SET NULL"`
+	App *App `json:"app,omitempty" gorm:"foreignKey:AppID;references:ID;constraint:OnDelete:SET NULL"`
 }
 
 // TableName specifies the table name for the GeminiAccount model

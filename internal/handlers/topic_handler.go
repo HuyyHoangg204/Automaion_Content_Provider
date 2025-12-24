@@ -92,9 +92,6 @@ func (h *TopicHandler) CreateTopic(c *gin.Context) {
 		return
 	}
 
-	// Log để debug - xem request có knowledge_files không
-	logrus.Infof("CreateTopic request - KnowledgeFiles received: %v (length: %d)", req.KnowledgeFiles, len(req.KnowledgeFiles))
-
 	topic, err := h.topicService.CreateTopic(userID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create topic", "details": err.Error()})
@@ -320,19 +317,15 @@ func (h *TopicHandler) DeleteTopic(c *gin.Context) {
 // topicToResponse converts a Topic model to TopicResponse
 func (h *TopicHandler) topicToResponse(topic *models.Topic) models.TopicResponse {
 	response := models.TopicResponse{
-		ID:               topic.ID,
-		UserProfileID:    topic.UserProfileID,
-		Name:             topic.Name,
-		GeminiGemID:      topic.GeminiGemID,
-		GeminiGemName:    topic.GeminiGemName,
-		Description:      topic.Description,
-		Instructions:     topic.Instructions,
-		KnowledgeFiles:   topic.KnowledgeFiles,
-		IsActive:         topic.IsActive,
-		SyncStatus:       topic.SyncStatus,
-		SyncError:        topic.SyncError,
-		CreatedAt:        topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		UpdatedAt:        topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		ID:            topic.ID,
+		UserProfileID: topic.UserProfileID,
+		Name:          topic.Name,
+		Description:   topic.Description,
+		IsActive:      topic.IsActive,
+		SyncStatus:    topic.SyncStatus,
+		SyncError:     topic.SyncError,
+		CreatedAt:     topic.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		UpdatedAt:     topic.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	}
 
 	if topic.LastSyncedAt != nil {

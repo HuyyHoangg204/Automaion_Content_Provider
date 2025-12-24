@@ -4331,6 +4331,64 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/v1/topics/{id}/scripts/execute": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Execute a script by running projects in topological order. Execution is queued and processed asynchronously.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scripts"
+                ],
+                "summary": "Execute a script",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Topic ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/models.ExecuteScriptResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -4661,6 +4719,26 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Lịch sử"
+                }
+            }
+        },
+        "models.ExecuteScriptResponse": {
+            "type": "object",
+            "properties": {
+                "execution_id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "script_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "topic_id": {
+                    "type": "string"
                 }
             }
         },

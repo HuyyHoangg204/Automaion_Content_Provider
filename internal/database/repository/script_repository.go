@@ -164,3 +164,101 @@ func (r *ScriptRepository) DeleteEdgesByScriptIDAndEdgeIDs(scriptID string, edge
 		Delete(&models.ScriptEdge{}).Error
 }
 
+// ScriptExecution methods
+
+// CreateExecution creates a new script execution
+func (r *ScriptRepository) CreateExecution(execution *models.ScriptExecution) error {
+	return r.db.Create(execution).Error
+}
+
+// GetExecutionByID gets an execution by ID
+func (r *ScriptRepository) GetExecutionByID(executionID string) (*models.ScriptExecution, error) {
+	var execution models.ScriptExecution
+	err := r.db.Where("id = ?", executionID).First(&execution).Error
+	if err != nil {
+		return nil, err
+	}
+	return &execution, nil
+}
+
+// UpdateExecution updates an execution
+func (r *ScriptRepository) UpdateExecution(execution *models.ScriptExecution) error {
+	return r.db.Save(execution).Error
+}
+
+// GetRunningExecutionsByUserID gets running executions for a user (for rate limiting)
+func (r *ScriptRepository) GetRunningExecutionsByUserID(userID string) ([]*models.ScriptExecution, error) {
+	var executions []*models.ScriptExecution
+	err := r.db.Where("user_id = ? AND status IN ?", userID, []string{"pending", "running"}).
+		Find(&executions).Error
+	if err != nil {
+		return nil, err
+	}
+	return executions, nil
+}
+
+// GetRunningExecutionsByTopicID gets running executions for a topic (for rate limiting)
+func (r *ScriptRepository) GetRunningExecutionsByTopicID(topicID string) ([]*models.ScriptExecution, error) {
+	var executions []*models.ScriptExecution
+	err := r.db.Where("topic_id = ? AND status IN ?", topicID, []string{"pending", "running"}).
+		Find(&executions).Error
+	if err != nil {
+		return nil, err
+	}
+	return executions, nil
+}
+
+// CreateProjectExecution creates a new project execution record
+func (r *ScriptRepository) CreateProjectExecution(projectExec *models.ScriptProjectExecution) error {
+	return r.db.Create(projectExec).Error
+}
+
+// GetProjectExecutionByID gets a project execution by ID
+func (r *ScriptRepository) GetProjectExecutionByID(id string) (*models.ScriptProjectExecution, error) {
+	var projectExec models.ScriptProjectExecution
+	err := r.db.Where("id = ?", id).First(&projectExec).Error
+	if err != nil {
+		return nil, err
+	}
+	return &projectExec, nil
+}
+
+// GetProjectExecutionsByExecutionID gets all project executions for an execution
+func (r *ScriptRepository) GetProjectExecutionsByExecutionID(executionID string) ([]*models.ScriptProjectExecution, error) {
+	var projectExecs []*models.ScriptProjectExecution
+	err := r.db.Where("execution_id = ?", executionID).
+		Order("project_order ASC").
+		Find(&projectExecs).Error
+	if err != nil {
+		return nil, err
+	}
+	return projectExecs, nil
+}
+
+// GetProjectExecutionByExecutionIDAndProjectID gets a project execution by execution_id and project_id
+func (r *ScriptRepository) GetProjectExecutionByExecutionIDAndProjectID(executionID, projectID string) (*models.ScriptProjectExecution, error) {
+	var projectExec models.ScriptProjectExecution
+	err := r.db.Where("execution_id = ? AND project_id = ?", executionID, projectID).First(&projectExec).Error
+	if err != nil {
+		return nil, err
+	}
+	return &projectExec, nil
+}
+
+// UpdateProjectExecution updates a project execution
+func (r *ScriptRepository) UpdateProjectExecution(projectExec *models.ScriptProjectExecution) error {
+	return r.db.Save(projectExec).Error
+}
+
+// GetCompletedProjectExecutionsByExecutionID gets all completed project executions for an execution
+func (r *ScriptRepository) GetCompletedProjectExecutionsByExecutionID(executionID string) ([]*models.ScriptProjectExecution, error) {
+	var projectExecs []*models.ScriptProjectExecution
+	err := r.db.Where("execution_id = ? AND status = ?", executionID, "completed").
+		Order("project_order ASC").
+		Find(&projectExecs).Error
+	if err != nil {
+		return nil, err
+	}
+	return projectExecs, nil
+}
+
