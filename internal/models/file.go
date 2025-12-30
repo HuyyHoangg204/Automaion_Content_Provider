@@ -14,8 +14,11 @@ type File struct {
 	FileName     string `json:"file_name" gorm:"type:varchar(255);not null"`
 	OriginalName string `json:"original_name" gorm:"type:varchar(255);not null"`
 	MimeType     string `json:"mime_type" gorm:"type:varchar(100)"`
-	FileSize     int64  `json:"file_size" gorm:"type:bigint"` // Size in bytes
+	FileSize     int64  `json:"file_size" gorm:"type:bigint"`                // Size in bytes
 	FilePath     string `json:"file_path" gorm:"type:varchar(500);not null"` // Path on server storage
+	// Optional: để lưu mapping với prompt (khi chưa save script)
+	ProjectID    *string `json:"project_id,omitempty" gorm:"type:varchar(255);index"`     // Frontend project_id (timestamp)
+	TempPromptID *string `json:"temp_prompt_id,omitempty" gorm:"type:varchar(255);index"` // Temp prompt_id từ frontend
 
 	// Timestamps
 	CreatedAt time.Time `json:"created_at"`
@@ -32,7 +35,9 @@ func (File) TableName() string {
 
 // FileUploadRequest represents the request to upload a file
 type FileUploadRequest struct {
-	Category string `json:"category,omitempty" form:"category" example:"knowledge"`
+	Category  string `json:"category,omitempty" form:"category" example:"knowledge"`
+	ProjectID string `json:"project_id,omitempty" form:"project_id"` // Optional: để cache files cho project
+	PromptID  string `json:"prompt_id,omitempty" form:"prompt_id"`   // Optional: để cache files cho prompt cụ thể (temp_id từ frontend)
 }
 
 // FileResponse represents the response for file operations
@@ -42,10 +47,8 @@ type FileResponse struct {
 	FileName     string `json:"file_name" example:"abc123.pdf"`
 	OriginalName string `json:"original_name" example:"document.pdf"`
 	MimeType     string `json:"mime_type" example:"application/pdf"`
-	FileSize     int64  `json:"file_size" example:1024`
+	FileSize     int64  `json:"file_size" example:"1024"`
 	DownloadURL  string `json:"download_url" example:"/api/v1/files/550e8400-e29b-41d4-a716-446655440000/download"`
 	CreatedAt    string `json:"created_at" example:"2025-01-21T10:00:00Z"`
 	UpdatedAt    string `json:"updated_at" example:"2025-01-21T10:00:00Z"`
 }
-
-

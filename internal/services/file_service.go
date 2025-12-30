@@ -109,13 +109,18 @@ func (s *FileService) UploadFile(userID string, fileHeader *multipart.FileHeader
 		FileSize:     fileSize,
 		FilePath:     filePath,
 	}
+	// Dùng pointer để GORM xử lý nullable đúng cách
+	if req.ProjectID != "" {
+		fileModel.ProjectID = &req.ProjectID
+	}
+	if req.PromptID != "" {
+		fileModel.TempPromptID = &req.PromptID
+	}
 
 	if err := s.fileRepo.Create(fileModel); err != nil {
 		os.Remove(filePath) // Clean up on error
 		return nil, fmt.Errorf("failed to save file record: %w", err)
 	}
-
-	logrus.Infof("File uploaded successfully: %s (ID: %s, Size: %d bytes)", originalName, fileModel.ID, fileSize)
 
 	return fileModel, nil
 }
@@ -228,6 +233,21 @@ func (s *FileService) ValidateDownloadToken(tokenString string) (string, error) 
 // GetUserFiles retrieves all files for a user
 func (s *FileService) GetUserFiles(userID string) ([]*models.File, error) {
 	return s.fileRepo.GetByUserID(userID)
+}
+
+// UpdateFileProjectAndPrompt updates project_id and temp_prompt_id for a file
+func (s *FileService) UpdateFileProjectAndPrompt(fileID, projectID, tempPromptID string) error {
+	return s.fileRepo.UpdateProjectIDAndTempPromptID(fileID, projectID, tempPromptID)
+}
+
+// GetFilesByProjectAndPrompt retrieves files for a specific prompt (before saving script)
+func (s *FileService) GetFilesByProjectAndPrompt(userID, projectID, tempPromptID string) ([]*models.File, error) {
+	return s.fileRepo.GetByProjectIDAndTempPromptID(userID, projectID, tempPromptID)
+}
+
+// ClearFilesProjectAndPrompt clears project_id and temp_prompt_id for files (after saving script)
+func (s *FileService) ClearFilesProjectAndPrompt(userID, projectID, tempPromptID string) error {
+	return s.fileRepo.ClearProjectIDAndTempPromptID(userID, projectID, tempPromptID)
 }
 
 // FileToResponse converts File model to FileResponse

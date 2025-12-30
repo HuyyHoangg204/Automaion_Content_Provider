@@ -194,46 +194,124 @@ func (s *ScriptService) SaveScript(topicID, userID string, req *models.SaveScrip
 		}
 	}
 
-	// Delete and recreate prompts for all projects (simpler than tracking individual prompts)
-	// Get all project_ids that need prompts updated (both new and updated projects)
-	projectIDsForPrompts := make([]string, 0, len(req.Projects))
-	for _, projectReq := range req.Projects {
-		projectIDsForPrompts = append(projectIDsForPrompts, projectReq.ID)
-	}
-	if len(projectIDsForPrompts) > 0 {
-		// Delete old prompts for these projects
-		if err := s.scriptRepo.DeletePromptsByScriptIDAndProjectIDs(script.ID, projectIDsForPrompts); err != nil {
-			return nil, fmt.Errorf("failed to delete old prompts: %w", err)
-		}
-	}
+	// Upsert prompts: update existing or create new
+	// Track which prompt IDs are in the request to delete prompts that are no longer present
+	requestPromptIDs := make(map[string]bool)
+	promptsToCreate := make([]*models.ScriptPrompt, 0)
+	promptsToUpdate := make([]*models.ScriptPrompt, 0)
+	allExistingPrompts := make([]*models.ScriptPrompt, 0) // Collect all existing prompts for deletion check
 
-	// Create prompts for each project
-	prompts := make([]*models.ScriptPrompt, 0)
 	for _, projectReq := range req.Projects {
 		project := projectIDMap[projectReq.ID]
 		if project == nil {
 			continue
 		}
 
+		// Get existing prompts for this project
+		existingPrompts, err := s.scriptRepo.GetPromptsByScriptIDAndProjectID(script.ID, project.ProjectID)
+		if err != nil && err.Error() != "record not found" {
+			return nil, fmt.Errorf("failed to get existing prompts: %w", err)
+		}
+		allExistingPrompts = append(allExistingPrompts, existingPrompts...)
+		existingPromptMap := make(map[string]*models.ScriptPrompt) // Map ID -> prompt
+		for _, p := range existingPrompts {
+			existingPromptMap[p.ID] = p
+		}
+
 		for order, promptReq := range projectReq.Prompts {
-			prompt := &models.ScriptPrompt{
-				ScriptID:    script.ID,         // Cần để reference đến ScriptProject composite key
-				ProjectID:   project.ProjectID, // Frontend project_id (varchar), part of composite key
-				PromptText:  promptReq.Text,
-				Filename:    promptReq.Filename,
-				InputFiles:  promptReq.InputFiles,
-				Exit:        promptReq.Exit,
-				Merge:       promptReq.Merge, // Map Merge from request
-				PromptOrder: order,
+			// Nếu có PromptID, lấy files từ cache; nếu không, dùng InputFiles từ request
+			inputFiles := promptReq.InputFiles
+			if promptReq.PromptID != "" {
+				// Lấy files từ cache dựa trên prompt_id (KHÔNG xóa để user vẫn có thể GET files sau đó)
+				fileIDs := s.GetUploadedFilesForPrompt(userID, project.ProjectID, promptReq.PromptID)
+				if len(fileIDs) > 0 {
+					// Convert file IDs thành file names (original_name) để gửi cho automation backend
+					fileNames := make([]string, 0, len(fileIDs))
+					for _, fileID := range fileIDs {
+						file, err := s.fileService.GetFile(fileID, userID)
+						if err != nil {
+							logrus.Warnf("Failed to get file %s for prompt: %v", fileID, err)
+							continue
+						}
+						fileNames = append(fileNames, file.OriginalName)
+					}
+					inputFiles = fileNames
+				}
 			}
-			prompts = append(prompts, prompt)
+
+			if promptReq.ID != "" {
+				// Update existing prompt
+				existingPrompt, exists := existingPromptMap[promptReq.ID]
+				if exists {
+					existingPrompt.PromptText = promptReq.Text
+					existingPrompt.Filename = promptReq.Filename
+					existingPrompt.InputFiles = inputFiles
+					existingPrompt.Exit = promptReq.Exit
+					existingPrompt.Merge = promptReq.Merge
+					existingPrompt.PromptOrder = order
+					existingPrompt.TempPromptID = promptReq.PromptID // Update temp_prompt_id nếu có
+					existingPrompt.UpdatedAt = time.Now()
+					promptsToUpdate = append(promptsToUpdate, existingPrompt)
+					requestPromptIDs[promptReq.ID] = true
+				} else {
+					// ID provided but not found - treat as new prompt
+					newPrompt := &models.ScriptPrompt{
+						ID:           promptReq.ID, // Use provided ID
+						ScriptID:     script.ID,
+						ProjectID:    project.ProjectID,
+						TempPromptID: promptReq.PromptID,
+						PromptText:   promptReq.Text,
+						Filename:     promptReq.Filename,
+						InputFiles:   inputFiles,
+						Exit:         promptReq.Exit,
+						Merge:        promptReq.Merge,
+						PromptOrder:  order,
+					}
+					promptsToCreate = append(promptsToCreate, newPrompt)
+					requestPromptIDs[promptReq.ID] = true
+				}
+			} else {
+				// Create new prompt (no ID provided)
+				newPrompt := &models.ScriptPrompt{
+					ScriptID:     script.ID,
+					ProjectID:    project.ProjectID,
+					TempPromptID: promptReq.PromptID,
+					PromptText:   promptReq.Text,
+					Filename:     promptReq.Filename,
+					InputFiles:   inputFiles,
+					Exit:         promptReq.Exit,
+					Merge:        promptReq.Merge,
+					PromptOrder:  order,
+				}
+				promptsToCreate = append(promptsToCreate, newPrompt)
+			}
 		}
 	}
 
-	// Create prompts in batch
-	if len(prompts) > 0 {
-		if err := s.scriptRepo.CreatePrompts(prompts); err != nil {
+	// Delete prompts that are no longer in the request
+	promptsToDelete := make([]string, 0)
+	for _, existingPrompt := range allExistingPrompts {
+		if !requestPromptIDs[existingPrompt.ID] {
+			promptsToDelete = append(promptsToDelete, existingPrompt.ID)
+		}
+	}
+	if len(promptsToDelete) > 0 {
+		if err := s.scriptRepo.DeletePromptsByIDs(promptsToDelete); err != nil {
+			logrus.Warnf("Failed to delete prompts: %v", err)
+		}
+	}
+
+	// Create new prompts
+	if len(promptsToCreate) > 0 {
+		if err := s.scriptRepo.CreatePrompts(promptsToCreate); err != nil {
 			return nil, fmt.Errorf("failed to create prompts: %w", err)
+		}
+	}
+
+	// Update existing prompts
+	for _, prompt := range promptsToUpdate {
+		if err := s.scriptRepo.UpdatePrompt(prompt); err != nil {
+			return nil, fmt.Errorf("failed to update prompt %s: %w", prompt.ID, err)
 		}
 	}
 
@@ -314,6 +392,12 @@ func (s *ScriptService) SaveScript(topicID, userID string, req *models.SaveScrip
 		}
 	}
 
+	// Note: KHÔNG clear project_id và temp_prompt_id trong bảng files vì:
+	// 1. Files đã được map với prompt qua prompt.InputFiles
+	// 2. Cần giữ lại để GetUploadedFilesForPrompt có thể fallback từ DB khi cache rỗng
+	// 3. Có thể cần để support việc edit/update prompt sau này
+	// 4. Không gây conflict vì mỗi file chỉ map với 1 prompt tại 1 thời điểm
+
 	// Reload script with all relationships
 	savedScript, err := s.scriptRepo.GetByTopicIDAndUserID(topicID, userID)
 	if err != nil {
@@ -370,12 +454,12 @@ func (s *ScriptService) CloneScript(sourceUserID, targetUserID, topicID string) 
 		// Start fresh: Delete existing projects/edges/prompts for target script
 		// Note: Cascading delete should handle child records if we delete projects/edges, but let's be explicit and clear projects first.
 		// Actually, simpler way: GetProjects and DeleteProjects. Or dependent on repository methods.
-		// Assuming cascading delete is configured in GORM models (constraint:OnDelete:CASCADE), 
+		// Assuming cascading delete is configured in GORM models (constraint:OnDelete:CASCADE),
 		// but GORM soft delete or manual cleanup might be safer.
 		// Let's rely on repository methods to clear current data to avoid mixing.
 		// For now, let's assume we proceed to upsert/copy over. But existing data might conflict or dupe.
 		// Ideally: Clear old data for target user's script to match source exactly.
-		
+
 		// Delete all projects for target script
 		projects, _ := s.scriptRepo.GetProjectsByScriptID(targetScript.ID)
 		projectIDs := make([]string, len(projects))
@@ -774,6 +858,87 @@ func (s *ScriptService) AddUploadedFiles(userID string, fileIDs []string) {
 // GetAndClearUploadedFiles lấy file IDs từ cache và xóa sau khi lấy
 func (s *ScriptService) GetAndClearUploadedFiles(userID string) []string {
 	value, ok := s.recentUploadedFiles.LoadAndDelete(userID)
+	if !ok {
+		return []string{}
+	}
+
+	fileIDs := value.([]string)
+	return fileIDs
+}
+
+// AddUploadedFilesForPrompt lưu file IDs vừa upload vào cache và DB cho prompt cụ thể
+// Nếu đã có files trong cache, sẽ append thêm (không replace)
+func (s *ScriptService) AddUploadedFilesForPrompt(userID, projectID, promptID string, fileIDs []string) {
+	if len(fileIDs) == 0 {
+		return
+	}
+
+	// 1. Lưu vào cache (in-memory)
+	cacheKey := fmt.Sprintf("%s_%s_%s", userID, projectID, promptID)
+
+	existing, _ := s.recentUploadedFiles.LoadOrStore(cacheKey, []string{})
+	existingIDs := existing.([]string)
+
+	existingMap := make(map[string]bool)
+	for _, id := range existingIDs {
+		existingMap[id] = true
+	}
+
+	newIDs := make([]string, 0, len(existingIDs)+len(fileIDs))
+	newIDs = append(newIDs, existingIDs...)
+
+	for _, id := range fileIDs {
+		if !existingMap[id] {
+			newIDs = append(newIDs, id)
+		}
+	}
+
+	s.recentUploadedFiles.Store(cacheKey, newIDs)
+
+	// 2. Update files trong DB với project_id và temp_prompt_id (chỉ update những file mới)
+	// Note: Files đã được lưu với project_id và temp_prompt_id khi upload, không cần update lại
+}
+
+// GetUploadedFilesForPrompt lấy file IDs từ cache cho prompt (không xóa) - để user xem danh sách
+// Nếu cache rỗng, sẽ fallback lấy từ DB (bảng files với project_id và temp_prompt_id)
+func (s *ScriptService) GetUploadedFilesForPrompt(userID, projectID, promptID string) []string {
+	cacheKey := fmt.Sprintf("%s_%s_%s", userID, projectID, promptID)
+
+	value, ok := s.recentUploadedFiles.Load(cacheKey)
+	if ok {
+		fileIDs := value.([]string)
+		return fileIDs
+	}
+
+	// Cache rỗng → Fallback: Lấy từ DB (bảng files)
+	if s.fileService != nil {
+		files, err := s.fileService.GetFilesByProjectAndPrompt(userID, projectID, promptID)
+		if err != nil {
+			logrus.Warnf("Failed to get prompt files from DB: %v", err)
+			return []string{}
+		}
+
+		fileIDs := make([]string, 0, len(files))
+		for _, file := range files {
+			fileIDs = append(fileIDs, file.ID)
+		}
+
+		// Nếu tìm thấy trong DB, restore vào cache để lần sau nhanh hơn
+		if len(fileIDs) > 0 {
+			s.recentUploadedFiles.Store(cacheKey, fileIDs)
+		}
+
+		return fileIDs
+	}
+
+	return []string{}
+}
+
+// GetAndClearUploadedFilesForPrompt lấy file IDs từ cache cho prompt và xóa sau khi lấy (dùng khi save script)
+func (s *ScriptService) GetAndClearUploadedFilesForPrompt(userID, projectID, promptID string) []string {
+	cacheKey := fmt.Sprintf("%s_%s_%s", userID, projectID, promptID)
+
+	value, ok := s.recentUploadedFiles.LoadAndDelete(cacheKey)
 	if !ok {
 		return []string{}
 	}

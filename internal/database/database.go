@@ -656,6 +656,96 @@ func InitDB() (*gorm.DB, error) {
 		}
 	}
 
+	// Migration: Add temp_prompt_id column to script_prompts table if it doesn't exist
+	var tempPromptIDColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'script_prompts'
+			AND column_name = 'temp_prompt_id'
+		)
+	`).Scan(&tempPromptIDColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if temp_prompt_id column exists on script_prompts: %v", err)
+	} else if !tempPromptIDColumnExists {
+		logrus.Info("Adding temp_prompt_id column to script_prompts table...")
+		err = db.Exec("ALTER TABLE script_prompts ADD COLUMN IF NOT EXISTS temp_prompt_id VARCHAR(255)").Error
+		if err != nil {
+			logrus.Warnf("Failed to add temp_prompt_id column to script_prompts: %v", err)
+		} else {
+			logrus.Info("Successfully added temp_prompt_id column to script_prompts")
+		}
+		// Add index for better query performance
+		err = db.Exec("CREATE INDEX IF NOT EXISTS idx_script_prompts_temp_prompt_id ON script_prompts(temp_prompt_id)").Error
+		if err != nil {
+			logrus.Warnf("Failed to create index on temp_prompt_id: %v", err)
+		} else {
+			logrus.Info("Successfully created index on temp_prompt_id")
+		}
+	}
+
+	// Migration: Add project_id and temp_prompt_id columns to files table if they don't exist
+	var filesProjectIDColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'files'
+			AND column_name = 'project_id'
+		)
+	`).Scan(&filesProjectIDColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if project_id column exists on files: %v", err)
+	} else if !filesProjectIDColumnExists {
+		logrus.Info("Adding project_id column to files table...")
+		err = db.Exec("ALTER TABLE files ADD COLUMN IF NOT EXISTS project_id VARCHAR(255)").Error
+		if err != nil {
+			logrus.Warnf("Failed to add project_id column to files: %v", err)
+		} else {
+			logrus.Info("Successfully added project_id column to files")
+			// Add index for better query performance
+			err = db.Exec("CREATE INDEX IF NOT EXISTS idx_files_project_id ON files(project_id)").Error
+			if err != nil {
+				logrus.Warnf("Failed to create index on files.project_id: %v", err)
+			}
+		}
+	}
+
+	var filesTempPromptIDColumnExists bool
+	err = db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM information_schema.columns
+			WHERE table_schema = 'public'
+			AND table_name = 'files'
+			AND column_name = 'temp_prompt_id'
+		)
+	`).Scan(&filesTempPromptIDColumnExists).Error
+	if err != nil {
+		logrus.Warnf("Failed to check if temp_prompt_id column exists on files: %v", err)
+	} else if !filesTempPromptIDColumnExists {
+		logrus.Info("Adding temp_prompt_id column to files table...")
+		err = db.Exec("ALTER TABLE files ADD COLUMN IF NOT EXISTS temp_prompt_id VARCHAR(255)").Error
+		if err != nil {
+			logrus.Warnf("Failed to add temp_prompt_id column to files: %v", err)
+		} else {
+			logrus.Info("Successfully added temp_prompt_id column to files")
+			// Add index for better query performance
+			err = db.Exec("CREATE INDEX IF NOT EXISTS idx_files_temp_prompt_id ON files(temp_prompt_id)").Error
+			if err != nil {
+				logrus.Warnf("Failed to create index on files.temp_prompt_id: %v", err)
+			}
+			// Add composite index for query performance
+			err = db.Exec("CREATE INDEX IF NOT EXISTS idx_files_user_project_prompt ON files(user_id, project_id, temp_prompt_id)").Error
+			if err != nil {
+				logrus.Warnf("Failed to create composite index on files: %v", err)
+			}
+		}
+	}
+
 	// Set global DB instance
 	DB = db
 

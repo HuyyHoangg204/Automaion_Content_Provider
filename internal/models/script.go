@@ -87,17 +87,18 @@ func (ScriptProject) TableName() string {
 
 // ScriptPrompt represents a prompt in a project
 type ScriptPrompt struct {
-	ID          string      `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	ScriptID    string      `json:"script_id" gorm:"not null;index;type:uuid"`          // Cần để reference đến ScriptProject composite key
-	ProjectID   string      `json:"project_id" gorm:"not null;index;type:varchar(255)"` // Frontend project_id (timestamp), part of ScriptProject composite key
-	PromptText  string      `json:"text" gorm:"type:text;not null"`
-	Filename    string      `json:"filename,omitempty" gorm:"type:varchar(255)"` // Tên file output gắn với prompt
-	InputFiles  StringArray `json:"input_files,omitempty" gorm:"type:jsonb"`     // Danh sách file name dùng làm input cho prompt này
-	Exit        bool        `json:"exit" gorm:"default:false"`
-	Merge       bool        `json:"merge" gorm:"default:false"` // New field: Merge results
-	PromptOrder int         `json:"prompt_order" gorm:"not null;default:0"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	ID           string      `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ScriptID     string      `json:"script_id" gorm:"not null;index;type:uuid"`               // Cần để reference đến ScriptProject composite key
+	ProjectID    string      `json:"project_id" gorm:"not null;index;type:varchar(255)"`      // Frontend project_id (timestamp), part of ScriptProject composite key
+	TempPromptID string      `json:"temp_prompt_id,omitempty" gorm:"type:varchar(255);index"` // prompt_id từ frontend để map với cache files
+	PromptText   string      `json:"text" gorm:"type:text;not null"`
+	Filename     string      `json:"filename,omitempty" gorm:"type:varchar(255)"` // Tên file output gắn với prompt
+	InputFiles   StringArray `json:"input_files,omitempty" gorm:"type:jsonb"`     // Danh sách file name dùng làm input cho prompt này
+	Exit         bool        `json:"exit" gorm:"default:false"`
+	Merge        bool        `json:"merge" gorm:"default:false"` // New field: Merge results
+	PromptOrder  int         `json:"prompt_order" gorm:"not null;default:0"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
 
 	// Relationships - Note: No foreign key constraint because composite key reference is complex
 	// We rely on application logic to maintain referential integrity
@@ -147,11 +148,14 @@ type ScriptProjectRequest struct {
 }
 
 type ScriptPromptRequest struct {
-	Text       string   `json:"text" binding:"required"`
-	Filename   string   `json:"filename,omitempty"`
-	InputFiles []string `json:"input_files,omitempty"`
-	Exit       bool     `json:"exit"`
-	Merge      bool     `json:"merge"`
+	ID          string   `json:"id,omitempty"`        // UUID từ DB (nếu có = update, không có = create mới)
+	PromptID    string   `json:"prompt_id,omitempty"` // ID từ frontend để identify prompt khi upload file (temp_id)
+	Text        string   `json:"text" binding:"required"`
+	Filename    string   `json:"filename,omitempty"`
+	InputFiles  []string `json:"input_files,omitempty"` // File names (original_name) - sẽ được lấy từ cache nếu có prompt_id, nếu không thì dùng giá trị này
+	Exit        bool     `json:"exit"`
+	Merge       bool     `json:"merge"`
+	PromptOrder int      `json:"prompt_order"`
 }
 
 type ScriptEdgeRequest struct {

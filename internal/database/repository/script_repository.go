@@ -140,6 +140,41 @@ func (r *ScriptRepository) DeletePromptsByScriptIDAndProjectIDs(scriptID string,
 		Delete(&models.ScriptPrompt{}).Error
 }
 
+// GetPromptsByScriptIDAndProjectID gets all prompts for a script and project
+func (r *ScriptRepository) GetPromptsByScriptIDAndProjectID(scriptID, projectID string) ([]*models.ScriptPrompt, error) {
+	var prompts []*models.ScriptPrompt
+	err := r.db.Where("script_id = ? AND project_id = ?", scriptID, projectID).
+		Order("prompt_order ASC").
+		Find(&prompts).Error
+	if err != nil {
+		return nil, err
+	}
+	return prompts, nil
+}
+
+// GetPromptByID gets a prompt by ID
+func (r *ScriptRepository) GetPromptByID(promptID string) (*models.ScriptPrompt, error) {
+	var prompt models.ScriptPrompt
+	err := r.db.Where("id = ?", promptID).First(&prompt).Error
+	if err != nil {
+		return nil, err
+	}
+	return &prompt, nil
+}
+
+// UpdatePrompt updates a script prompt
+func (r *ScriptRepository) UpdatePrompt(prompt *models.ScriptPrompt) error {
+	return r.db.Save(prompt).Error
+}
+
+// DeletePromptsByIDs deletes prompts by list of IDs
+func (r *ScriptRepository) DeletePromptsByIDs(promptIDs []string) error {
+	if len(promptIDs) == 0 {
+		return nil
+	}
+	return r.db.Where("id IN ?", promptIDs).Delete(&models.ScriptPrompt{}).Error
+}
+
 // GetEdgesByScriptID gets all edges for a script
 func (r *ScriptRepository) GetEdgesByScriptID(scriptID string) ([]*models.ScriptEdge, error) {
 	var edges []*models.ScriptEdge
@@ -261,4 +296,3 @@ func (r *ScriptRepository) GetCompletedProjectExecutionsByExecutionID(executionI
 	}
 	return projectExecs, nil
 }
-

@@ -22,6 +22,8 @@ type ScriptExecutionService struct {
 	userProfileRepo      *repository.UserProfileRepository
 	chromeProfileService *ChromeProfileService
 	rabbitMQ             *RabbitMQService
+	fileService          *FileService
+	baseURL              string
 	executionStopChan    chan bool // Stop channel cho execution worker (cũ)
 	projectStopChan      chan bool // Stop channel cho project worker (mới)
 	maxConcurrentPerUser int       // Limit executions per user (không limit per topic vì topic shared)
@@ -33,6 +35,8 @@ func NewScriptExecutionService(
 	userProfileRepo *repository.UserProfileRepository,
 	chromeProfileService *ChromeProfileService,
 	rabbitMQ *RabbitMQService,
+	fileService *FileService,
+	baseURL string,
 ) *ScriptExecutionService {
 	logrus.Info("[ScriptExecutionService] Initializing service...")
 	return &ScriptExecutionService{
@@ -41,6 +45,8 @@ func NewScriptExecutionService(
 		userProfileRepo:      userProfileRepo,
 		chromeProfileService: chromeProfileService,
 		rabbitMQ:             rabbitMQ,
+		fileService:          fileService,
+		baseURL:              baseURL,
 		executionStopChan:    make(chan bool),
 		projectStopChan:      make(chan bool),
 		maxConcurrentPerUser: 1, // Mỗi user chỉ được execute 1 lần cùng lúc
@@ -510,11 +516,15 @@ func (s *ScriptExecutionService) callAutomationBackendProjectAsync(
 
 	promptList := make([]map[string]interface{}, 0, len(prompts))
 	for _, prompt := range prompts {
+		// Convert file names thành download URLs
+		inputFilesURLs := s.convertFileNamesToURLs(execution.UserID, prompt.InputFiles)
+
 		promptMap := map[string]interface{}{
-			"prompt":      prompt.PromptText,
-			"output":      prompt.Filename,   // Chỉ file name, không có extension
-			"input_files": prompt.InputFiles, // Chỉ file name
-			"prompt_id":   prompt.ID,
+			"prompt":           prompt.PromptText,
+			"output":           prompt.Filename,   // Chỉ file name, không có extension
+			"input_files":      prompt.InputFiles, // File names từ previous executions
+			"input_files_urls": inputFilesURLs,    // URLs để download từ backend cloud
+			"prompt_id":        prompt.ID,
 		}
 		// Chỉ thêm merge nếu true
 		if prompt.Merge {
@@ -873,11 +883,15 @@ func (s *ScriptExecutionService) callAutomationBackendProject(
 	// Convert prompts to API format
 	promptList := make([]map[string]interface{}, 0, len(prompts))
 	for _, prompt := range prompts {
+		// Convert file names thành download URLs
+		inputFilesURLs := s.convertFileNamesToURLs(execution.UserID, prompt.InputFiles)
+
 		promptMap := map[string]interface{}{
-			"prompt":      prompt.PromptText,
-			"output":      prompt.Filename,   // Chỉ file name, không có extension
-			"input_files": prompt.InputFiles, // Chỉ file name
-			"prompt_id":   prompt.ID,
+			"prompt":           prompt.PromptText,
+			"output":           prompt.Filename,   // Chỉ file name, không có extension
+			"input_files":      prompt.InputFiles, // File names từ previous executions
+			"input_files_urls": inputFilesURLs,    // URLs để download từ backend cloud
+			"prompt_id":        prompt.ID,
 		}
 		// Chỉ thêm merge nếu true
 		if prompt.Merge {
@@ -1119,6 +1133,43 @@ func (s *ScriptExecutionService) isPermanentError(err error) bool {
 	}
 
 	return false
+}
+
+// convertFileNamesToURLs converts file names (original_name) to download URLs
+// Query files from user and match by original_name, then create download URLs
+func (s *ScriptExecutionService) convertFileNamesToURLs(userID string, fileNames []string) []string {
+	if len(fileNames) == 0 || s.fileService == nil {
+		return []string{}
+	}
+
+	// Get all user files
+	userFiles, err := s.fileService.GetUserFiles(userID)
+	if err != nil {
+		logrus.Warnf("Failed to get user files for converting to URLs: %v", err)
+		return []string{}
+	}
+
+	// Create map: original_name -> file (lấy file mới nhất nếu có nhiều cùng tên)
+	fileMap := make(map[string]*models.File)
+	for _, file := range userFiles {
+		existing, exists := fileMap[file.OriginalName]
+		if !exists || file.CreatedAt.After(existing.CreatedAt) {
+			fileMap[file.OriginalName] = file
+		}
+	}
+
+	// Convert file names to URLs
+	urls := make([]string, 0, len(fileNames))
+	for _, fileName := range fileNames {
+		file, found := fileMap[fileName]
+		if !found {
+			continue
+		}
+		downloadURL := fmt.Sprintf("%s/api/v1/files/%s/download", strings.TrimSuffix(s.baseURL, "/"), file.ID)
+		urls = append(urls, downloadURL)
+	}
+
+	return urls
 }
 
 // generateDebugPort generates a unique debug port for a user

@@ -10,6 +10,7 @@ import (
 	"github.com/onegreenvn/green-provider-services-backend/internal/database/repository"
 	"github.com/onegreenvn/green-provider-services-backend/internal/models"
 	"github.com/onegreenvn/green-provider-services-backend/internal/services"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -30,14 +31,17 @@ func NewFileHandler(db *gorm.DB, baseURL string, scriptService *services.ScriptS
 
 // UploadFile godoc
 // @Summary Upload file(s)
-// @Description Upload one or multiple files to the server. Returns file IDs that can be used in knowledge_files when creating topics.
+// @Description Upload one or multiple files to the server. Returns file IDs that can be used in knowledge_files when creating topics/projects or input_files for prompts.
 // @Description Supports both single file (form field: "file") and multiple files (form field: "files[]")
+// @Description Optional: project_id and prompt_id to cache files for specific prompt
 // @Tags files
 // @Accept multipart/form-data
 // @Produce json
 // @Security BearerAuth
 // @Param file formData file false "Single file to upload"
 // @Param files formData file false "Multiple files to upload (files[])"
+// @Param project_id formData string false "Project ID to cache files for project (for knowledge_files)"
+// @Param prompt_id formData string false "Prompt ID to cache files for specific prompt (for input_files)"
 // @Success 201 {object} map[string]interface{} "Single file: {file: FileResponse}, Multiple files: {files: []FileResponse}"
 // @Failure 400 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
@@ -45,17 +49,23 @@ func NewFileHandler(db *gorm.DB, baseURL string, scriptService *services.ScriptS
 func (h *FileHandler) UploadFile(c *gin.Context) {
 	userID := c.MustGet("user_id").(string)
 
-	// Parse form data (category, etc.) - use PostForm to avoid consuming multipart reader
-	var req models.FileUploadRequest
-	if category := c.PostForm("category"); category != "" {
-		req.Category = category
-	}
-
-	// Check for multiple files first - parse multipart form
+	// Parse multipart form first to get all form data including project_id and prompt_id
 	form, err := c.MultipartForm()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse multipart form", "details": err.Error()})
 		return
+	}
+
+	// Parse form data (category, project_id, prompt_id, etc.) from parsed form
+	var req models.FileUploadRequest
+	if categories := form.Value["category"]; len(categories) > 0 && categories[0] != "" {
+		req.Category = categories[0]
+	}
+	if projectIDs := form.Value["project_id"]; len(projectIDs) > 0 && projectIDs[0] != "" {
+		req.ProjectID = projectIDs[0]
+	}
+	if promptIDs := form.Value["prompt_id"]; len(promptIDs) > 0 && promptIDs[0] != "" {
+		req.PromptID = promptIDs[0]
 	}
 
 	// Try to get files with different possible keys
@@ -105,9 +115,15 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 			return
 		}
 
-		// Cache file ID để dùng khi tạo project
+		// Cache file ID để dùng khi tạo project hoặc prompt
 		if h.scriptService != nil {
-			h.scriptService.AddUploadedFiles(userID, []string{file.ID})
+			if req.PromptID != "" && req.ProjectID != "" {
+				// Cache cho prompt cụ thể
+				h.scriptService.AddUploadedFilesForPrompt(userID, req.ProjectID, req.PromptID, []string{file.ID})
+			} else {
+				// Cache cho project (logic cũ)
+				h.scriptService.AddUploadedFiles(userID, []string{file.ID})
+			}
 		}
 
 		response := h.fileService.FileToResponse(file)
@@ -140,9 +156,15 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 		return
 	}
 
-	// Cache file IDs để dùng khi tạo project
+	// Cache file IDs để dùng khi tạo project hoặc prompt
 	if h.scriptService != nil && len(uploadedFileIDs) > 0 {
-		h.scriptService.AddUploadedFiles(userID, uploadedFileIDs)
+		if req.PromptID != "" && req.ProjectID != "" {
+			// Cache cho prompt cụ thể
+			h.scriptService.AddUploadedFilesForPrompt(userID, req.ProjectID, req.PromptID, uploadedFileIDs)
+		} else {
+			// Cache cho project (logic cũ)
+			h.scriptService.AddUploadedFiles(userID, uploadedFileIDs)
+		}
 	}
 
 	// Return results - include errors if some files failed
@@ -224,4 +246,53 @@ func (h *FileHandler) GetMyFiles(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, responses)
+}
+
+// GetPromptFiles godoc
+// @Summary Get files uploaded for a specific prompt
+// @Description Get list of files that have been uploaded for a specific prompt (from cache)
+// @Tags files
+// @Produce json
+// @Security BearerAuth
+// @Param project_id query string true "Project ID"
+// @Param prompt_id query string true "Prompt ID"
+// @Success 200 {array} models.FileResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /api/v1/files/prompt [get]
+func (h *FileHandler) GetPromptFiles(c *gin.Context) {
+	userID := c.MustGet("user_id").(string)
+	projectID := c.Query("project_id")
+	promptID := c.Query("prompt_id")
+
+	if projectID == "" || promptID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "project_id and prompt_id are required"})
+		return
+	}
+
+	// Lấy file IDs từ cache (không xóa)
+	if h.scriptService == nil {
+		c.JSON(http.StatusOK, []models.FileResponse{})
+		return
+	}
+
+	fileIDs := h.scriptService.GetUploadedFilesForPrompt(userID, projectID, promptID)
+	if len(fileIDs) == 0 {
+		c.JSON(http.StatusOK, []models.FileResponse{})
+		return
+	}
+
+	// Lấy file info từ DB
+	files := make([]models.FileResponse, 0, len(fileIDs))
+	for _, fileID := range fileIDs {
+		file, err := h.fileService.GetFile(fileID, userID)
+		if err != nil {
+			logrus.Warnf("Failed to get file %s: %v", fileID, err)
+			continue
+		}
+		response := h.fileService.FileToResponse(file)
+		files = append(files, response)
+	}
+
+	c.JSON(http.StatusOK, files)
 }

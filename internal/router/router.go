@@ -127,6 +127,8 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 		userProfileRepo,
 		chromeProfileService,
 		rabbitMQService,
+		fileService,
+		baseURL,
 	)
 
 	// Inject ScriptExecutionService into ProcessLogService
@@ -288,6 +290,7 @@ func SetupRouter(db *gorm.DB, rabbitMQService *services.RabbitMQService, sseHub 
 			{
 				files.POST("/upload", fileHandler.UploadFile)
 				files.GET("", fileHandler.GetMyFiles)
+				files.GET("/prompt", fileHandler.GetPromptFiles) // Get files for a specific prompt
 				// Download endpoint moved to public routes (supports token in query param)
 			}
 
